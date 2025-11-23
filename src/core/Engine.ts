@@ -194,7 +194,10 @@ export class Engine {
         up: input.up,
         down: input.down,
         left: input.left,
-        right: input.right
+        right: input.right,
+        sprint: input.mount, // Shift key
+        jump: input.action, // Space key
+        attack: input.attack || false // F key
       });
     }
   }

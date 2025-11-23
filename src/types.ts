@@ -35,8 +35,9 @@ export interface InputState {
   down: boolean;
   left: boolean;
   right: boolean;
-  action: boolean; // Space or Attack
-  mount: boolean; // E key
+  action: boolean; // Space - Jump
+  mount: boolean; // Shift - Sprint
+  attack?: boolean; // F - Attack
 }
 
 export interface GameStats {

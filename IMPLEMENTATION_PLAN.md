@@ -37,27 +37,44 @@ This document outlines the complete implementation roadmap for Rampage Rider. Wh
 
 ## Phase 2: Entity System
 
-### 2.1 Base Entity Class
+### 2.1 Basic Player Movement System ✅
+- [x] Create Player class with Sketchbook movement system
+- [x] Load boxman.glb character model
+- [x] Implement camera-relative WASD movement
+- [x] Add idle and run animation system
+- [x] Implement smooth camera follow
+- [x] Add ground grid for reference
+- [x] Fix shadow positioning at feet
+
+### 2.2 Jump, Sprint, and Attack Mechanics ✅
+- [x] Implement jump with gravity physics
+- [x] Add sprint with Shift key (1.75x speed)
+- [x] Add attack input system (F key)
+- [x] Create animation priority system
+- [x] Implement vertical velocity tracking
+- [x] Add ground detection
+
+### 2.3 Base Entity Class
 - [ ] Create Entity base class with physics + AI + mesh sync
 - [ ] Implement position/rotation synchronization
 - [ ] Set up collision group management
 - [ ] Add entity lifecycle methods (spawn, update, destroy)
 
-### 2.2 Player Entity
-- [ ] Implement Player entity with kinematic movement
-- [ ] Add foot movement controls (WASD)
-- [ ] Implement attack mechanics
+### 2.4 Player Entity Enhancement
+- [ ] Refactor Player to extend Entity base class
 - [ ] Add mount/dismount system
+- [ ] Implement combat system (damage, hitboxes)
 - [ ] Create player state machine
+- [ ] Add health system
 
-### 2.3 Pedestrian Entities
+### 2.5 Pedestrian Entities
 - [ ] Create Pedestrian base class
 - [ ] Implement wandering AI behavior
 - [ ] Add flee behavior when player nearby
 - [ ] Create procedural humanoid mesh generation
 - [ ] Add ragdoll physics on death
 
-### 2.4 Police Entities
+### 2.6 Police Entities
 - [ ] Create Cop base class with chase behavior
 - [ ] Implement pursuit AI with Yuka steering
 - [ ] Add shooting mechanics
@@ -200,14 +217,23 @@ This document outlines the complete implementation roadmap for Rampage Rider. Wh
 
 **Last Updated:** November 23, 2024
 
-**Current Phase:** Phase 1 Complete ✅ → Starting Phase 2 (Entity System)
+**Current Phase:** Phase 2 - Player Movement Complete (2.1, 2.2 ✅) → Next: Entity Base Class (2.3)
 
-**Phase 1 Completed:**
-- Core engine with Rapier physics
-- Yuka AI manager integration
-- 8bitcn UI system setup with modern React types
-- Type system fully resolved (zero TypeScript errors)
+**Completed:**
+- Phase 1: Core engine, AI manager, UI system, type fixes ✅
+- Phase 2.1: Basic player movement with Sketchbook system ✅
+- Phase 2.2: Jump, sprint, and attack mechanics ✅
+
+**Player Features Implemented:**
+- Camera-relative WASD movement for isometric view
+- Kinematic Rapier physics with capsule collider
+- Boxman character model with animations (idle, run, sprint, jump_running)
+- Jump mechanic with gravity physics (Space key)
+- Sprint mechanic with 1.75x speed (Shift key)
+- Attack input system placeholder (F key)
+- Smooth camera follow with lerp
+- Animation priority system
 
 **Next Up:**
-- Phase 2.1: Entity base class implementation
-- Phase 2.2: Player entity with kinematic movement
+- Phase 2.3: Entity base class for all game objects
+- Phase 2.4: Refactor Player to use Entity base
