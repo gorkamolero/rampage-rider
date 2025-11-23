@@ -12,6 +12,92 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2024-11-23]
 
+### Phase 2.2 - Jump, Sprint, and Attack Mechanics
+
+**Added:**
+- Jump mechanic with gravity physics
+- Sprint mechanic with speed multiplier
+- Attack input system (placeholder implementation)
+- Full input key bindings for all movement actions
+
+**Jump System:**
+- Jump force: 5 units/second
+- Gravity: -15 units/second²
+- Ground detection at Y <= 0.57
+- Prevents mid-air jumps with grounded check
+- Jump animation: `jump_running` with 0.1s fade
+
+**Sprint System:**
+- Base move speed: 4 units/second
+- Sprint speed: 7 units/second (1.75x multiplier, ported from Sketchbook)
+- Activated with Shift key
+- Only works while moving
+- Sprint animation with 0.1s fade
+- Debug logging shows sprint state changes
+
+**Attack System:**
+- F key binding for attack input
+- Placeholder console logging
+- Animation priority: highest (attack > jump > sprint > run > idle)
+- Ready for future combat implementation
+
+**Input Bindings:**
+- WASD / Arrow Keys: Movement
+- Space: Jump
+- Shift (Left/Right): Sprint
+- F: Attack
+
+**Animation State Machine:**
+Priority-based animation system ensures correct animation plays:
+1. Attack (highest priority)
+2. Jump (jump_running)
+3. Sprint
+4. Run (normal movement)
+5. Idle (lowest priority)
+
+**Vertical Physics:**
+```typescript
+// Jump trigger
+if (this.input.jump && this.isGrounded && !this.prevInput.jump) {
+  this.verticalVelocity = this.jumpForce;
+  this.isGrounded = false;
+}
+
+// Gravity application
+if (!this.isGrounded) {
+  this.verticalVelocity += this.gravity * deltaTime;
+}
+
+// Ground check
+if (translation.y <= 0.57 && this.verticalVelocity <= 0) {
+  this.isGrounded = true;
+  this.verticalVelocity = 0;
+}
+
+// Apply to rigid body
+this.rigidBody.setLinvel(
+  { x: velocity.x, y: this.verticalVelocity, z: velocity.z },
+  true
+);
+```
+
+**Files Modified:**
+- `src/entities/Player.ts` - Added jump, sprint, attack mechanics
+- `src/core/Engine.ts` - Updated input forwarding for all actions
+- `src/components/GameCanvas.tsx` - Added attack key binding (F key)
+- `src/types.ts` - Added `attack?: boolean` to InputState
+
+**Technical Details:**
+- Vertical velocity tracked independently from horizontal movement
+- Ground check uses Y position threshold
+- Previous input state prevents repeated jump triggers
+- Sprint only activates when moving (prevents standing sprint)
+- Change detection for debug logging (only logs on input changes)
+
+---
+
+## [2024-11-23]
+
 ### Phase 2.1 - Basic Player Movement System
 
 **Added:**

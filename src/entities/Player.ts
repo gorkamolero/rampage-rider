@@ -13,7 +13,15 @@ export class Player extends THREE.Group {
 
   // Movement
   private moveSpeed: number = 4;
+  private sprintSpeed: number = 7; // 1.4x multiplier like Sketchbook (4 * 1.75)
   private cameraDirection: THREE.Vector3 = new THREE.Vector3(0, 0, -1);
+  private isSprinting: boolean = false;
+
+  // Jump
+  private jumpForce: number = 5;
+  private isGrounded: boolean = true;
+  private verticalVelocity: number = 0;
+  private gravity: number = -15;
 
   // Input state
   private input = {
@@ -21,6 +29,9 @@ export class Player extends THREE.Group {
     down: false,
     left: false,
     right: false,
+    sprint: false,
+    jump: false,
+    attack: false,
   };
 
   // Previous input state for change detection
@@ -29,6 +40,9 @@ export class Player extends THREE.Group {
     down: false,
     left: false,
     right: false,
+    sprint: false,
+    jump: false,
+    attack: false,
   };
 
   // Visual containers (matching Sketchbook structure)
@@ -147,8 +161,22 @@ export class Player extends THREE.Group {
   /**
    * Handle keyboard input
    */
-  handleInput(inputState: { up: boolean; down: boolean; left: boolean; right: boolean }): void {
-    this.input = { ...inputState };
+  handleInput(inputState: {
+    up: boolean;
+    down: boolean;
+    left: boolean;
+    right: boolean;
+    sprint?: boolean;
+    jump?: boolean;
+    attack?: boolean;
+  }): void {
+    this.input.up = inputState.up;
+    this.input.down = inputState.down;
+    this.input.left = inputState.left;
+    this.input.right = inputState.right;
+    this.input.sprint = inputState.sprint || false;
+    this.input.jump = inputState.jump || false;
+    this.input.attack = inputState.attack || false;
   }
 
   /**
@@ -176,11 +204,11 @@ export class Player extends THREE.Group {
     }
     // A: move up-left on screen
     if (this.input.left) {
-      x += 1;
+      x -= 1;
     }
     // D: move down-right on screen
     if (this.input.right) {
-      x -= 1;
+      x += 1;
     }
 
     const dir = new THREE.Vector3(x, 0, z);
@@ -213,38 +241,79 @@ export class Player extends THREE.Group {
   update(deltaTime: number): void {
     if (!this.rigidBody) return;
 
+    // Get current position before updates
+    const translation = this.rigidBody.translation();
+
     // Check if input changed
     const inputChanged =
       this.input.up !== this.prevInput.up ||
       this.input.down !== this.prevInput.down ||
       this.input.left !== this.prevInput.left ||
-      this.input.right !== this.prevInput.right;
+      this.input.right !== this.prevInput.right ||
+      this.input.sprint !== this.prevInput.sprint ||
+      this.input.jump !== this.prevInput.jump ||
+      this.input.attack !== this.prevInput.attack;
 
     // Get movement direction relative to camera
     const localDir = this.getLocalMovementDirection();
     const moveVector = this.getCameraRelativeMovementVector();
     const isMoving = localDir.length() > 0;
 
-    // Update animation based on movement (matching Sketchbook Walk state)
-    if (isMoving && this.currentAnimation !== 'run') {
+    // Handle sprint (Sketchbook Sprint state: velocity 1.4x)
+    this.isSprinting = this.input.sprint && isMoving;
+    const currentSpeed = this.isSprinting ? this.sprintSpeed : this.moveSpeed;
+
+    // Handle jump (Sketchbook JumpRunning: jump force 4)
+    if (this.input.jump && this.isGrounded && !this.prevInput.jump) {
+      this.verticalVelocity = this.jumpForce;
+      this.isGrounded = false;
+      console.log('[Player] Jump!');
+    }
+
+    // Apply gravity
+    if (!this.isGrounded) {
+      this.verticalVelocity += this.gravity * deltaTime;
+    }
+
+    // Ground check (simple Y position check)
+    if (translation.y <= 0.57 && this.verticalVelocity <= 0) {
+      this.isGrounded = true;
+      this.verticalVelocity = 0;
+    }
+
+    // Update animation based on state priority
+    if (this.input.attack && this.currentAnimation !== 'idle') {
+      // Attack animation (placeholder - will play idle since attack animation may not exist)
+      console.log('[Player] Attack!');
+    } else if (!this.isGrounded && this.currentAnimation !== 'jump_running') {
+      this.playAnimation('jump_running', 0.1);
+    } else if (this.isSprinting && this.currentAnimation !== 'sprint') {
+      this.playAnimation('sprint', 0.1);
+    } else if (isMoving && !this.isSprinting && this.currentAnimation !== 'run') {
       this.playAnimation('run', 0.1);
-    } else if (!isMoving && this.currentAnimation !== 'idle') {
+    } else if (!isMoving && this.isGrounded && this.currentAnimation !== 'idle') {
       this.playAnimation('idle', 0.1);
     }
 
-    // Store current input for next frame
+    // Debug logging - only when input changes
     if (inputChanged) {
+      console.log('[Player] Sprint:', this.isSprinting, 'Speed:', currentSpeed);
+      console.log('[Player] Grounded:', this.isGrounded, 'VertVel:', this.verticalVelocity.toFixed(2));
+
+      // Store current input for next frame
       this.prevInput = { ...this.input };
     }
 
     // Apply move speed
-    const velocity = moveVector.multiplyScalar(this.moveSpeed);
+    const velocity = moveVector.multiplyScalar(currentSpeed);
 
-    // Set Rapier velocity (kinematic body)
-    this.rigidBody.setLinvel({ x: velocity.x, y: 0, z: velocity.z }, true);
+    // Set Rapier velocity (kinematic body) with vertical component
+    this.rigidBody.setLinvel(
+      { x: velocity.x, y: this.verticalVelocity, z: velocity.z },
+      true
+    );
 
     // Sync visual position with physics
-    const translation = this.rigidBody.translation();
     (this as THREE.Group).position.set(translation.x, translation.y, translation.z);
 
     // Update animation mixer

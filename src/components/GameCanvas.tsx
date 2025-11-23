@@ -66,6 +66,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, game
       right: false,
       action: false,
       mount: false,
+      attack: false, // F key for attack
     };
 
     const handleKey = (e: KeyboardEvent, isDown: boolean) => {
@@ -76,8 +77,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, game
       else if (e.code === 'KeyS' || e.code === 'ArrowDown') inputState.down = isDown;
       else if (e.code === 'KeyA' || e.code === 'ArrowLeft') inputState.left = isDown;
       else if (e.code === 'KeyD' || e.code === 'ArrowRight') inputState.right = isDown;
-      else if (e.code === 'Space') inputState.action = isDown;
-      else if (e.code === 'KeyE') inputState.mount = isDown;
+      else if (e.code === 'Space') inputState.action = isDown; // Jump
+      else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') inputState.mount = isDown; // Sprint
+      else if (e.code === 'KeyF') inputState.attack = isDown; // Attack
 
       engineRef.current.handleInput(inputState);
     };
