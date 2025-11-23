@@ -12,10 +12,10 @@ export class Player extends THREE.Group {
   private world: RAPIER.World | null = null;
 
   // Movement
-  private moveSpeed: number = 4;
-  private sprintSpeed: number = 7; // 1.4x multiplier like Sketchbook (4 * 1.75)
+  private walkSpeed: number = 4; // Slow walk when holding Shift
+  private sprintSpeed: number = 7; // Default speed (character naturally sprints)
   private cameraDirection: THREE.Vector3 = new THREE.Vector3(0, 0, -1);
-  private isSprinting: boolean = false;
+  private isWalking: boolean = false; // Shift slows down instead of speeding up
 
   // Jump
   private jumpForce: number = 5;
@@ -259,9 +259,9 @@ export class Player extends THREE.Group {
     const moveVector = this.getCameraRelativeMovementVector();
     const isMoving = localDir.length() > 0;
 
-    // Handle sprint (Sketchbook Sprint state: velocity 1.4x)
-    this.isSprinting = this.input.sprint && isMoving;
-    const currentSpeed = this.isSprinting ? this.sprintSpeed : this.moveSpeed;
+    // Handle walk (Shift slows down from default sprint)
+    this.isWalking = this.input.sprint && isMoving; // Shift = walk, no shift = sprint
+    const currentSpeed = this.isWalking ? this.walkSpeed : this.sprintSpeed;
 
     // Handle jump (Sketchbook JumpRunning: jump force 4)
     if (this.input.jump && this.isGrounded && !this.prevInput.jump) {
@@ -287,9 +287,11 @@ export class Player extends THREE.Group {
       console.log('[Player] Attack!');
     } else if (!this.isGrounded && this.currentAnimation !== 'jump_running') {
       this.playAnimation('jump_running', 0.1);
-    } else if (this.isSprinting && this.currentAnimation !== 'sprint') {
+    } else if (isMoving && !this.isWalking && this.currentAnimation !== 'sprint') {
+      // Default movement = sprint animation
       this.playAnimation('sprint', 0.1);
-    } else if (isMoving && !this.isSprinting && this.currentAnimation !== 'run') {
+    } else if (this.isWalking && this.currentAnimation !== 'run') {
+      // Shift held = walk/run animation (slower)
       this.playAnimation('run', 0.1);
     } else if (!isMoving && this.isGrounded && this.currentAnimation !== 'idle') {
       this.playAnimation('idle', 0.1);
@@ -297,7 +299,7 @@ export class Player extends THREE.Group {
 
     // Debug logging - only when input changes
     if (inputChanged) {
-      console.log('[Player] Sprint:', this.isSprinting, 'Speed:', currentSpeed);
+      console.log('[Player] Walking:', this.isWalking, 'Speed:', currentSpeed, '(Default=Sprint)');
       console.log('[Player] Grounded:', this.isGrounded, 'VertVel:', this.verticalVelocity.toFixed(2));
 
       // Store current input for next frame

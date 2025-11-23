@@ -36,7 +36,7 @@ export interface InputState {
   left: boolean;
   right: boolean;
   action: boolean; // Space - Jump
-  mount: boolean; // Shift - Sprint
+  mount: boolean; // Shift - Walk (slows down from default sprint)
   attack?: boolean; // F - Attack
 }
 

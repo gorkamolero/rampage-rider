@@ -78,7 +78,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, game
       else if (e.code === 'KeyA' || e.code === 'ArrowLeft') inputState.left = isDown;
       else if (e.code === 'KeyD' || e.code === 'ArrowRight') inputState.right = isDown;
       else if (e.code === 'Space') inputState.action = isDown; // Jump
-      else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') inputState.mount = isDown; // Sprint
+      else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') inputState.mount = isDown; // Walk (slows down from default sprint)
       else if (e.code === 'KeyF') inputState.attack = isDown; // Attack
 
       engineRef.current.handleInput(inputState);

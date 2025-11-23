@@ -195,7 +195,7 @@ export class Engine {
         down: input.down,
         left: input.left,
         right: input.right,
-        sprint: input.mount, // Shift key
+        sprint: input.mount, // Shift key (walk mode - slows down)
         jump: input.action, // Space key
         attack: input.attack || false // F key
       });

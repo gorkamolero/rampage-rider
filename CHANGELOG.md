@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 **Added:**
 - Jump mechanic with gravity physics
-- Sprint mechanic with speed multiplier
+- Inverted sprint system (sprint by default, Shift to walk slowly)
 - Attack input system (placeholder implementation)
 - Full input key bindings for all movement actions
 
@@ -27,13 +27,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Prevents mid-air jumps with grounded check
 - Jump animation: `jump_running` with 0.1s fade
 
-**Sprint System:**
-- Base move speed: 4 units/second
-- Sprint speed: 7 units/second (1.75x multiplier, ported from Sketchbook)
-- Activated with Shift key
-- Only works while moving
-- Sprint animation with 0.1s fade
-- Debug logging shows sprint state changes
+**Movement System (Inverted Sprint):**
+- Default sprint speed: 7 units/second (character naturally sprints)
+- Walk speed: 4 units/second (activated by holding Shift)
+- Shift key slows down instead of speeding up
+- Sprint animation plays by default when moving
+- Walk/run animation plays when Shift held
+- Debug logging shows walk state
 
 **Attack System:**
 - F key binding for attack input
@@ -42,17 +42,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Ready for future combat implementation
 
 **Input Bindings:**
-- WASD / Arrow Keys: Movement
+- WASD / Arrow Keys: Movement (default = sprint)
 - Space: Jump
-- Shift (Left/Right): Sprint
+- Shift (Left/Right): Walk (slows down from sprint)
 - F: Attack
 
 **Animation State Machine:**
 Priority-based animation system ensures correct animation plays:
 1. Attack (highest priority)
 2. Jump (jump_running)
-3. Sprint
-4. Run (normal movement)
+3. Sprint (default movement, no Shift)
+4. Run/Walk (Shift held)
 5. Idle (lowest priority)
 
 **Vertical Physics:**
@@ -91,7 +91,8 @@ this.rigidBody.setLinvel(
 - Vertical velocity tracked independently from horizontal movement
 - Ground check uses Y position threshold
 - Previous input state prevents repeated jump triggers
-- Sprint only activates when moving (prevents standing sprint)
+- Inverted sprint: character naturally fast, Shift slows down to walk speed
+- Walk mode only activates when moving (prevents standing walk state)
 - Change detection for debug logging (only logs on input changes)
 
 ---
