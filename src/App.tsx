@@ -14,6 +14,7 @@ function App() {
     combo: 0,
     comboTimer: 0,
     gameTime: 0,
+    heat: 0,
     killHistory: []
   });
 

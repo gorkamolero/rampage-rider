@@ -176,7 +176,7 @@ export class Pedestrian extends THREE.Group {
     this.yukaVehicle.steering.clear();
 
     // Flee from danger (flatten to 2D to prevent vertical movement)
-    const flatDangerPosition = new YUKA.Vec3(dangerPosition.x, 0, dangerPosition.z);
+    const flatDangerPosition = new YUKA.Vector3(dangerPosition.x, 0, dangerPosition.z);
     const fleeBehavior = new YUKA.FleeBehavior(flatDangerPosition);
     fleeBehavior.panicDistance = 15;
     this.yukaVehicle.steering.add(fleeBehavior);
@@ -302,10 +302,10 @@ export class Pedestrian extends THREE.Group {
     const knockbackVelocity = direction.clone().normalize().multiplyScalar(force);
     this.yukaVehicle.velocity.add(knockbackVelocity);
 
-    // Set stumbling state and play ReceiveHit animation
+    // Set stumbling state and play RecieveHit animation
     this.isStumbling = true;
     this.stumbleTimer = 0.8; // Stumble for 0.8 seconds
-    this.playAnimation('ReceiveHit', 0.1);
+    this.playAnimation('RecieveHit', 0.1);
   }
 
   /**
