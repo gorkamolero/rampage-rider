@@ -7,17 +7,22 @@ import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js';
  * Creates persistent blood splatter decals on the ground using Three.js DecalGeometry.
  * Blood splatters project onto surfaces and stay there permanently.
  */
+interface DecalEntry {
+  mesh: THREE.Mesh;
+  createdAt: number; // Timestamp in seconds
+}
+
 export class BloodDecalSystem {
   private scene: THREE.Scene;
-  private decals: THREE.Mesh[] = [];
+  private decals: DecalEntry[] = [];
   private bloodTextures: THREE.Texture[] = [];
   private groundMesh: THREE.Mesh | null = null;
-  private maxDecals: number = 100; // Limit for performance
+  private decalLifetime: number = 60; // Duration in seconds before decal fades
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
     this.createBloodTextures();
-    console.log('[BloodDecalSystem] Created with', this.bloodTextures.length, 'blood textures');
+    console.log('[BloodDecalSystem] Created - decals last', this.decalLifetime, 'seconds');
   }
 
   /**
@@ -187,17 +192,12 @@ export class BloodDecalSystem {
     const decalMesh = new THREE.Mesh(decalGeometry, material);
     decalMesh.renderOrder = this.decals.length; // Ensure proper layering
 
-    // Add to scene
+    // Add to scene with timestamp
     this.scene.add(decalMesh);
-    this.decals.push(decalMesh);
-
-    // Remove oldest decal if we exceed max
-    if (this.decals.length > this.maxDecals) {
-      const oldDecal = this.decals.shift()!;
-      this.scene.remove(oldDecal);
-      oldDecal.geometry.dispose();
-      (oldDecal.material as THREE.Material).dispose();
-    }
+    this.decals.push({
+      mesh: decalMesh,
+      createdAt: Date.now() / 1000, // Current time in seconds
+    });
   }
 
   /**
@@ -222,13 +222,34 @@ export class BloodDecalSystem {
   }
 
   /**
+   * Update system - removes expired decals based on lifetime
+   */
+  update(): void {
+    const currentTime = Date.now() / 1000;
+
+    // Find expired decals
+    let expiredCount = 0;
+    while (this.decals.length > 0 && currentTime - this.decals[0].createdAt > this.decalLifetime) {
+      const entry = this.decals.shift()!;
+      this.scene.remove(entry.mesh);
+      entry.mesh.geometry.dispose();
+      (entry.mesh.material as THREE.Material).dispose();
+      expiredCount++;
+    }
+
+    if (expiredCount > 0) {
+      console.log(`[BloodDecalSystem] Removed ${expiredCount} expired decals (${this.decals.length} remaining)`);
+    }
+  }
+
+  /**
    * Clear all decals
    */
   clear(): void {
-    for (const decal of this.decals) {
-      this.scene.remove(decal);
-      decal.geometry.dispose();
-      (decal.material as THREE.Material).dispose();
+    for (const entry of this.decals) {
+      this.scene.remove(entry.mesh);
+      entry.mesh.geometry.dispose();
+      (entry.mesh.material as THREE.Material).dispose();
     }
     this.decals = [];
     console.log('[BloodDecalSystem] Cleared all decals');

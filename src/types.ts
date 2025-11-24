@@ -1,4 +1,5 @@
 export enum GameState {
+  LOADING = 'LOADING',
   MENU = 'MENU',
   PLAYING = 'PLAYING',
   GAME_OVER = 'GAME_OVER',
@@ -48,6 +49,7 @@ export interface GameStats {
   combo: number;
   comboTimer: number;
   gameTime: number;
+  heat: number;
   killHistory: { time: number; kills: number }[];
 }
 

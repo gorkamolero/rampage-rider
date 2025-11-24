@@ -19,8 +19,8 @@ export class CrowdManager {
 
   // Spawn config
   private maxPedestrians: number = 20;
-  private spawnRadius: number = 20; // Spawn within 20 units of player
-  private minSpawnDistance: number = 5; // Don't spawn too close to player
+  private spawnRadius: number = 25; // Max spawn distance
+  private minSpawnDistance: number = 18; // Spawn off-screen (visible area is ~15 units radius)
 
   // Character types with weights (higher = more common)
   private characterPool: Array<{ type: string; weight: number }> = [

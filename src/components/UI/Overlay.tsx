@@ -3,6 +3,7 @@ import { GameStats, TierConfig, Tier } from '../../types';
 import { TIER_CONFIGS } from '../../constants';
 import { Badge } from '@/components/ui/8bit/badge';
 import HealthBar from '@/components/ui/8bit/health-bar';
+import HeatBar from '@/components/ui/8bit/heat-bar';
 import { Progress } from '@/components/ui/8bit/progress';
 
 interface OverlayProps {
@@ -57,8 +58,22 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
 
       {/* Bottom Bar: Health & Tier */}
       <div className="flex items-end gap-4">
-        {/* Health */}
+        {/* Health & Heat */}
         <div className="flex-1 max-w-md bg-black/80 backdrop-blur-sm p-4 rounded-none">
+          {/* Heat Bar */}
+          <div className="mb-4">
+            <div className="flex justify-between text-xs font-bold text-muted-foreground mb-2 retro">
+              <span>HEAT</span>
+              <span>{Math.ceil(stats.heat)}%</span>
+            </div>
+            <HeatBar
+              value={stats.heat}
+              variant="retro"
+              className="h-4"
+            />
+          </div>
+
+          {/* Health Bar */}
           <div className="flex justify-between text-xs font-bold text-muted-foreground mb-2 retro">
             <span>INTEGRITY</span>
             <span>{Math.ceil(stats.health)}/{currentConfig.maxHealth}</span>

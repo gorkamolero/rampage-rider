@@ -3,6 +3,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { PhysicsWorld } from './PhysicsWorld';
 import { AIManager } from './AIManager';
 import { CrowdManager } from '../managers/CrowdManager';
+import { CopManager } from '../managers/CopManager';
 import { Player } from '../entities/Player';
 import { ParticleEmitter } from '../rendering/ParticleSystem';
 import { BloodDecalSystem } from '../rendering/BloodDecalSystem';
@@ -23,6 +24,7 @@ export class Engine {
   public physics: PhysicsWorld;
   public ai: AIManager;
   public crowd: CrowdManager | null = null;
+  public cops: CopManager | null = null;
   public particles: ParticleEmitter;
   public bloodDecals: BloodDecalSystem;
 
@@ -48,6 +50,7 @@ export class Engine {
     comboTimer: 0,
     gameTime: 0,
     health: 100,
+    heat: 0,
     killHistory: [],
   };
 
@@ -161,6 +164,7 @@ export class Engine {
     const world = this.physics.getWorld();
     if (world) {
       this.crowd = new CrowdManager(this.scene, world);
+      this.cops = new CopManager(this.scene, world);
     }
 
     console.log('[Engine] Initialization complete');
@@ -289,6 +293,10 @@ export class Engine {
       this.crowd.clear();
     }
 
+    if (this.cops) {
+      this.cops.clear();
+    }
+
     this.particles.clear();
     this.bloodDecals.clear();
 
@@ -300,6 +308,7 @@ export class Engine {
       comboTimer: 0,
       gameTime: 0,
       health: 100,
+      heat: 0,
       killHistory: [],
     };
 
@@ -334,16 +343,20 @@ export class Engine {
     this.camera.getWorldDirection(cameraDirection);
     this.player.setCameraDirection(cameraDirection);
 
-    // Set attack callback to damage pedestrians
+    // Set attack callback to damage pedestrians and cops
     this.player.setOnAttack((attackPosition) => {
-      if (this.crowd) {
-        const attackRadius = 3.0;
-        const damage = 1;
-        const maxKills = this.stats.combo >= 10 ? Infinity : 1;
-        const attackDirection = this.player.getFacingDirection();
-        const coneAngle = Math.PI * 5 / 6;
+      const attackRadius = 3.0;
+      const damage = 1;
+      const maxKills = this.stats.combo >= 10 ? Infinity : 1;
+      const attackDirection = this.player.getFacingDirection();
+      const coneAngle = Math.PI * 5 / 6;
 
-        const result = this.crowd.damageInRadius(
+      let totalKills = 0;
+      const allKillPositions: THREE.Vector3[] = [];
+
+      // Attack pedestrians
+      if (this.crowd) {
+        const pedResult = this.crowd.damageInRadius(
           attackPosition,
           attackRadius,
           damage,
@@ -352,28 +365,59 @@ export class Engine {
           coneAngle
         );
 
-        if (result.kills > 0) {
-          this.stats.kills += result.kills;
-          this.stats.score += result.kills * 10;
-          this.stats.combo += result.kills;
+        if (pedResult.kills > 0) {
+          this.stats.kills += pedResult.kills;
+          this.stats.score += pedResult.kills * 10;
+          this.stats.combo += pedResult.kills;
           this.stats.comboTimer = 5.0;
+          this.stats.heat = Math.min(100, this.stats.heat + (pedResult.kills * 10));
 
-          const playerPos = this.player.getPosition();
-          for (const killPos of result.positions) {
-            const direction = new THREE.Vector3().subVectors(killPos, playerPos).normalize();
-            this.particles.emitBlood(killPos, 30);
-            this.particles.emitBloodSpray(killPos, direction, 20);
-          }
+          totalKills += pedResult.kills;
+          allKillPositions.push(...pedResult.positions);
 
           this.crowd.panicCrowd(attackPosition, 10);
+        }
+      }
 
-          this.shakeIntensity = 0.5 * result.kills;
+      // Attack cops
+      if (this.cops) {
+        const copResult = this.cops.damageInRadius(
+          attackPosition,
+          attackRadius,
+          damage,
+          maxKills,
+          attackDirection,
+          coneAngle
+        );
 
-          if (maxKills === Infinity) {
-            console.log(`[Engine] MAXED OUT! ${result.kills} kills! Total: ${this.stats.kills}`);
-          } else {
-            console.log(`[Engine] ${result.kills} kill. Total: ${this.stats.kills}`);
-          }
+        if (copResult.kills > 0) {
+          this.stats.score += copResult.kills * 50;
+          this.stats.heat = Math.max(0, this.stats.heat - (copResult.kills * 10));
+
+          totalKills += copResult.kills;
+          allKillPositions.push(...copResult.positions);
+
+          console.log(`[Engine] Killed ${copResult.kills} cops! Heat: ${this.stats.heat.toFixed(1)}%`);
+        }
+      }
+
+      // Spawn blood for all kills
+      if (totalKills > 0) {
+        console.log(`[Engine] Spawning blood for ${totalKills} kills at ${allKillPositions.length} positions`);
+        const playerPos = this.player.getPosition();
+        for (const killPos of allKillPositions) {
+          const direction = new THREE.Vector3().subVectors(killPos, playerPos).normalize();
+          console.log('[Engine] Emitting blood at', killPos);
+          this.particles.emitBlood(killPos, 30);
+          this.particles.emitBloodSpray(killPos, direction, 20);
+        }
+
+        this.shakeIntensity = 0.5 * totalKills;
+
+        if (maxKills === Infinity) {
+          console.log(`[Engine] MAXED OUT! ${totalKills} kills! Total: ${this.stats.kills}`);
+        } else {
+          console.log(`[Engine] ${totalKills} kill. Total: ${this.stats.kills}, Heat: ${this.stats.heat.toFixed(1)}%`);
         }
       }
     });
@@ -430,6 +474,11 @@ export class Engine {
       }
     }
 
+    // Update heat (decay over time)
+    if (this.stats.heat > 0) {
+      this.stats.heat = Math.max(0, this.stats.heat - (0.5 * dt));
+    }
+
     // Update player
     if (this.player) {
       // Update camera direction for camera-relative movement
@@ -450,11 +499,37 @@ export class Engine {
       this.crowd.handlePlayerCollisions(playerPos);
     }
 
+    // Update cops
+    if (this.cops && this.player) {
+      const playerPos = this.player.getPosition();
+
+      // Update cop spawns based on heat
+      this.cops.updateSpawns(this.stats.heat, playerPos);
+
+      // Update cop AI
+      this.cops.update(dt, playerPos);
+
+      // Handle cop contact damage (10 HP/s)
+      if (this.cops.handlePlayerCollisions(playerPos)) {
+        this.stats.health -= 10 * dt;
+        if (this.stats.health <= 0) {
+          this.stats.health = 0;
+          console.log('[Engine] Game Over - Killed by cops!');
+          if (this.callbacks.onGameOver) {
+            this.callbacks.onGameOver({ ...this.stats });
+          }
+        }
+      }
+    }
+
     // Update AI
     this.ai.update(dt);
 
     // Update particles
     this.particles.update(dt);
+
+    // Update blood decals (removes expired ones)
+    this.bloodDecals.update();
 
     // Camera follow player (unless manual control is active)
     if (this.player && !this.disableCameraFollow) {
@@ -512,6 +587,9 @@ export class Engine {
     this.ai.clear();
     if (this.crowd) {
       this.crowd.clear();
+    }
+    if (this.cops) {
+      this.cops.clear();
     }
     this.particles.clear();
     this.bloodDecals.dispose();
