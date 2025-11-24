@@ -17,6 +17,9 @@ export class CrowdManager {
   private world: RAPIER.World;
   private entityManager: YUKA.EntityManager;
 
+  // Deferred cleanup queue (clean AFTER physics step)
+  private pedestriansToRemove: number[] = [];
+
   // Spawn config
   private maxPedestrians: number = 20;
   private spawnRadius: number = 25; // Max spawn distance
@@ -247,8 +250,8 @@ export class CrowdManager {
     // Update Yuka entity manager (handles steering calculations)
     this.entityManager.update(deltaTime);
 
-    // Update each pedestrian
-    for (let i = this.pedestrians.length - 1; i >= 0; i--) {
+    // Mark pedestrians for removal (don't remove during iteration)
+    for (let i = 0; i < this.pedestrians.length; i++) {
       const pedestrian = this.pedestrians[i];
       pedestrian.update(deltaTime);
 
@@ -258,14 +261,27 @@ export class CrowdManager {
         // For now, keep them on screen
       }
 
-      // Respawn pedestrians that wandered too far
+      // Mark pedestrians that wandered too far for removal
       const distance = (pedestrian as THREE.Group).position.distanceTo(playerPosition);
       if (distance > 40 && !pedestrian.isDeadState()) {
-        // Remove and respawn closer
-        this.removePedestrian(i);
-        this.spawnPedestrian(playerPosition);
+        this.pedestriansToRemove.push(i);
       }
     }
+  }
+
+  /**
+   * Cleanup pedestrians (call AFTER physics step)
+   */
+  cleanup(playerPosition: THREE.Vector3): void {
+    // Remove marked pedestrians in reverse order
+    for (let i = this.pedestriansToRemove.length - 1; i >= 0; i--) {
+      const index = this.pedestriansToRemove[i];
+      this.removePedestrian(index);
+      this.spawnPedestrian(playerPosition);
+    }
+
+    // Clear the queue
+    this.pedestriansToRemove = [];
   }
 
   /**

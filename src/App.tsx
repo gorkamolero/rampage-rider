@@ -3,6 +3,7 @@ import GameCanvas from './components/GameCanvas';
 import Overlay from './components/ui/Overlay';
 import { MainMenu, GameOver } from './components/ui/Menus';
 import { GameState, GameStats, Tier } from './types';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -40,11 +41,13 @@ function App() {
     <div className="relative w-full h-screen overflow-hidden bg-neutral-900 select-none">
 
       {/* 3D Game Layer */}
-      <GameCanvas
-        gameActive={gameState === GameState.PLAYING}
-        onStatsUpdate={handleStatsUpdate}
-        onGameOver={handleGameOver}
-      />
+      <ErrorBoundary>
+        <GameCanvas
+          gameActive={gameState === GameState.PLAYING}
+          onStatsUpdate={handleStatsUpdate}
+          onGameOver={handleGameOver}
+        />
+      </ErrorBoundary>
 
       {/* UI Layers */}
       {gameState === GameState.MENU && (

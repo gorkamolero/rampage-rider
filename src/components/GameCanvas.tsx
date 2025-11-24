@@ -17,6 +17,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, game
   useEffect(() => {
     if (!canvasRef.current) return;
 
+    let cancelled = false;
+    let initializingEngine: Engine | null = null;
+
     const initEngine = async () => {
       console.log('[GameCanvas] Initializing new Engine...');
 
@@ -26,11 +29,32 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, game
         window.innerHeight
       );
 
-      // Wait for async initialization (Rapier WASM)
-      await engine.init();
+      initializingEngine = engine;
+
+      try {
+        // Wait for async initialization (Rapier WASM + AssetLoader)
+        await engine.init();
+      } catch (error) {
+        console.error('[GameCanvas] Engine init failed:', error);
+        initializingEngine = null;
+        return;
+      }
+
+      // Check if component was unmounted during init
+      if (cancelled) {
+        console.log('[GameCanvas] Init cancelled, disposing engine');
+        try {
+          engine.dispose();
+        } catch (error) {
+          console.error('[GameCanvas] Dispose during cancel failed:', error);
+        }
+        initializingEngine = null;
+        return;
+      }
 
       engine.setCallbacks(onStatsUpdate, onGameOver);
       engineRef.current = engine;
+      initializingEngine = null;
       setEngineReady(true);
 
       console.log('[GameCanvas] Engine ready!');
@@ -46,9 +70,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, game
     window.addEventListener('resize', handleResize);
 
     return () => {
+      cancelled = true;
+
+      // Only dispose if engine completed initialization
       if (engineRef.current) {
-        engineRef.current.dispose();
+        try {
+          engineRef.current.dispose();
+          engineRef.current = null;
+        } catch (error) {
+          console.error('[GameCanvas] Dispose failed:', error);
+        }
       }
+
+      // Don't dispose initializingEngine - let it finish init and self-cleanup
+
       window.removeEventListener('resize', handleResize);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

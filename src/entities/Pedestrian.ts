@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import * as RAPIER from '@dimforge/rapier3d-compat';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as YUKA from 'yuka';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { KinematicCharacterHelper } from '../utils/KinematicCharacterHelper';
+import { AssetLoader } from '../core/AssetLoader';
 
 /**
  * Pedestrian Entity
@@ -84,10 +85,22 @@ export class Pedestrian extends THREE.Group {
    * Load pedestrian character model with animations
    */
   private async loadModel(characterType: string): Promise<void> {
-    const loader = new GLTFLoader();
-
     try {
-      const gltf = await loader.loadAsync(`/assets/pedestrians/${characterType}.gltf`);
+      // Use cached model from AssetLoader instead of loading fresh!
+      const assetLoader = AssetLoader.getInstance();
+      const cachedGltf = assetLoader.getModel(`/assets/pedestrians/${characterType}.gltf`);
+
+      if (!cachedGltf) {
+        console.error(`[Pedestrian] Model not in cache: ${characterType}`);
+        return;
+      }
+
+      // Use SkeletonUtils to properly clone animated models
+      const clonedScene = SkeletonUtils.clone(cachedGltf.scene);
+      const gltf = {
+        scene: clonedScene,
+        animations: cachedGltf.animations
+      };
 
       // European skin tone range (lighter to darker)
       const skinTones = [
@@ -340,11 +353,29 @@ export class Pedestrian extends THREE.Group {
     // Remove from Yuka
     this.yukaEntityManager.remove(this.yukaVehicle);
 
+    // Stop and dispose animation mixer FIRST (before physics)
+    if (this.mixer) {
+      this.mixer.stopAllAction();
+      this.mixer.uncacheRoot(this.mixer.getRoot());
+    }
+
     // Remove Rapier body
     world.removeRigidBody(this.rigidBody);
 
     // Remove from scene
     (this as THREE.Group).parent?.remove(this);
+
+    // Defer geometry disposal (geometries are unique per instance)
+    // Materials/textures are shared between GLTF instances, so we DON'T dispose them
+    setTimeout(() => {
+      (this as THREE.Group).traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          if (child.geometry) {
+            child.geometry.dispose();
+          }
+        }
+      });
+    }, 0);
 
     console.log('[Pedestrian] Destroyed');
   }

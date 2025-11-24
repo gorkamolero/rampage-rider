@@ -212,7 +212,7 @@ export class Engine {
   async init(): Promise<void> {
     console.log('[Engine] Initializing...');
 
-    // Initialize physics
+    // Initialize physics FIRST (Rapier WASM must load before anything else)
     await this.physics.init();
 
     // Initialize AI
@@ -221,13 +221,18 @@ export class Engine {
     // Create temporary ground for testing
     this.createTestGround();
 
-    // Initialize crowd manager
+    // Initialize managers
     const world = this.physics.getWorld();
     if (world) {
       this.crowd = new CrowdManager(this.scene, world);
       this.cops = new CopManager(this.scene, world);
       this.buildings = new BuildingManager(this.scene, world);
     }
+
+    // Preload all assets AFTER physics is ready (pedestrian models, etc.)
+    const { AssetLoader } = await import('./AssetLoader');
+    const assetLoader = AssetLoader.getInstance();
+    await assetLoader.preloadAll();
 
     console.log('[Engine] Initialization complete');
   }
@@ -673,6 +678,9 @@ export class Engine {
 
       // Handle player-pedestrian collisions
       this.crowd.handlePlayerCollisions(playerPos);
+
+      // Cleanup pedestrians AFTER physics step
+      this.crowd.cleanup(playerPos);
     }
 
     // Update cops
