@@ -6,3 +6,6 @@ dist
 .env
 .env.local
 sketchbook-ref/
+
+# Large model files (use Git LFS or CDN instead)
+public/assets/models/sketchfab/*.glb
