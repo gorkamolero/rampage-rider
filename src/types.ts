@@ -56,6 +56,9 @@ export interface GameStats {
   copHealthBars: Array<{ x: number; y: number; health: number; maxHealth: number }>; // Screen-space positions for cop health bars
   isTased: boolean; // Player is being tased
   taseEscapeProgress: number; // 0-100, escape progress
+  vehicleHealth?: number; // Car health when in vehicle
+  vehicleMaxHealth?: number; // Car max health
+  isInVehicle?: boolean; // True when player is in a car
   performance?: {
     fps: number;
     frameTime: number;
