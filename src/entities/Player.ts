@@ -557,6 +557,13 @@ export class Player extends THREE.Group {
   }
 
   /**
+   * Set player visibility
+   */
+  setVisible(visible: boolean): void {
+    (this as THREE.Group).visible = visible;
+  }
+
+  /**
    * Apply taser stun to player
    */
   applyTaserStun(): void {

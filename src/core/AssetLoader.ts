@@ -60,6 +60,9 @@ export class AssetLoader {
       '/assets/pedestrians/Suit_Male.gltf',
       '/assets/pedestrians/Worker_Female.gltf',
       '/assets/pedestrians/Worker_Male.gltf',
+
+      // Vehicle models
+      '/assets/vehicles/car.glb',
     ];
 
     console.log(`[AssetLoader] Preloading ${assetPaths.length} assets...`);

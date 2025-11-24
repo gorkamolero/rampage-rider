@@ -200,16 +200,35 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
             />
           </div>
 
-          {/* Health Bar */}
-          <div className="flex justify-between text-xs font-bold text-muted-foreground mb-2 retro">
-            <span>INTEGRITY</span>
-            <span>{Math.ceil(stats.health)}/{currentConfig.maxHealth}</span>
-          </div>
-          <HealthBar
-            value={healthPercent}
-            variant="retro"
-            className="h-6"
-          />
+          {/* Vehicle Health Bar (only when in vehicle) */}
+          {stats.isInVehicle && stats.vehicleHealth !== undefined && stats.vehicleMaxHealth !== undefined && (
+            <div className="mb-4">
+              <div className="flex justify-between text-xs font-bold text-cyan-400 mb-2 retro">
+                <span>CAR ARMOR</span>
+                <span>{Math.ceil(stats.vehicleHealth)}/{stats.vehicleMaxHealth}</span>
+              </div>
+              <HealthBar
+                value={(stats.vehicleHealth / stats.vehicleMaxHealth) * 100}
+                variant="retro"
+                className="h-6 [&>div]:bg-cyan-500"
+              />
+            </div>
+          )}
+
+          {/* Player Health Bar (hidden when in vehicle) */}
+          {!stats.isInVehicle && (
+            <>
+              <div className="flex justify-between text-xs font-bold text-muted-foreground mb-2 retro">
+                <span>INTEGRITY</span>
+                <span>{Math.ceil(stats.health)}/{currentConfig.maxHealth}</span>
+              </div>
+              <HealthBar
+                value={healthPercent}
+                variant="retro"
+                className="h-6"
+              />
+            </>
+          )}
         </div>
 
         {/* Tier Info */}
