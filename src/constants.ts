@@ -286,3 +286,82 @@ export const TIER_VEHICLE_MAP: Partial<Record<Tier, VehicleType>> = {
   [Tier.MOTO]: VehicleType.MOTORBIKE,
   [Tier.SEDAN]: VehicleType.SEDAN,
 };
+
+/**
+ * Cop bike configuration (reuses player motorbike model with police colors)
+ */
+export const COP_BIKE_CONFIG = {
+  modelPath: '/assets/vehicles/motorbike.glb',
+  modelScale: 0.004,
+  modelRotationY: 0,
+  modelOffsetY: 0.3,
+  colliderWidth: 0.35,
+  colliderHeight: 0.5,
+  colliderLength: 1.0,
+} as const;
+
+/**
+ * Motorbike cop AI and combat configuration
+ */
+export const MOTORBIKE_COP_CONFIG = {
+  // AI behavior thresholds
+  PATROL_DISTANCE: 100,
+  CHASE_DISTANCE: 20,
+  RAM_DISTANCE: 8,
+
+  // Movement
+  MAX_FORCE: 25.0,
+  ACCELERATION: 20,
+  DECELERATION: 30,
+
+  // Combat
+  HIT_STUN_DURATION: 0.8,
+  RAM_HIT_DISTANCE: 2.5,
+  RAM_COOLDOWN: 2.0,
+  TASER_COOLDOWN: 3.0,
+  SHOOT_COOLDOWN: 1.5,
+  TASER_DAMAGE: 0,
+  SHOOT_DAMAGE: 15,
+  TASER_RANGE: 8.0,
+  SHOOT_RANGE: 15.0,
+
+  // Variant-specific stats
+  VARIANTS: {
+    SCOUT: {
+      health: 2,
+      speed: 12,
+      ramDamage: 15,
+      pointValue: 40,
+    },
+    SWARM: {
+      health: 2,
+      speed: 14,
+      ramDamage: 20,
+      pointValue: 50,
+    },
+    BOSS: {
+      health: 5,
+      speed: 16,
+      ramDamage: 35,
+      pointValue: 150,
+    },
+  },
+
+  // Heat thresholds for spawning
+  HEAT_THRESHOLDS: {
+    SCOUT: 25,
+    SWARM: 50,
+    BOSS: 75,
+  },
+
+  // Spawn limits
+  MAX_SCOUTS: 2,
+  MAX_SWARM: 6,
+  MAX_BOSSES: 1,
+  MAX_TOTAL: 8,
+
+  // Spawn parameters
+  SPAWN_BEHIND_DISTANCE: 40,
+  SPAWN_FLANK_OFFSET: 20,
+  SPAWN_AHEAD_DISTANCE: 25,
+} as const;

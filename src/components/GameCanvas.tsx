@@ -165,6 +165,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, onKi
           engineRef.current.disableCameraFollow = false;
           cameraAngle = 0;
           cameraHeight = 6.25;
+        } else if (e.code === 'KeyH') {
+          // Debug: Boost heat by 25% to test motorbike cop spawning
+          engineRef.current.debugBoostHeat();
         }
       }
 
