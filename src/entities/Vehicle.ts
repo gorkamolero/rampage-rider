@@ -30,6 +30,7 @@ export class Vehicle extends THREE.Group {
   // Visual
   private modelContainer: THREE.Group;
   private modelLoaded: boolean = false;
+  private wheels: THREE.Object3D[] = []; // Wheel objects for rotation animation
 
   // State
   private health: number;
@@ -139,6 +140,20 @@ export class Vehicle extends THREE.Group {
 
       this.modelContainer.add(model);
       this.modelLoaded = true;
+
+      // Find wheel objects for rotation animation
+      this.wheels = [];
+      model.traverse((child) => {
+        if (child.name) {
+          const name = child.name.toLowerCase();
+          // Match tire, spokes, and gear parts (but not center gear/pedals)
+          if ((name.includes('tire') || name.includes('spokes')) &&
+              !name.includes('pattern')) {
+            this.wheels.push(child);
+          }
+        }
+      });
+      console.log(`[Vehicle] ${this.config.name} found ${this.wheels.length} wheel parts`);
 
       console.log(`[Vehicle] ${this.config.name} model loaded successfully`);
     } catch (error) {
@@ -303,6 +318,20 @@ export class Vehicle extends THREE.Group {
 
       this.rigidBody.setNextKinematicTranslation(newPosition);
       (this as THREE.Group).position.set(newPosition.x, newPosition.y, newPosition.z);
+    }
+
+    // Rotate wheels based on velocity
+    if (this.wheels.length > 0 && isMoving) {
+      // Wheel rotation speed based on velocity magnitude
+      // Assuming wheel radius ~0.3m, rotation = distance / radius
+      const wheelRadius = 0.3;
+      const distance = velocity.length() * deltaTime;
+      const rotationAngle = distance / wheelRadius;
+
+      for (const wheel of this.wheels) {
+        // Rotate around Y axis
+        wheel.rotation.y += rotationAngle;
+      }
     }
   }
 
