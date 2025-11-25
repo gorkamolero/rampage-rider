@@ -130,6 +130,7 @@ export class Engine {
   // Vehicle system
   private car: Car | null = null;
   private isInVehicle: boolean = false;
+  private carSpawned: boolean = false; // Car exists but player not inside
 
   // Screen shake
   private shakeIntensity: number = 0;
@@ -384,6 +385,7 @@ export class Engine {
       this.car = null;
     }
     this.isInVehicle = false;
+    this.carSpawned = false;
 
     if (this.crowd) {
       this.crowd.clear();
@@ -453,28 +455,42 @@ export class Engine {
   }
 
   /**
-   * Enter vehicle (10 kills threshold)
+   * Spawn car near player (at 10 kills threshold)
    */
-  private enterVehicle(): void {
-    if (!this.player || this.isInVehicle) return;
+  private spawnCar(): void {
+    if (!this.player || this.carSpawned) return;
 
     const world = this.physics.getWorld();
     if (!world) return;
 
     const playerPos = this.player.getPosition();
 
-    // Create car at player position
-    this.car = new Car();
-    this.car.createPhysicsBody(world, playerPos);
-    this.scene.add(this.car);
+    // Spawn car slightly ahead of player
+    const spawnOffset = new THREE.Vector3(3, 0, 3);
+    const carPos = playerPos.clone().add(spawnOffset);
 
-    // Hide player (don't dispose - we'll need it when car explodes)
-    this.player.setVisible(false);
+    // Create car
+    this.car = new Car();
+    this.car.createPhysicsBody(world, carPos);
+    this.scene.add(this.car);
 
     // Set car destruction callback
     this.car.setOnDestroyed(() => {
       this.exitVehicle();
     });
+
+    this.carSpawned = true;
+    console.log('[Engine] Car spawned! Press SHIFT to enter.');
+  }
+
+  /**
+   * Enter an existing spawned car
+   */
+  private enterVehicle(): void {
+    if (!this.player || !this.car || this.isInVehicle) return;
+
+    // Hide player (don't dispose - we'll need it when car explodes)
+    this.player.setVisible(false);
 
     this.isInVehicle = true;
     this.stats.tier = Tier.BIKE;
@@ -486,6 +502,19 @@ export class Engine {
   }
 
   /**
+   * Check if player is near the car
+   */
+  private isPlayerNearCar(): boolean {
+    if (!this.player || !this.car) return false;
+
+    const playerPos = this.player.getPosition();
+    const carPos = this.car.getPosition();
+    const distance = playerPos.distanceTo(carPos);
+
+    return distance < 4.0; // Within 4 units
+  }
+
+  /**
    * Exit vehicle (car exploded)
    */
   private exitVehicle(): void {
@@ -493,22 +522,22 @@ export class Engine {
 
     const carPos = this.car.getPosition();
 
+    // Find safe spawn position (try multiple offsets to avoid buildings)
+    const safePos = this.findSafeExitPosition(carPos);
+
     // Remove car
     this.scene.remove(this.car);
     this.car.dispose();
     this.car = null;
 
-    // Show player at car position
-    this.player.setVisible(true);
-    // Reposition player's physics body
+    // Recreate player at safe position
     const world = this.physics.getWorld();
     if (world) {
-      // Recreate player physics at car position
       this.player.dispose();
       this.scene.remove(this.player);
 
       this.player = new Player();
-      this.player.createPhysicsBody(world);
+      this.player.createPhysicsBody(world, safePos);
       this.scene.add(this.player);
 
       // Re-setup callbacks
@@ -516,6 +545,7 @@ export class Engine {
     }
 
     this.isInVehicle = false;
+    this.carSpawned = false;
     this.stats.tier = Tier.FOOT;
 
     // Explosion effects
@@ -523,6 +553,55 @@ export class Engine {
     this.particles.emitBlood(carPos, 100);
 
     console.log('[Engine] Exited vehicle (destroyed)!');
+  }
+
+  /**
+   * Find a safe position to spawn player when exiting vehicle
+   */
+  private findSafeExitPosition(carPos: THREE.Vector3): THREE.Vector3 {
+    // Try offsets in different directions
+    const offsets = [
+      new THREE.Vector3(3, 0, 0),   // Right
+      new THREE.Vector3(-3, 0, 0),  // Left
+      new THREE.Vector3(0, 0, 3),   // Forward
+      new THREE.Vector3(0, 0, -3),  // Back
+      new THREE.Vector3(3, 0, 3),   // Diagonal
+      new THREE.Vector3(-3, 0, -3), // Diagonal
+      new THREE.Vector3(3, 0, -3),  // Diagonal
+      new THREE.Vector3(-3, 0, 3),  // Diagonal
+    ];
+
+    const world = this.physics.getWorld();
+    if (!world) return carPos;
+
+    // Try each offset and check if position is clear of buildings
+    for (const offset of offsets) {
+      const testPos = carPos.clone().add(offset);
+
+      // Cast ray downward to check for ground
+      const ray = new RAPIER.Ray(
+        { x: testPos.x, y: testPos.y + 5, z: testPos.z },
+        { x: 0, y: -1, z: 0 }
+      );
+
+      // Check if we hit ground (not building)
+      const hit = world.castRay(ray, 10, true);
+      if (hit) {
+        const hitCollider = hit.collider;
+        const groups = hitCollider.collisionGroups();
+        const membership = groups & 0xFFFF;
+
+        // If we hit ground (0x0001), this is a safe spot
+        if (membership === 0x0001) {
+          console.log('[Engine] Found safe exit position at offset', offset);
+          return testPos;
+        }
+      }
+    }
+
+    // Fallback: just use car position
+    console.log('[Engine] No safe exit found, using car position');
+    return carPos;
   }
 
   /**
@@ -775,14 +854,22 @@ export class Engine {
     // Measure entity updates
     const entitiesStart = performance.now();
 
-    // Tier progression: 10 kills = enter car
-    if (this.stats.kills >= 10 && !this.isInVehicle && !this.car && this.player) {
+    // Tier progression: 10 kills = spawn car (not auto-enter)
+    if (this.stats.kills >= 10 && !this.carSpawned && this.player) {
+      this.spawnCar();
+    }
+
+    // Check SHIFT to enter car when near it (and not already in vehicle)
+    if (this.carSpawned && !this.isInVehicle && this.input.mount && this.isPlayerNearCar()) {
       this.enterVehicle();
     }
 
-    // Update car if in vehicle
-    if (this.isInVehicle && this.car) {
-      this.car.update(dt);
+    // Update car (always update if spawned, even if player not inside)
+    if (this.car) {
+      if (this.isInVehicle) {
+        this.car.update(dt);
+      }
+      // Car sits idle when player not inside
     }
 
     // Update player (only if not in vehicle)
@@ -960,14 +1047,17 @@ export class Engine {
 
     // Send stats update (including performance data and vehicle state)
     if (this.callbacks.onStatsUpdate) {
+      const isNearCar = this.carSpawned && !this.isInVehicle && this.isPlayerNearCar();
       const vehicleStats = this.isInVehicle && this.car ? {
         vehicleHealth: this.car.getHealth(),
         vehicleMaxHealth: this.car.getMaxHealth(),
         isInVehicle: true,
+        isNearCar: false,
       } : {
         vehicleHealth: undefined,
         vehicleMaxHealth: undefined,
         isInVehicle: false,
+        isNearCar: isNearCar,
       };
 
       this.callbacks.onStatsUpdate({

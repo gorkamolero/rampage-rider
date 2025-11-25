@@ -59,6 +59,7 @@ export interface GameStats {
   vehicleHealth?: number; // Car health when in vehicle
   vehicleMaxHealth?: number; // Car max health
   isInVehicle?: boolean; // True when player is in a car
+  isNearCar?: boolean; // True when player is near car (can enter)
   performance?: {
     fps: number;
     frameTime: number;

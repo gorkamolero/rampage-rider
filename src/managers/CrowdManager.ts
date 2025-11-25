@@ -21,7 +21,7 @@ export class CrowdManager {
   private pedestriansToRemove: number[] = [];
 
   // Spawn config
-  private maxPedestrians: number = 20;
+  private maxPedestrians: number = 40;
   private spawnRadius: number = 25; // Max spawn distance
   private minSpawnDistance: number = 18; // Spawn off-screen (visible area is ~15 units radius)
 

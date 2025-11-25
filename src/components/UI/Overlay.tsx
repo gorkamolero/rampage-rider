@@ -24,6 +24,17 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none p-4 flex flex-col justify-between z-10">
 
+      {/* Enter Car Prompt */}
+      {stats.isNearCar && !stats.isInVehicle && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-40">
+          <div className="text-center bg-black/80 px-6 py-3 rounded border-2 border-yellow-500">
+            <div className="text-2xl font-bold text-yellow-400 retro" style={{ textShadow: '2px 2px 0 #000' }}>
+              🚗 PRESS SHIFT TO ENTER CAR
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Taser Stun Prompt */}
       {stats.isTased && (
         <div

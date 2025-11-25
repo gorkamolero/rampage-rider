@@ -183,14 +183,14 @@ export class Player extends THREE.Group {
   /**
    * Create Rapier physics body
    */
-  createPhysicsBody(world: RAPIER.World): void {
+  createPhysicsBody(world: RAPIER.World, spawnPosition?: THREE.Vector3): void {
     this.world = world;
 
     // Create kinematic position-based body for character controller
-    // Spawn in a street (odd grid cell) not in a building (even grid cell)
-    // Grid cell size is 13x20, so spawn at (6.5, 0.57, 10) which is in the middle of a street
+    // Default spawn in a street (odd grid cell) not in a building (even grid cell)
+    const pos = spawnPosition || new THREE.Vector3(6.5, 0.57, 10);
     const bodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased()
-      .setTranslation(6.5, 0.57, 10);
+      .setTranslation(pos.x, pos.y, pos.z);
 
     this.rigidBody = world.createRigidBody(bodyDesc);
 
