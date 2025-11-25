@@ -160,12 +160,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, game
       else if (e.code === 'ArrowDown') inputState.down = isDown;
       else if (e.code === 'ArrowLeft') inputState.left = isDown;
       else if (e.code === 'ArrowRight') inputState.right = isDown;
-      else if (e.code === 'Space') inputState.action = isDown; // Jump
-      else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') inputState.mount = isDown; // Walk (slows down from default sprint)
-      else if (e.code === 'KeyF') {
-        inputState.attack = isDown;
-        // Attack input (F key)
+      else if (e.code === 'Space') {
+        inputState.action = isDown; // Taser escape mashing
+        inputState.attack = isDown; // Attack (SPACE key)
       }
+      else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') inputState.mount = isDown; // Enter car / Walk
 
       engineRef.current.handleInput(inputState);
     };

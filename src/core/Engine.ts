@@ -906,6 +906,12 @@ export class Engine {
       if (this.isInVehicle && this.car) {
         // Vehicle contact kills - check for pedestrians near car
         const vehicleHitRadius = 2.5;
+        const carVelocity = this.car.getVelocity();
+
+        // Apply violent knockback BEFORE killing (for visual effect)
+        this.crowd.applyVehicleKnockback(currentPos, carVelocity, vehicleHitRadius);
+
+        // Then damage/kill them
         const result = this.crowd.damageInRadius(currentPos, vehicleHitRadius, 999, Infinity);
 
         for (let i = 0; i < result.kills; i++) {
