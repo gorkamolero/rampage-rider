@@ -830,6 +830,45 @@ export class Player extends THREE.Group {
   }
 
   /**
+   * Play bicycle attack animation (kick/slash while seated)
+   * Plays a quick attack then returns to seated pose
+   */
+  playBicycleAttack(): void {
+    if (!this.mixer || this.animations.length === 0) return;
+
+    // Use horizontal slice for bike attack (looks like a swing)
+    const attackClip = THREE.AnimationClip.findByName(this.animations, 'Melee_1H_Attack_Slice_Horizontal');
+    const seatedClip = THREE.AnimationClip.findByName(this.animations, 'Melee_Blocking');
+
+    if (!attackClip || !seatedClip) {
+      console.warn('[Player] Missing animation clips for bicycle attack');
+      return;
+    }
+
+    // Stop current animation and play attack
+    this.mixer.stopAllAction();
+    const attackAction = this.mixer.clipAction(attackClip);
+    attackAction.setLoop(THREE.LoopOnce, 1);
+    attackAction.clampWhenFinished = false;
+    attackAction.timeScale = 2.5; // Fast attack
+    attackAction.reset();
+    attackAction.play();
+
+    // Return to seated pose after attack completes
+    const duration = attackClip.duration * 1000 / attackAction.timeScale;
+    setTimeout(() => {
+      if (this.mixer) {
+        this.mixer.stopAllAction();
+        const seatedAction = this.mixer.clipAction(seatedClip);
+        seatedAction.setLoop(THREE.LoopRepeat, Infinity);
+        seatedAction.reset();
+        seatedAction.play();
+        this.currentAnimation = 'Melee_Blocking';
+      }
+    }, duration);
+  }
+
+  /**
    * Play spawn animation (Spawn_Air) when game starts
    * Starts player high in the air and drops them to ground
    */

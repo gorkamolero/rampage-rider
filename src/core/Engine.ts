@@ -977,6 +977,116 @@ export class Engine {
   }
 
   /**
+   * Handle bicycle melee attack (kick or slash from bike)
+   * Has wider arc and uses vehicle position/direction
+   */
+  private handleBicycleAttack(): void {
+    if (!this.vehicle || !this.player) return;
+
+    const attackPosition = this.vehicle.getPosition();
+    const attackDirection = new THREE.Vector3(0, 0, 1)
+      .applyAxisAngle(new THREE.Vector3(0, 1, 0), this.vehicle.getRotationY());
+
+    // Bicycle attack has wider radius but only on sides (kick range)
+    const attackRadius = 3.0;
+    const damage = 1;
+    const maxKills = this.stats.combo >= 10 ? Infinity : 2; // Can hit 2 targets at once
+    const coneAngle = Math.PI * 1.5; // Wide arc (270 degrees - both sides)
+
+    let totalKills = 0;
+    const allKillPositions: THREE.Vector3[] = [];
+
+    // Attack pedestrians
+    if (this.crowd) {
+      const pedResult = this.crowd.damageInRadius(
+        attackPosition,
+        attackRadius,
+        damage,
+        maxKills,
+        attackDirection,
+        coneAngle
+      );
+
+      if (pedResult.kills > 0) {
+        const basePoints = 12; // Slightly more than foot knife
+        const regularKills = pedResult.kills - pedResult.panicKills;
+        const panicKills = pedResult.panicKills;
+
+        const regularPoints = regularKills * (this.stats.inPursuit ? basePoints * 2 : basePoints);
+        const panicPoints = panicKills * (this.stats.inPursuit ? basePoints * 4 : basePoints * 2);
+
+        this.stats.score += regularPoints + panicPoints;
+        this.stats.kills += pedResult.kills;
+        this.stats.combo += pedResult.kills;
+        this.stats.comboTimer = 5.0;
+        this.stats.heat = Math.min(100, this.stats.heat + (pedResult.kills * 10));
+
+        totalKills += pedResult.kills;
+        allKillPositions.push(...pedResult.positions);
+
+        // Notifications
+        for (let i = 0; i < regularKills; i++) {
+          const message = this.stats.inPursuit
+            ? Engine.randomFrom(Engine.PURSUIT_KILL_MESSAGES)
+            : 'BIKE SLASH!';
+          const points = this.stats.inPursuit ? basePoints * 2 : basePoints;
+          this.triggerKillNotification(message, this.stats.inPursuit, points);
+        }
+        for (let i = 0; i < panicKills; i++) {
+          const points = this.stats.inPursuit ? basePoints * 4 : basePoints * 2;
+          this.triggerKillNotification('CYCLE SLAUGHTER!', true, points);
+        }
+
+        this.crowd.panicCrowd(attackPosition, 12);
+      }
+    }
+
+    // Attack cops
+    if (this.cops) {
+      const copResult = this.cops.damageInRadius(
+        attackPosition,
+        attackRadius + 1, // Slightly longer reach for cops
+        damage,
+        maxKills,
+        attackDirection,
+        coneAngle
+      );
+
+      if (copResult.kills > 0) {
+        const basePoints = 50;
+        const pointsPerKill = basePoints * 2;
+        this.stats.score += copResult.kills * pointsPerKill;
+        this.stats.copKills += copResult.kills;
+
+        if (this.stats.copKills >= 1 && this.stats.copKills <= 3) {
+          this.stats.wantedStars = 1;
+        } else if (this.stats.copKills > 3) {
+          this.stats.wantedStars = 2;
+        }
+
+        this.stats.heat = Math.min(100, this.stats.heat + (copResult.kills * 25));
+        totalKills += copResult.kills;
+        allKillPositions.push(...copResult.positions);
+
+        for (let i = 0; i < copResult.kills; i++) {
+          this.triggerKillNotification('COP CYCLIST!', true, pointsPerKill);
+        }
+      }
+    }
+
+    // Blood effects
+    if (totalKills > 0) {
+      const vehiclePos = this.vehicle.getPosition();
+      for (const killPos of allKillPositions) {
+        const direction = new THREE.Vector3().subVectors(killPos, vehiclePos).normalize();
+        this.particles.emitBlood(killPos, 30);
+        this.particles.emitBloodSpray(killPos, direction, 20);
+      }
+      this.shakeIntensity = 0.5 * totalKills;
+    }
+  }
+
+  /**
    * Handle vehicle kill (pedestrian hit by car)
    */
   private handleVehicleKill(position: THREE.Vector3, wasPanicking: boolean = false): void {
@@ -1180,8 +1290,17 @@ export class Engine {
           break;
         case ActionType.ATTACK:
           // Directly trigger attack (bypasses Player's edge detection)
-          if (this.player && !this.isInVehicle) {
-            this.player.performAttack();
+          if (this.player) {
+            if (!this.isInVehicle) {
+              // On foot attack
+              this.player.performAttack();
+            } else if (this.getCurrentVehicleType() === VehicleType.BICYCLE) {
+              // Bicycle melee attack
+              this.handleBicycleAttack();
+              // Play attack animation on player
+              this.player.playBicycleAttack();
+            }
+            // Motorbike shooting will be handled separately
           }
           break;
       }
