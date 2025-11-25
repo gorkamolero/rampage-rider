@@ -223,7 +223,7 @@ export const VEHICLE_CONFIGS: Record<VehicleType, VehicleConfig> = {
     type: VehicleType.BICYCLE,
     name: "Bicycle",
     modelPath: "/assets/vehicles/bicycle.glb",
-    speed: 10, // Faster than sprint (7) but slower than car
+    speed: 14, // Noticeably faster than sprint (7)
     turnSpeed: 8, // Very agile
     maxHealth: 50, // Fragile
     colliderWidth: 0.3,

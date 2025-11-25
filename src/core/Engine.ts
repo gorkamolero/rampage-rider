@@ -1454,7 +1454,9 @@ export class Engine {
       this.crowd.update(dt, currentPos);
 
       // Handle pedestrian collisions
-      if (this.isInVehicle && this.vehicle) {
+      // Bicycle doesn't kill on contact - only melee attack
+      const isBicycle = this.getCurrentVehicleType() === VehicleType.BICYCLE;
+      if (this.isInVehicle && this.vehicle && !isBicycle) {
         // Vehicle contact kills - use vehicle's configured kill radius
         const vehicleKillRadius = this.vehicle.getKillRadius();
         const vehicleVelocity = this.vehicle.getVelocity();
