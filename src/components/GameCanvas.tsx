@@ -31,8 +31,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, onKi
     let initializingEngine: Engine | null = null;
 
     const initEngine = async () => {
-      console.log('[GameCanvas] Initializing new Engine...');
-
       const engine = new Engine(
         canvasRef.current!,
         window.innerWidth,
@@ -42,21 +40,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, onKi
       initializingEngine = engine;
 
       try {
-        // Wait for async initialization (Rapier WASM + AssetLoader)
         await engine.init();
-      } catch (error) {
-        console.error('[GameCanvas] Engine init failed:', error);
+      } catch {
         initializingEngine = null;
         return;
       }
 
       // Check if component was unmounted during init
       if (cancelled) {
-        console.log('[GameCanvas] Init cancelled, disposing engine');
         try {
           engine.dispose();
-        } catch (error) {
-          console.error('[GameCanvas] Dispose during cancel failed:', error);
+        } catch {
+          // Ignore disposal errors during cancel
         }
         initializingEngine = null;
         return;
@@ -76,8 +71,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, onKi
           playAnimationOnce: (name) => engine.debugPlayAnimationOnce(name),
         });
       }
-
-      console.log('[GameCanvas] Engine ready!');
     };
 
     initEngine();
@@ -97,8 +90,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, onKi
         try {
           engineRef.current.dispose();
           engineRef.current = null;
-        } catch (error) {
-          console.error('[GameCanvas] Dispose failed:', error);
+        } catch {
+          // Ignore disposal errors
         }
       }
 
@@ -204,10 +197,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, onKi
   useEffect(() => {
     if (engineReady && engineRef.current) {
       if (gameActive) {
-        console.log('[GameCanvas] Starting game...');
         engineRef.current.start();
       } else {
-        console.log('[GameCanvas] Stopping game...');
         engineRef.current.stop();
       }
     }

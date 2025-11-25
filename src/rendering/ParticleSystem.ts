@@ -39,8 +39,6 @@ export class ParticleEmitter {
       depthWrite: false,
       blending: THREE.NormalBlending,
     });
-
-    console.log('[ParticleEmitter] Created with shared texture/material');
   }
 
   /**
