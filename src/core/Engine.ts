@@ -4,12 +4,13 @@ import { PhysicsWorld } from './PhysicsWorld';
 import { AIManager } from './AIManager';
 import { CrowdManager } from '../managers/CrowdManager';
 import { CopManager } from '../managers/CopManager';
+import { MotorbikeCopManager } from '../managers/MotorbikeCopManager';
 import { BuildingManager } from '../managers/BuildingManager';
 import { LampPostManager } from '../managers/LampPostManager';
 import { Player } from '../entities/Player';
 import { Vehicle } from '../entities/Vehicle';
 import { ParticleEmitter } from '../rendering/ParticleSystem';
-import { VehicleType, VehicleConfig, VEHICLE_CONFIGS, TIER_VEHICLE_MAP, TIER_CONFIGS } from '../constants';
+import { VehicleType, VehicleConfig, VEHICLE_CONFIGS, TIER_VEHICLE_MAP, TIER_CONFIGS, MOTORBIKE_COP_CONFIG } from '../constants';
 import { BloodDecalSystem } from '../rendering/BloodDecalSystem';
 import { GameState, Tier, InputState, GameStats, KillNotification } from '../types';
 import { ActionController, ActionType } from './ActionController';
@@ -24,6 +25,7 @@ export class Engine {
   public ai: AIManager;
   public crowd: CrowdManager | null = null;
   public cops: CopManager | null = null;
+  public motorbikeCops: MotorbikeCopManager | null = null;
   public buildings: BuildingManager | null = null;
   public lampPosts: LampPostManager | null = null;
   public particles: ParticleEmitter;
@@ -204,6 +206,7 @@ export class Engine {
     if (world) {
       this.crowd = new CrowdManager(this.scene, world);
       this.cops = new CopManager(this.scene, world);
+      this.motorbikeCops = new MotorbikeCopManager(this.scene, world);
       this.buildings = new BuildingManager(this.scene, world);
       this.lampPosts = new LampPostManager(this.scene);
     }
@@ -331,6 +334,10 @@ export class Engine {
       this.cops.clear();
     }
 
+    if (this.motorbikeCops) {
+      this.motorbikeCops.clear();
+    }
+
     if (this.buildings) {
       this.buildings.clear();
     }
@@ -449,6 +456,15 @@ export class Engine {
 
   debugPlayAnimationOnce(name: string): void {
     this.player?.playAnimationWithCallback(name, () => {});
+  }
+
+  /**
+   * Debug: Boost heat to trigger motorbike cops immediately
+   * Press H key to use
+   */
+  debugBoostHeat(): void {
+    this.stats.heat = Math.min(100, this.stats.heat + 25);
+    console.log(`[DEBUG] Heat boosted to ${this.stats.heat}%`);
   }
 
   private findSafeVehicleSpawnPosition(playerPos: THREE.Vector3): THREE.Vector3 {
@@ -1174,10 +1190,14 @@ export class Engine {
       this.crowd.cleanup(currentPos);
     }
 
+    // Get player velocity for cop AI prediction
+    const playerVelocity = this.isInVehicle && this.vehicle
+      ? this.vehicle.getVelocity()
+      : new THREE.Vector3();
+
+    // Regular foot cops
     if (this.cops) {
       this.cops.updateSpawns(this.stats.heat, currentPos);
-
-      this.stats.inPursuit = this.cops.getActiveCopCount() > 0;
 
       const playerCanBeTased = !this.isInVehicle && this.player ? this.player.canBeTased() : false;
 
@@ -1208,6 +1228,52 @@ export class Engine {
         }
       });
     }
+
+    // Motorbike cops (heat-based pursuit system)
+    if (this.motorbikeCops) {
+      this.motorbikeCops.updateSpawns(this.stats.heat, currentPos, playerVelocity, dt);
+
+      const playerCanBeTased = !this.isInVehicle && this.player ? this.player.canBeTased() : false;
+
+      this.motorbikeCops.update(dt, currentPos, playerVelocity, this.stats.wantedStars, playerCanBeTased, (damage: number, isRam: boolean) => {
+        if (this.isInVehicle && this.vehicle) {
+          const vehicleDamage = isRam ? damage * 2 : damage;
+          this.vehicle.takeDamage(vehicleDamage);
+          if (isRam) {
+            this.shakeCamera(1.5);
+          }
+        } else if (this.player) {
+          const isTaserAttack = this.stats.wantedStars === 1 && this.player.canBeTased() && !isRam;
+
+          if (isTaserAttack) {
+            this.player.applyTaserStun();
+          } else {
+            this.stats.health -= damage;
+            this.player.applyHitStun();
+            if (isRam) {
+              this.shakeCamera(2.0);
+            }
+          }
+
+          if (this.stats.health <= 0 && !this.isDying) {
+            this.stats.health = 0;
+            this.isDying = true;
+
+            this.player.die(() => {
+              this.state = GameState.GAME_OVER;
+              if (this.callbacks.onGameOver) {
+                this.callbacks.onGameOver({ ...this.stats });
+              }
+            });
+          }
+        }
+      });
+    }
+
+    // Update inPursuit based on total cop count
+    const footCopCount = this.cops?.getActiveCopCount() || 0;
+    const bikeCopCount = this.motorbikeCops?.getActiveCopCount() || 0;
+    this.stats.inPursuit = footCopCount + bikeCopCount > 0;
 
     this.ai.update(dt);
     this.particles.update(dt);
