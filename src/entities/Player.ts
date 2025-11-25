@@ -85,6 +85,7 @@ export class Player extends THREE.Group {
   private currentAnimation: string = 'idle';
   private attackAction: THREE.AnimationAction | null = null;
   private attackTimer: number = 0; // Timeout to force reset isAttacking
+  private debugAnimationLock: boolean = false; // Prevents auto-animation updates
 
   // Attack callback
   private onAttackCallback: ((position: THREE.Vector3) => void) | null = null;
@@ -174,8 +175,11 @@ export class Player extends THREE.Group {
   /**
    * Play animation by name (matching Sketchbook setAnimation - line 499)
    */
-  private playAnimation(clipName: string, fadeIn: number): void {
+  private playAnimation(clipName: string, fadeIn: number, force: boolean = false): void {
     if (!this.mixer || this.animations.length === 0) return;
+
+    // Skip if debug animation is locked (unless forced)
+    if (this.debugAnimationLock && !force) return;
 
     // Find animation clip
     const clip = THREE.AnimationClip.findByName(this.animations, clipName);
@@ -188,6 +192,45 @@ export class Player extends THREE.Group {
     action.play();
 
     this.currentAnimation = clipName;
+  }
+
+  /**
+   * Play animation once and call callback when complete
+   * Locks normal animation updates until complete
+   */
+  playAnimationWithCallback(clipName: string, onComplete: () => void, fadeIn: number = 0.1): void {
+    if (!this.mixer || this.animations.length === 0) {
+      onComplete();
+      return;
+    }
+
+    const clip = THREE.AnimationClip.findByName(this.animations, clipName);
+    if (!clip) {
+      console.warn(`[Player] Animation not found: ${clipName}`);
+      onComplete();
+      return;
+    }
+
+    // Lock animations during playback
+    this.debugAnimationLock = true;
+
+    // Stop current and play new
+    this.mixer.stopAllAction();
+    const action = this.mixer.clipAction(clip);
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.reset();
+    action.fadeIn(fadeIn);
+    action.play();
+
+    this.currentAnimation = clipName;
+
+    // Call callback after animation duration
+    const duration = clip.duration * 1000 / this.mixer.timeScale;
+    setTimeout(() => {
+      this.debugAnimationLock = false;
+      onComplete();
+    }, duration);
   }
 
   /**
@@ -721,6 +764,104 @@ export class Player extends THREE.Group {
    */
   resumeNormalAnimations(): void {
     this.playAnimation('Idle_A', 0.1);
+  }
+
+  /**
+   * Play spawn animation (Spawn_Air) when game starts
+   * Starts player high in the air and drops them to ground
+   */
+  playSpawnAnimation(): void {
+    // Wait for model to load first
+    if (!this.modelLoaded || !this.mixer) {
+      // Retry after a short delay if model not ready
+      setTimeout(() => this.playSpawnAnimation(), 100);
+      return;
+    }
+
+    // Start player high in the air
+    const startY = 12;
+    const groundY = 0.57;
+    const gravity = 35; // Fast gravity for snappy feel
+
+    if (this.rigidBody) {
+      const pos = this.rigidBody.translation();
+      this.rigidBody.setNextKinematicTranslation({ x: pos.x, y: startY, z: pos.z });
+      (this as THREE.Group).position.y = startY;
+    }
+
+    // Physics-based drop with gravity
+    let velocity = 0;
+    let currentY = startY;
+    let lastTime = performance.now();
+
+    const animateDrop = () => {
+      const now = performance.now();
+      const dt = (now - lastTime) / 1000; // seconds
+      lastTime = now;
+
+      // Apply gravity: v += g * dt, y -= v * dt
+      velocity += gravity * dt;
+      currentY -= velocity * dt;
+
+      // Clamp to ground
+      if (currentY <= groundY) {
+        currentY = groundY;
+        if (this.rigidBody) {
+          const pos = this.rigidBody.translation();
+          this.rigidBody.setNextKinematicTranslation({ x: pos.x, y: groundY, z: pos.z });
+          (this as THREE.Group).position.y = groundY;
+        }
+        return; // Stop animation
+      }
+
+      if (this.rigidBody) {
+        const pos = this.rigidBody.translation();
+        this.rigidBody.setNextKinematicTranslation({ x: pos.x, y: currentY, z: pos.z });
+        (this as THREE.Group).position.y = currentY;
+      }
+
+      requestAnimationFrame(animateDrop);
+    };
+
+    requestAnimationFrame(animateDrop);
+
+    this.playAnimationWithCallback('Spawn_Air', () => {
+      // Ensure final position is at ground
+      if (this.rigidBody) {
+        const pos = this.rigidBody.translation();
+        this.rigidBody.setNextKinematicTranslation({ x: pos.x, y: groundY, z: pos.z });
+        (this as THREE.Group).position.y = groundY;
+      }
+      // Transition to idle after spawn animation
+      this.playAnimation('Idle_A', 0.2);
+    }, 0.1);
+  }
+
+  /**
+   * DEBUG: Get list of all available animation names
+   */
+  getAnimationNames(): string[] {
+    return this.animations.map(clip => clip.name);
+  }
+
+  /**
+   * DEBUG: Play any animation by name (for testing)
+   */
+  debugPlayAnimation(name: string): void {
+    console.log(`[ANIM] Player: ${name}, mixer=${!!this.mixer}, anims=${this.animations.length}`);
+    if (!this.mixer) {
+      console.warn('[ANIM] No mixer - model not loaded yet');
+      return;
+    }
+    this.debugAnimationLock = true;
+    this.playAnimation(name, 0.2, true);
+  }
+
+  /**
+   * DEBUG: Unlock animation so game can control it again
+   */
+  debugUnlockAnimation(): void {
+    this.debugAnimationLock = false;
   }
 
   /**

@@ -473,6 +473,9 @@ export class Engine {
 
     // Setup all player callbacks
     this.setupPlayerCallbacks();
+
+    // Play spawn animation when game starts
+    this.player.playSpawnAnimation();
   }
 
   /**
@@ -561,6 +564,31 @@ export class Engine {
   getCurrentVehicleType(): VehicleType | null {
     if (!this.vehicleSpawned || !this.currentVehicleTier) return null;
     return TIER_VEHICLE_MAP[this.currentVehicleTier] || null;
+  }
+
+  /**
+   * DEBUG: Get list of all available animation names
+   */
+  getAnimationNames(): string[] {
+    return this.player?.getAnimationNames() || [];
+  }
+
+  /**
+   * DEBUG: Play any animation by name (for testing)
+   */
+  debugPlayAnimation(name: string): void {
+    console.log(`[ANIM] Engine: ${name}, player=${!!this.player}`);
+    this.player?.debugPlayAnimation(name);
+  }
+
+  /**
+   * DEBUG: Play animation once with callback (for testing)
+   */
+  debugPlayAnimationOnce(name: string): void {
+    console.log(`[ANIM] Engine playOnce: ${name}`);
+    this.player?.playAnimationWithCallback(name, () => {
+      console.log(`[ANIM] Animation complete: ${name}`);
+    });
   }
 
   /**
