@@ -13,18 +13,12 @@ import { BloodDecalSystem } from '../rendering/BloodDecalSystem';
 import { GameState, Tier, InputState, GameStats, KillNotification } from '../types';
 import { ActionController, ActionType } from './ActionController';
 
-/**
- * Engine - Core game engine
- * Orchestrates rendering, physics, AI, and game logic
- */
 export class Engine {
-  // Three.js core
   private scene: THREE.Scene;
   private camera: THREE.OrthographicCamera;
   private renderer: THREE.WebGLRenderer;
   private clock: THREE.Clock;
 
-  // Systems
   public physics: PhysicsWorld;
   public ai: AIManager;
   public crowd: CrowdManager | null = null;
@@ -33,12 +27,10 @@ export class Engine {
   public particles: ParticleEmitter;
   public bloodDecals: BloodDecalSystem;
 
-  // Game state
   private state: GameState = GameState.MENU;
-  private isDying: boolean = false; // Player is playing death animation
+  private isDying: boolean = false;
   private animationId: number | null = null;
 
-  // Performance monitoring
   private performanceStats = {
     fps: 0,
     frameTime: 0,
@@ -46,7 +38,6 @@ export class Engine {
     entities: 0,
     rendering: 0,
     lastFrameTime: performance.now(),
-    // Detailed counts (what's actually causing the load)
     counts: {
       cops: 0,
       pedestrians: 0,
@@ -54,7 +45,6 @@ export class Engine {
       bloodDecals: 0,
       buildings: 0
     },
-    // Historical tracking (last 120 frames = ~2 seconds at 60fps)
     history: {
       frameTime: [] as number[],
       physics: [] as number[],
@@ -62,7 +52,6 @@ export class Engine {
       rendering: [] as number[],
       maxSize: 120
     },
-    // Worst frame tracking
     worstFrame: {
       frameTime: 0,
       physics: 0,
@@ -77,16 +66,14 @@ export class Engine {
         buildings: 0
       }
     },
-    // Averages
     avgFrameTime: 0,
     avgPhysics: 0,
     avgEntities: 0,
     avgRendering: 0
   };
 
-  // Camera shake
   private cameraShakeIntensity: number = 0;
-  private cameraShakeDecay: number = 5; // Shake decays per second
+  private cameraShakeDecay: number = 5;
   private cameraBasePosition: THREE.Vector3 = new THREE.Vector3();
   private cameraBaseQuaternion: THREE.Quaternion = new THREE.Quaternion();
   private input: InputState = {
@@ -99,7 +86,6 @@ export class Engine {
   };
   public disableCameraFollow: boolean = false;
 
-  // Stats
   private stats: GameStats = {
     kills: 0,
     copKills: 0,
@@ -118,33 +104,24 @@ export class Engine {
     taseEscapeProgress: 0,
   };
 
-  // Callbacks
   private callbacks: {
     onStatsUpdate?: (stats: GameStats) => void;
     onGameOver?: (stats: GameStats) => void;
     onKillNotification?: (notification: KillNotification) => void;
   } = {};
 
-  // Temp ground reference
   private groundMesh: THREE.Mesh | null = null;
-
-  // Player
   private player: Player | null = null;
 
-  // Vehicle system
   private vehicle: Vehicle | null = null;
   private isInVehicle: boolean = false;
   private vehicleSpawned: boolean = false;
-  private currentVehicleTier: Tier | null = null; // Which tier's vehicle is currently spawned
+  private currentVehicleTier: Tier | null = null;
 
-  // Action controller - resolves SPACE key based on context
   private actionController: ActionController = new ActionController();
 
-  // Screen shake
   private shakeIntensity: number = 0;
   private shakeDecay: number = 0.9;
-
-  // Kill notification messages
   private static readonly KILL_MESSAGES = ['SPLAT!', 'CRUSHED!', 'DEMOLISHED!', 'OBLITERATED!', 'TERMINATED!'];
   private static readonly PANIC_KILL_MESSAGES = ['COWARD!', 'NO ESCAPE!', 'RUN FASTER!', 'BACKSTAB!', 'EASY PREY!'];
   private static readonly PURSUIT_KILL_MESSAGES = ['HEAT KILL!', 'WANTED BONUS!', 'PURSUIT FRENZY!', 'HOT STREAK!', 'RAMPAGE!'];
@@ -152,15 +129,11 @@ export class Engine {
   private static readonly COP_KILL_MESSAGES = ['BADGE DOWN!', 'OFFICER DOWN!', 'COP DROPPED!', 'BLUE DOWN!'];
 
   constructor(canvas: HTMLCanvasElement, width: number, height: number) {
-    // Initialize Three.js
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x1a1a1a);
-    // Note: Fog disabled due to WebGL 3D texture warnings on some GPUs
-    // this.scene.fog = new THREE.Fog(0x1a1a1a, 30, 80);
 
-    // Orthographic camera for isometric view
     const aspect = width / height;
-    const frustumSize = 15; // Double the previous 7.5 to pull back camera
+    const frustumSize = 15;
     this.camera = new THREE.OrthographicCamera(
       (frustumSize * aspect) / -2,
       (frustumSize * aspect) / 2,
@@ -170,12 +143,10 @@ export class Engine {
       1000
     );
 
-    // Isometric position: double distance (was 2.5, 6.25, 2.5)
     this.camera.position.set(5, 12.5, 5);
     this.camera.lookAt(0, 0, 0);
     this.cameraBasePosition.copy(this.camera.position);
 
-    // Renderer
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
@@ -186,13 +157,10 @@ export class Engine {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    // Lighting
     this.setupLighting();
 
-    // Clock
     this.clock = new THREE.Clock();
 
-    // Initialize systems
     this.physics = new PhysicsWorld();
     this.ai = new AIManager();
     this.particles = new ParticleEmitter(this.scene);
@@ -201,19 +169,12 @@ export class Engine {
     this.particles.setOnGroundHit((position, size) => {
       this.bloodDecals.addBloodDecal(position, size);
     });
-
-    console.log('[Engine] Created with isometric camera at (2.5, 6.25, 2.5)');
   }
 
-  /**
-   * Setup scene lighting
-   */
   private setupLighting(): void {
-    // Ambient light
     const ambient = new THREE.AmbientLight(0xffffff, 0.6);
     this.scene.add(ambient);
 
-    // Directional light (sun)
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
     dirLight.position.set(-30, 50, -30);
     dirLight.castShadow = true;
@@ -228,61 +189,38 @@ export class Engine {
     this.scene.add(dirLight);
   }
 
-  /**
-   * Initialize engine (async because Rapier needs WASM loading)
-   */
   async init(): Promise<void> {
-    console.log('[Engine] Initializing...');
-
-    // Wait for preloader to finish (RAPIER WASM + assets)
     const { preloader } = await import('./Preloader');
     await preloader.preloadAll();
 
-    // Initialize physics (RAPIER already loaded by preloader)
     await this.physics.init();
-
-    // Initialize AI
     this.ai.init();
-
-    // Create temporary ground for testing
     this.createTestGround();
 
-    // Initialize managers
     const world = this.physics.getWorld();
     if (world) {
       this.crowd = new CrowdManager(this.scene, world);
       this.cops = new CopManager(this.scene, world);
       this.buildings = new BuildingManager(this.scene, world);
     }
-
-    // Assets already loaded by preloader
-    console.log('[Engine] Initialization complete');
   }
 
-  /**
-   * Temporary test ground (will be replaced by WorldSystem)
-   */
   private createTestGround(): void {
-    // Large ground for infinite city
     const groundSize = 1000;
     const geometry = new THREE.PlaneGeometry(groundSize, groundSize);
 
-    // Load wood planks PBR textures
     const textureLoader = new THREE.TextureLoader();
-
     const albedoMap = textureLoader.load('/assets/textures/wood-planks/color.jpg');
     const normalMap = textureLoader.load('/assets/textures/wood-planks/normal.png');
     const roughnessMap = textureLoader.load('/assets/textures/wood-planks/roughness.jpg');
     const aoMap = textureLoader.load('/assets/textures/wood-planks/ao.jpg');
 
-    // Set color space
     albedoMap.colorSpace = THREE.SRGBColorSpace;
 
-    // Set up tiling for all textures (more repeats for larger ground)
     [albedoMap, normalMap, roughnessMap, aoMap].forEach(tex => {
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(100, 100); // More tiling for large ground
+      tex.repeat.set(100, 100);
     });
 
     const material = new THREE.MeshStandardMaterial({
@@ -300,12 +238,10 @@ export class Engine {
 
     this.bloodDecals.setGroundMesh(this.groundMesh);
 
-    // Grid helper for visual reference
     const gridHelper = new THREE.GridHelper(groundSize, 100, 0x444444, 0x333333);
-    gridHelper.position.y = 0; // At ground level
+    gridHelper.position.y = 0;
     this.scene.add(gridHelper);
 
-    // Physics ground (much larger)
     const groundBody = this.physics.createRigidBody(
       RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0, 0)
     );
@@ -313,13 +249,8 @@ export class Engine {
       RAPIER.ColliderDesc.cuboid(groundSize / 2, 0.1, groundSize / 2),
       groundBody
     );
-
-    console.log('[Engine] Test ground with grid created');
   }
 
-  /**
-   * Set callbacks for UI updates
-   */
   setCallbacks(
     onStatsUpdate: (stats: GameStats) => void,
     onGameOver: (stats: GameStats) => void,
@@ -330,13 +261,9 @@ export class Engine {
     this.callbacks.onKillNotification = onKillNotification;
   }
 
-  /**
-   * Handle input from controls
-   */
   handleInput(input: InputState): void {
     this.input = input;
 
-    // Forward input to car or player based on vehicle state
     if (this.isInVehicle && this.vehicle) {
       this.vehicle.handleInput({
         up: input.up,
@@ -345,15 +272,14 @@ export class Engine {
         right: input.right,
       });
     } else if (this.player) {
-      // Movement only - action (SPACE) is handled by ActionController in update()
       this.player.handleInput({
         up: input.up,
         down: input.down,
         left: input.left,
         right: input.right,
-        sprint: input.mount, // Shift key (walk mode - slows down)
+        sprint: input.mount,
         jump: false,
-        attack: false, // Attack is triggered by ActionController via performAttack()
+        attack: false,
       });
     }
   }
