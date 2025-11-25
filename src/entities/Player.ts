@@ -245,7 +245,12 @@ export class Player extends THREE.Group {
    * Directly triggers the attack, bypassing input edge detection
    */
   performAttack(): void {
-    if (this.isDead || this.isAttacking) return;
+    console.log(`[PLAYER] performAttack() called: isDead=${this.isDead}, isAttacking=${this.isAttacking}`);
+
+    if (this.isDead || this.isAttacking) {
+      console.log('[PLAYER] performAttack() ABORTED');
+      return;
+    }
 
     // Randomize attack animation
     const attackAnimations = [
@@ -266,6 +271,8 @@ export class Player extends THREE.Group {
 
       this.isAttacking = true;
       this.attackTimer = 0.5; // 500ms max attack duration
+
+      console.log('[PLAYER] performAttack() SUCCESS - attack started');
 
       // Trigger attack callback
       if (this.onAttackCallback) {

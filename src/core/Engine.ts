@@ -523,11 +523,14 @@ export class Engine {
    * Debug: Spawn a specific vehicle type (or remove vehicle if null)
    */
   debugSpawnVehicle(vehicleType: VehicleType | null): void {
+    // Don't allow spawning while in vehicle
+    if (this.isInVehicle) {
+      console.log('[VEHICLE] Cannot spawn vehicle while driving');
+      return;
+    }
+
     // Remove existing vehicle if any
     if (this.vehicle) {
-      if (this.isInVehicle) {
-        this.exitVehicle();
-      }
       this.scene.remove(this.vehicle);
       this.vehicle.dispose();
       this.vehicle = null;
@@ -636,7 +639,20 @@ export class Engine {
    * Enter an existing spawned car
    */
   private enterVehicle(): void {
-    if (!this.player || !this.vehicle || this.isInVehicle) return;
+    console.log(`[VEHICLE] enterVehicle() called: player=${!!this.player}, vehicle=${!!this.vehicle}, isInVehicle=${this.isInVehicle}`);
+
+    if (!this.player) {
+      console.log('[VEHICLE] enterVehicle() ABORTED: no player');
+      return;
+    }
+    if (!this.vehicle) {
+      console.log('[VEHICLE] enterVehicle() ABORTED: no vehicle');
+      return;
+    }
+    if (this.isInVehicle) {
+      console.log('[VEHICLE] enterVehicle() ABORTED: already in vehicle');
+      return;
+    }
 
     // Hide player (don't dispose - we'll need it when car explodes)
     this.player.setVisible(false);
@@ -651,7 +667,7 @@ export class Engine {
     // Screen shake for entering vehicle
     this.shakeCamera(1.0);
 
-    console.log(`[VEHICLE] Entered ${this.vehicle.getTypeName()}!`);
+    console.log(`[VEHICLE] SUCCESS: Entered ${this.vehicle.getTypeName()}! isInVehicle=${this.isInVehicle}`);
   }
 
   /**
@@ -666,7 +682,7 @@ export class Engine {
     const vehiclePos = this.vehicle.getPosition();
     const distance = playerPos.distanceTo(vehiclePos);
 
-    return distance < 6.0; // Within 6 units (increased from 4.0)
+    return distance < 15.0; // Within 15 units - generous range for vehicle entry
   }
 
   /**
