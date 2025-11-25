@@ -702,6 +702,20 @@ export class Player extends THREE.Group {
   }
 
   /**
+   * Play seated animation for vehicle riding (bike/motorbike)
+   */
+  playSeatedAnimation(): void {
+    this.playAnimation('Seated_Motorbike', 0.2);
+  }
+
+  /**
+   * Resume normal animations after exiting vehicle
+   */
+  resumeNormalAnimations(): void {
+    this.playAnimation('Idle_A', 0.1);
+  }
+
+  /**
    * Set attack callback (called when player attacks)
    */
   setOnAttack(callback: (position: THREE.Vector3) => void): void {

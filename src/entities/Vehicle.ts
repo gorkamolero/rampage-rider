@@ -92,6 +92,17 @@ export class Vehicle extends THREE.Group {
   }
 
   /**
+   * Get rider position config
+   */
+  getRiderConfig(): { offsetY: number; offsetZ: number; hideRider: boolean } {
+    return {
+      offsetY: this.config.riderOffsetY,
+      offsetZ: this.config.riderOffsetZ,
+      hideRider: this.config.hideRider,
+    };
+  }
+
+  /**
    * Load the vehicle GLTF model from cache
    */
   private async loadModel(): Promise<void> {

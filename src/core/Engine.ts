@@ -654,8 +654,23 @@ export class Engine {
       return;
     }
 
-    // Hide player (don't dispose - we'll need it when car explodes)
-    this.player.setVisible(false);
+    // Get rider config from vehicle
+    const riderConfig = this.vehicle.getRiderConfig();
+
+    // Hide player only for enclosed vehicles (like cars)
+    if (riderConfig.hideRider) {
+      this.player.setVisible(false);
+    } else {
+      // Keep player visible and attach to vehicle
+      this.player.setVisible(true);
+      // Add player to vehicle group so it moves with vehicle
+      (this.vehicle as THREE.Group).add(this.player);
+      // Position player at rider offset (local to vehicle)
+      (this.player as THREE.Group).position.set(0, riderConfig.offsetY, riderConfig.offsetZ);
+      (this.player as THREE.Group).rotation.set(0, 0, 0); // Face same direction as vehicle
+      // Play seated animation
+      this.player.playSeatedAnimation();
+    }
 
     this.isInVehicle = true;
 
@@ -667,7 +682,7 @@ export class Engine {
     // Screen shake for entering vehicle
     this.shakeCamera(1.0);
 
-    console.log(`[VEHICLE] SUCCESS: Entered ${this.vehicle.getTypeName()}! isInVehicle=${this.isInVehicle}`);
+    console.log(`[VEHICLE] SUCCESS: Entered ${this.vehicle.getTypeName()}! isInVehicle=${this.isInVehicle}, hideRider=${riderConfig.hideRider}`);
   }
 
   /**
@@ -696,12 +711,22 @@ export class Engine {
     // Find safe spawn position (try multiple offsets to avoid buildings)
     const safePos = this.findSafeExitPosition(vehiclePos);
 
-    // Remove car
+    // Detach player from vehicle before disposing
+    // Check if player is a child of vehicle (for bikes/motorcycles)
+    if ((this.player as THREE.Group).parent === this.vehicle) {
+      (this.vehicle as THREE.Group).remove(this.player);
+      this.scene.add(this.player);
+    }
+
+    // Make player visible again
+    this.player.setVisible(true);
+
+    // Remove and dispose vehicle
     this.scene.remove(this.vehicle);
     this.vehicle.dispose();
     this.vehicle = null;
 
-    // Recreate player at safe position
+    // Recreate player physics at safe position
     const world = this.physics.getWorld();
     if (world) {
       this.player.dispose();
