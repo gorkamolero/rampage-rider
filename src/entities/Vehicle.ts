@@ -440,6 +440,13 @@ export class Vehicle extends THREE.Group {
   }
 
   /**
+   * Get vehicle rotation Y (facing direction)
+   */
+  getRotationY(): number {
+    return (this as THREE.Group).rotation.y;
+  }
+
+  /**
    * Get current health
    */
   getHealth(): number {
