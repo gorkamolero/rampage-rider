@@ -26,7 +26,6 @@ export class BloodDecalSystem {
     this.sharedGeometry.rotateX(-Math.PI / 2); // Flat on ground
 
     this.createBloodTextures();
-    console.log('[BloodDecalSystem] Created - max', this.maxDecals, 'decals, lifetime', this.decalLifetime, 's');
   }
 
   /**

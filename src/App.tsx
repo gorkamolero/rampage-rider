@@ -105,7 +105,6 @@ function App() {
   }, []);
 
   const handleAnimationSelect = useCallback((name: string) => {
-    console.log(`[ANIM] App: ${name}, controls=${!!engineControlsRef.current}`);
     if (engineControlsRef.current) {
       engineControlsRef.current.playAnimation(name);
       setCurrentAnimation(name);
@@ -113,7 +112,6 @@ function App() {
   }, []);
 
   const handleAnimationPlayOnce = useCallback((name: string) => {
-    console.log(`[ANIM] App playOnce: ${name}`);
     if (engineControlsRef.current) {
       engineControlsRef.current.playAnimationOnce(name);
     }
