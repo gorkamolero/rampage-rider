@@ -105,6 +105,7 @@ export class Pedestrian extends THREE.Group {
 
   /**
    * Load pedestrian character model with animations
+   * Uses SHARED GEOMETRY optimization - geometries are not cloned, only skeletons/materials
    */
   private async loadModel(characterType: string): Promise<void> {
     try {
@@ -117,25 +118,68 @@ export class Pedestrian extends THREE.Group {
         return;
       }
 
-      // Use SkeletonUtils to properly clone animated models
-      const clonedScene = SkeletonUtils.clone(cachedGltf.scene);
-      const gltf = {
-        scene: clonedScene,
-        animations: cachedGltf.animations
-      };
+      // OPTIMIZATION: Instead of SkeletonUtils.clone() which duplicates geometries,
+      // manually clone only the skeleton and materials while sharing geometries
+      const sourceSkinnedMesh = cachedGltf.scene.children.find(
+        (child) => child instanceof THREE.SkinnedMesh
+      ) as THREE.SkinnedMesh;
+
+      if (!sourceSkinnedMesh) {
+        console.error(`[Pedestrian] No SkinnedMesh found in ${characterType}`);
+        return;
+      }
+
+      // Clone skeleton (each instance needs independent animations)
+      const bones = sourceSkinnedMesh.skeleton.bones.map(bone => {
+        const clonedBone = bone.clone();
+        // Preserve bone structure
+        clonedBone.position.copy(bone.position);
+        clonedBone.quaternion.copy(bone.quaternion);
+        clonedBone.scale.copy(bone.scale);
+        return clonedBone;
+      });
+
+      // Rebuild bone hierarchy
+      sourceSkinnedMesh.skeleton.bones.forEach((bone, i) => {
+        if (bone.parent && bone.parent.type === 'Bone') {
+          const parentIndex = sourceSkinnedMesh.skeleton.bones.indexOf(bone.parent as THREE.Bone);
+          if (parentIndex >= 0) {
+            bones[parentIndex].add(bones[i]);
+          }
+        }
+      });
+
+      const skeleton = new THREE.Skeleton(bones, sourceSkinnedMesh.skeleton.boneInverses);
+
+      // Create SkinnedMesh with SHARED geometry (not cloned!)
+      const mesh = new THREE.SkinnedMesh(
+        sourceSkinnedMesh.geometry, // ← SHARED! Not cloned
+        sourceSkinnedMesh.material instanceof THREE.Material
+          ? sourceSkinnedMesh.material.clone() // Clone material for per-instance skin tones
+          : sourceSkinnedMesh.material.map(m => m.clone())
+      );
+
+      mesh.bind(skeleton);
 
       // Disable real shadow casting (we use blob shadows instead)
-      AnimationHelper.setupShadows(gltf.scene, false, false);
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
 
       // Apply random skin tone
       const randomSkinTone = AnimationHelper.randomElement(SKIN_TONES);
-      AnimationHelper.applySkinTone(gltf.scene, randomSkinTone);
+      AnimationHelper.applySkinTone(mesh, randomSkinTone);
 
-      (this as THREE.Group).add(gltf.scene);
+      // Add root bone structure to this group
+      const rootBone = bones.find(bone => !bone.parent || bone.parent.type !== 'Bone');
+      if (rootBone) {
+        (this as THREE.Group).add(rootBone);
+      }
+
+      (this as THREE.Group).add(mesh);
 
       // Setup animation mixer
-      this.mixer = new THREE.AnimationMixer(gltf.scene);
-      this.animations = gltf.animations;
+      this.mixer = new THREE.AnimationMixer(mesh);
+      this.animations = cachedGltf.animations;
 
       // Play idle by default
       this.playAnimation('Idle', 0.3);
@@ -516,14 +560,18 @@ export class Pedestrian extends THREE.Group {
     // Remove from scene
     (this as THREE.Group).parent?.remove(this);
 
-    // Defer geometry disposal (geometries are unique per instance)
-    // Materials/textures are shared between GLTF instances, so we DON'T dispose them
+    // OPTIMIZATION: Dispose only materials (not geometries - they're shared!)
+    // Geometries are shared across all pedestrians of the same type
     setTimeout(() => {
       (this as THREE.Group).traverse((child) => {
         if (child instanceof THREE.Mesh) {
-          if (child.geometry) {
-            child.geometry.dispose();
+          // Dispose materials (cloned per instance)
+          if (Array.isArray(child.material)) {
+            child.material.forEach(mat => mat.dispose());
+          } else if (child.material) {
+            child.material.dispose();
           }
+          // DON'T dispose geometry - it's shared!
         }
       });
     }, 0);
