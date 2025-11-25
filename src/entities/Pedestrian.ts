@@ -334,6 +334,32 @@ export class Pedestrian extends THREE.Group {
   }
 
   /**
+   * Apply violent knockback from vehicle hit - launches them far
+   */
+  applyVehicleKnockback(carPosition: THREE.Vector3, carVelocity: THREE.Vector3): void {
+    // Direction away from car
+    const direction = new THREE.Vector3()
+      .subVectors((this as THREE.Group).position, carPosition)
+      .setY(0)
+      .normalize();
+
+    // Add car's velocity direction for realistic physics
+    const knockbackDir = direction.clone()
+      .add(carVelocity.clone().normalize().multiplyScalar(0.5))
+      .normalize();
+
+    // Violent force - much stronger than normal knockback
+    const force = 30 + Math.random() * 20; // 30-50 force
+    const knockbackVelocity = knockbackDir.clone().multiplyScalar(force);
+
+    // Apply to Yuka vehicle
+    this.yukaVehicle.velocity.set(knockbackVelocity.x, knockbackVelocity.y, knockbackVelocity.z);
+
+    // Move visual position immediately for dramatic effect
+    (this as THREE.Group).position.add(knockbackDir.clone().multiplyScalar(3));
+  }
+
+  /**
    * Cleanup
    */
   destroy(world: RAPIER.World): void {

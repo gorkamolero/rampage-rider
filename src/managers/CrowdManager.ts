@@ -220,6 +220,22 @@ export class CrowdManager {
   }
 
   /**
+   * Apply violent knockback to pedestrians hit by vehicle
+   */
+  applyVehicleKnockback(carPosition: THREE.Vector3, carVelocity: THREE.Vector3, radius: number): void {
+    for (const pedestrian of this.pedestrians) {
+      if (pedestrian.isDeadState()) continue;
+
+      const pedPos = (pedestrian as THREE.Group).position;
+      const distance = pedPos.distanceTo(carPosition);
+
+      if (distance < radius) {
+        pedestrian.applyVehicleKnockback(carPosition, carVelocity);
+      }
+    }
+  }
+
+  /**
    * Handle player running into pedestrians (makes them stumble)
    */
   handlePlayerCollisions(playerPosition: THREE.Vector3): void {

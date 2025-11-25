@@ -44,9 +44,10 @@ export class Car extends THREE.Group {
   private speed: number = CAR_CONFIG.SPEED;
   private isDestroyed: boolean = false;
 
-  // Movement collision filter (only collide with GROUND and BUILDING, pass through cops/peds)
+  // Movement collision filter (collide with GROUND and BUILDING, pass through cops/peds)
+  // Format: (filter << 16) | membership
   private movementCollisionFilter: number =
-    (CAR_CONFIG.COLLISION_GROUPS.GROUND | CAR_CONFIG.COLLISION_GROUPS.BUILDING) << 16 |
+    ((CAR_CONFIG.COLLISION_GROUPS.GROUND | CAR_CONFIG.COLLISION_GROUPS.BUILDING) << 16) |
     CAR_CONFIG.COLLISION_GROUPS.VEHICLE;
 
   // Input state
@@ -97,7 +98,7 @@ export class Car extends THREE.Group {
       // Scale and position the model appropriately
       // The Sketchfab model may need adjustment
       model.scale.set(0.5, 0.5, 0.5); // Adjust based on model size
-      model.rotation.y = Math.PI; // Face forward
+      model.rotation.y = 0; // Face forward (model's default direction)
 
       this.modelContainer.add(model);
       this.modelLoaded = true;
@@ -349,6 +350,14 @@ export class Car extends THREE.Group {
    */
   getPosition(): THREE.Vector3 {
     return (this as THREE.Group).position.clone();
+  }
+
+  /**
+   * Get current velocity (based on input direction and speed)
+   */
+  getVelocity(): THREE.Vector3 {
+    const moveDir = this.getMovementDirection();
+    return moveDir.multiplyScalar(this.speed);
   }
 
   /**

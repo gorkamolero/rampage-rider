@@ -35,33 +35,33 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
         </div>
       )}
 
-      {/* Taser Stun Prompt */}
+      {/* Taser Stun Prompt - Centered with smaller font */}
       {stats.isTased && (
         <div
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50"
+          className="absolute inset-0 flex items-center justify-center z-50"
           style={{
             animation: 'shake 0.1s infinite'
           }}
         >
           <style>{`
             @keyframes shake {
-              0%, 100% { transform: translate(-50%, -50%) translate(0, 0); }
-              10% { transform: translate(-50%, -50%) translate(-2px, 2px); }
-              20% { transform: translate(-50%, -50%) translate(2px, -2px); }
-              30% { transform: translate(-50%, -50%) translate(-2px, -2px); }
-              40% { transform: translate(-50%, -50%) translate(2px, 2px); }
-              50% { transform: translate(-50%, -50%) translate(-2px, 0px); }
-              60% { transform: translate(-50%, -50%) translate(2px, 0px); }
-              70% { transform: translate(-50%, -50%) translate(0px, -2px); }
-              80% { transform: translate(-50%, -50%) translate(0px, 2px); }
-              90% { transform: translate(-50%, -50%) translate(-2px, 2px); }
+              0%, 100% { transform: translate(0, 0); }
+              10% { transform: translate(-2px, 2px); }
+              20% { transform: translate(2px, -2px); }
+              30% { transform: translate(-2px, -2px); }
+              40% { transform: translate(2px, 2px); }
+              50% { transform: translate(-2px, 0px); }
+              60% { transform: translate(2px, 0px); }
+              70% { transform: translate(0px, -2px); }
+              80% { transform: translate(0px, 2px); }
+              90% { transform: translate(-2px, 2px); }
             }
           `}</style>
           <div className="text-center">
-            <div className="text-6xl font-black text-yellow-400 retro mb-2" style={{ textShadow: '4px 4px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000' }}>
+            <div className="text-3xl font-black text-yellow-400 retro mb-1" style={{ textShadow: '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000' }}>
               ⚡ TASED! ⚡
             </div>
-            <div className="text-3xl font-bold text-white retro" style={{ textShadow: '3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000' }}>
+            <div className="text-xl font-bold text-white retro" style={{ textShadow: '2px 2px 0 #000' }}>
               MASH SPACE!
             </div>
           </div>
