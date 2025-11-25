@@ -43,21 +43,30 @@ export class ActionController {
       return { action: ActionType.NONE, isNewPress: false };
     }
 
+    // Log decision tree on new press
+    if (isNewPress) {
+      console.log(`[ACTION] Decision tree: isTased=${context.isTased}, isNearCar=${context.isNearCar}, isInVehicle=${context.isInVehicle}`);
+    }
+
     // Priority 1: Escape taser (only on new press for mashing)
     if (context.isTased) {
+      if (isNewPress) console.log('[ACTION] → ESCAPE_TASER (player is tased)');
       return { action: ActionType.ESCAPE_TASER, isNewPress };
     }
 
     // Priority 2: Enter car (only on new press)
     if (context.isNearCar && !context.isInVehicle) {
+      if (isNewPress) console.log('[ACTION] → ENTER_CAR (near car and not in vehicle)');
       return { action: ActionType.ENTER_CAR, isNewPress };
     }
 
     // Priority 3: Attack (default)
     if (!context.isInVehicle) {
+      if (isNewPress) console.log(`[ACTION] → ATTACK (not near car: isNearCar=${context.isNearCar})`);
       return { action: ActionType.ATTACK, isNewPress };
     }
 
+    if (isNewPress) console.log('[ACTION] → NONE (in vehicle, no action)');
     return { action: ActionType.NONE, isNewPress: false };
   }
 
