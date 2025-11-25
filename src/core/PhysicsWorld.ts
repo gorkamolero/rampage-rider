@@ -36,8 +36,6 @@ export class PhysicsWorld {
     // Create world with gravity
     this.world = new RAPIER.World({ x: 0.0, y: -9.81, z: 0.0 });
     this.initialized = true;
-
-    console.log('[PhysicsWorld] Initialized with gravity:', this.world.gravity);
   }
 
   /**

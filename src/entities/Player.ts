@@ -176,27 +176,13 @@ export class Player extends THREE.Group {
    * Play animation by name (matching Sketchbook setAnimation - line 499)
    */
   private playAnimation(clipName: string, fadeIn: number, force: boolean = false): void {
-    if (!this.mixer || this.animations.length === 0) {
-      console.log(`[ANIM] playAnimation SKIP: no mixer or animations`);
-      return;
-    }
+    if (!this.mixer || this.animations.length === 0) return;
 
-    // Skip if debug animation is locked (unless forced)
-    if (this.debugAnimationLock && !force) {
-      console.log(`[ANIM] playAnimation SKIP: locked, clip=${clipName}`);
-      return;
-    }
+    if (this.debugAnimationLock && !force) return;
 
-    // Find animation clip
     const clip = THREE.AnimationClip.findByName(this.animations, clipName);
-    if (!clip) {
-      console.log(`[ANIM] playAnimation SKIP: clip not found: ${clipName}`);
-      return;
-    }
+    if (!clip) return;
 
-    console.log(`[ANIM] playAnimation: ${clipName}, duration=${clip.duration.toFixed(2)}s`);
-
-    // Stop all current actions and play new one
     this.mixer.stopAllAction();
     const action = this.mixer.clipAction(clip);
     action.fadeIn(fadeIn);
@@ -299,14 +285,8 @@ export class Player extends THREE.Group {
    * Directly triggers the attack, bypassing input edge detection
    */
   performAttack(): void {
-    console.log(`[PLAYER] performAttack() called: isDead=${this.isDead}, isAttacking=${this.isAttacking}`);
+    if (this.isDead || this.isAttacking) return;
 
-    if (this.isDead || this.isAttacking) {
-      console.log('[PLAYER] performAttack() ABORTED');
-      return;
-    }
-
-    // Randomize attack animation
     const attackAnimations = [
       'Melee_1H_Attack_Stab',
       'Melee_1H_Attack_Chop',
@@ -324,11 +304,8 @@ export class Player extends THREE.Group {
       this.attackAction.play();
 
       this.isAttacking = true;
-      this.attackTimer = 0.5; // 500ms max attack duration
+      this.attackTimer = 0.5;
 
-      console.log('[PLAYER] performAttack() SUCCESS - attack started');
-
-      // Trigger attack callback
       if (this.onAttackCallback) {
         this.onAttackCallback((this as THREE.Group).position.clone());
       }
@@ -645,7 +622,6 @@ export class Player extends THREE.Group {
     if (!this.isTased) {
       this.isTased = true;
       this.taseEscapeProgress = 0;
-      console.log('[Player] Tased! Mash Space to escape!');
     }
   }
 
@@ -718,10 +694,7 @@ export class Player extends THREE.Group {
         this.isTased = false;
         this.taseEscapeProgress = 0;
         this.taserImmunityTimer = TASER_CONFIG.IMMUNITY_DURATION;
-        console.log('[Player] Escaped taser!');
-
-        // Set jump cooldown to prevent Space mashing from triggering jumps
-        this.jumpCooldown = 0.5; // 500ms cooldown
+        this.jumpCooldown = 0.5;
 
         // Force play idle animation immediately to avoid T-pose
         this.playAnimation('Idle_A', 0.1);
@@ -760,56 +733,20 @@ export class Player extends THREE.Group {
    * Uses Melee_Blocking which has arms forward like holding handlebars
    */
   playSeatedAnimation(): void {
-    console.log(`[ANIM] playSeatedAnimation called, mixer=${!!this.mixer}, anims=${this.animations.length}`);
     if (!this.mixer) return;
 
-    // Lock to prevent movement overrides
     this.debugAnimationLock = true;
 
-    // Debug: list all animation names
-    console.log(`[ANIM] Available animations:`, this.animations.map(a => a.name));
-
     const clip = THREE.AnimationClip.findByName(this.animations, 'Melee_Blocking');
-    if (!clip) {
-      console.log(`[ANIM] Melee_Blocking not found!`);
-      return;
-    }
+    if (!clip) return;
 
-    // Debug: check clip details
-    console.log(`[ANIM] Melee_Blocking clip details:`, {
-      name: clip.name,
-      duration: clip.duration,
-      tracks: clip.tracks.length,
-      trackNames: clip.tracks.map(t => t.name).slice(0, 5), // First 5 track names
-    });
-
-    // Stop all and play looping
     this.mixer.stopAllAction();
     const action = this.mixer.clipAction(clip);
     action.setLoop(THREE.LoopRepeat, Infinity);
     action.reset();
     action.play();
 
-    // Debug: check action state
-    console.log(`[ANIM] Action state:`, {
-      isRunning: action.isRunning(),
-      enabled: action.enabled,
-      weight: action.weight,
-      timeScale: action.timeScale,
-      time: action.time,
-    });
-
     this.currentAnimation = 'Melee_Blocking';
-
-    // Debug: check action again after a frame
-    setTimeout(() => {
-      console.log(`[ANIM] Action state after 100ms:`, {
-        isRunning: action.isRunning(),
-        enabled: action.enabled,
-        weight: action.weight,
-        time: action.time,
-      });
-    }, 100);
   }
 
   /**
@@ -989,11 +926,7 @@ export class Player extends THREE.Group {
    * DEBUG: Play any animation by name (for testing)
    */
   debugPlayAnimation(name: string): void {
-    console.log(`[ANIM] Player: ${name}, mixer=${!!this.mixer}, anims=${this.animations.length}`);
-    if (!this.mixer) {
-      console.warn('[ANIM] No mixer - model not loaded yet');
-      return;
-    }
+    if (!this.mixer) return;
     this.debugAnimationLock = true;
     this.playAnimation(name, 0.2, true);
   }

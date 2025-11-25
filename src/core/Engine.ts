@@ -917,7 +917,6 @@ export class Engine {
       }
     }
 
-    // Blood effects and muzzle flash
     if (totalKills > 0) {
       const vehiclePos = this.vehicle.getPosition();
       for (const killPos of allKillPositions) {
@@ -925,25 +924,17 @@ export class Engine {
         this.particles.emitBlood(killPos, 40);
         this.particles.emitBloodSpray(killPos, direction, 30);
       }
-      this.shakeIntensity = 0.8; // More shake for gunshots
+      this.shakeIntensity = 0.8;
     }
 
-    // Screen shake even on miss (shows gun fired)
     if (totalKills === 0) {
       this.shakeIntensity = 0.3;
     }
   }
 
-  /**
-   * Handle vehicle kill (pedestrian hit by car)
-   */
   private handleVehicleKill(position: THREE.Vector3, wasPanicking: boolean = false): void {
     this.stats.kills++;
 
-    // Point calculation:
-    // - Base: 15 points (vehicle kills worth more)
-    // - Panic bonus: 2x for killing someone running away
-    // - Pursuit bonus: 2x when cops are chasing (stacks with panic)
     const basePoints = 15;
     let points = basePoints;
     if (wasPanicking) points *= 2;
@@ -959,7 +950,6 @@ export class Engine {
       this.crowd.panicCrowd(position, 15);
     }
 
-    // Trigger kill notification - panic kills get special message
     let message: string;
     if (wasPanicking) {
       message = Engine.randomFrom(Engine.PANIC_KILL_MESSAGES);
@@ -973,12 +963,9 @@ export class Engine {
     this.shakeIntensity = 0.3;
   }
 
-  /**
-   * Resize handler
-   */
   resize(width: number, height: number): void {
     const aspect = width / height;
-    const frustumSize = 15; // Match the doubled camera distance
+    const frustumSize = 15;
 
     this.camera.left = (frustumSize * aspect) / -2;
     this.camera.right = (frustumSize * aspect) / 2;
@@ -989,9 +976,6 @@ export class Engine {
     this.renderer.setSize(width, height);
   }
 
-  /**
-   * Main animation loop
-   */
   private animate = (): void => {
     if (this.state !== GameState.PLAYING) return;
 
@@ -1010,7 +994,6 @@ export class Engine {
     this.performanceStats.fps = 1000 / (frameStart - this.performanceStats.lastFrameTime);
     this.performanceStats.lastFrameTime = frameStart;
 
-    // Collect detailed counts (what's causing the load)
     this.performanceStats.counts = {
       cops: this.cops?.getActiveCopCount() || 0,
       pedestrians: this.crowd?.getPedestrianCount() || 0,
@@ -1019,14 +1002,12 @@ export class Engine {
       buildings: this.buildings?.getBuildingCount() || 0
     };
 
-    // Track historical data
     const history = this.performanceStats.history;
     history.frameTime.push(this.performanceStats.frameTime);
     history.physics.push(this.performanceStats.physics);
     history.entities.push(this.performanceStats.entities);
     history.rendering.push(this.performanceStats.rendering);
 
-    // Keep only last N frames
     if (history.frameTime.length > history.maxSize) {
       history.frameTime.shift();
       history.physics.shift();
@@ -1034,14 +1015,12 @@ export class Engine {
       history.rendering.shift();
     }
 
-    // Calculate averages
     const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
     this.performanceStats.avgFrameTime = sum(history.frameTime) / history.frameTime.length;
     this.performanceStats.avgPhysics = sum(history.physics) / history.physics.length;
     this.performanceStats.avgEntities = sum(history.entities) / history.entities.length;
     this.performanceStats.avgRendering = sum(history.rendering) / history.rendering.length;
 
-    // Track worst frame and identify bottleneck
     if (this.performanceStats.frameTime > this.performanceStats.worstFrame.frameTime) {
       this.performanceStats.worstFrame = {
         frameTime: this.performanceStats.frameTime,
@@ -1060,26 +1039,19 @@ export class Engine {
     }
   };
 
-  /**
-   * Update game logic
-   */
   private update(dt: number): void {
-    // Step physics
     const physicsStart = performance.now();
     if (this.physics.isReady()) {
       this.physics.step(dt);
     }
     this.performanceStats.physics = performance.now() - physicsStart;
 
-    // Update game time
     this.stats.gameTime += dt;
 
-    // Decrease camera shake
     if (this.cameraShakeIntensity > 0) {
       this.cameraShakeIntensity = Math.max(0, this.cameraShakeIntensity - (this.cameraShakeDecay * dt));
     }
 
-    // Update combo timer
     if (this.stats.comboTimer > 0) {
       this.stats.comboTimer = Math.max(0, this.stats.comboTimer - dt);
       if (this.stats.comboTimer === 0) {
@@ -1087,16 +1059,12 @@ export class Engine {
       }
     }
 
-    // Update heat (decay over time)
     if (this.stats.heat > 0) {
       this.stats.heat = Math.max(0, this.stats.heat - (0.5 * dt));
     }
 
-    // Measure entity updates
     const entitiesStart = performance.now();
 
-    // Tier progression: spawn vehicles at kill thresholds
-    // Check each tier in order (highest first to handle upgrades)
     if (!this.vehicleSpawned && this.player) {
       if (this.stats.kills >= TIER_CONFIGS[Tier.SEDAN].minKills) {
         this.spawnVehicle(Tier.SEDAN);
@@ -1107,7 +1075,6 @@ export class Engine {
       }
     }
 
-    // Resolve SPACE action based on context
     const taserState = this.player?.getTaserState() || { isTased: false, escapeProgress: 0 };
     const isNearVehicle = this.isPlayerNearVehicle();
     const actionContext = {
@@ -1117,110 +1084,74 @@ export class Engine {
     };
     const { action, isNewPress } = this.actionController.resolve(this.input, actionContext);
 
-    // Debug: Log EVERY time SPACE is pressed with full context
-    // Filter in console with: [VEHICLE]
-    if (isNewPress && this.input.action) {
-      const playerPos = this.player?.getPosition();
-      const vehiclePos = this.vehicle?.getPosition();
-      const dist = playerPos && vehiclePos ? playerPos.distanceTo(vehiclePos) : -1;
-      console.log(`[VEHICLE] SPACE pressed: spawned=${this.vehicleSpawned}, inVehicle=${this.isInVehicle}, near=${isNearVehicle}, dist=${dist.toFixed(2)}, action=${action}`);
-    }
-
-    // Handle resolved action - ActionController is the SINGLE source of truth
     if (isNewPress) {
       switch (action) {
         case ActionType.ENTER_CAR:
-          console.log('[VEHICLE] Entering vehicle...');
           this.enterVehicle();
           break;
         case ActionType.ESCAPE_TASER:
           this.player?.handleEscapePress();
           break;
         case ActionType.ATTACK:
-          // Directly trigger attack (bypasses Player's edge detection)
           if (this.player) {
             if (!this.isInVehicle) {
-              // On foot attack
               this.player.performAttack();
             } else if (this.getCurrentVehicleType() === VehicleType.BICYCLE) {
-              // Bicycle melee attack
               this.handleBicycleAttack();
               this.player.playBicycleAttack();
             } else if (this.getCurrentVehicleType() === VehicleType.MOTORBIKE) {
-              // Motorbike drive-by shooting
               this.handleMotorbikeShoot();
               this.player.playMotorbikeShoot();
             }
-            // Sedan has no attack (just run people over)
           }
           break;
       }
     }
 
-    // Update car (always update if spawned, even if player not inside)
     if (this.vehicle) {
       if (this.isInVehicle) {
         this.vehicle.update(dt);
       }
-      // Car sits idle when player not inside
     }
 
-    // Update player
     if (this.player) {
       if (!this.isInVehicle) {
-        // Full update when on foot
-        // Update camera direction for camera-relative movement
-        // Use camera position as the view vector (for isometric, this works better)
         const cameraDirection = this.camera.position.clone().normalize();
         this.player.setCameraDirection(cameraDirection);
-
-        // Update player movement
         this.player.update(dt);
 
-        // Update taser state in stats
         const taserState = this.player.getTaserState();
         this.stats.isTased = taserState.isTased;
         this.stats.taseEscapeProgress = taserState.escapeProgress;
       } else {
-        // Just update animations when in vehicle
         this.player.updateAnimations(dt);
       }
     }
 
-    // Get current position (car or player)
     const currentPos = this.isInVehicle && this.vehicle
       ? this.vehicle.getPosition()
       : this.player?.getPosition() || new THREE.Vector3();
 
-    // Update buildings (spawn/despawn based on current position)
     if (this.buildings) {
       this.buildings.update(currentPos);
     }
 
-    // Update crowd
     if (this.crowd) {
       this.crowd.update(dt, currentPos);
 
-      // Handle pedestrian collisions
-      // Bicycle doesn't kill on contact - only melee attack
       const isBicycle = this.getCurrentVehicleType() === VehicleType.BICYCLE;
       if (this.isInVehicle && this.vehicle && !isBicycle) {
-        // Vehicle contact kills - use vehicle's configured kill radius
         const vehicleKillRadius = this.vehicle.getKillRadius();
         const vehicleVelocity = this.vehicle.getVelocity();
 
-        // Only check when vehicle is actually moving (speed > 1)
         const speed = vehicleVelocity.length();
         if (speed > 1) {
-          // Kill pedestrians in vehicle's path
           const result = this.crowd.damageInRadius(currentPos, vehicleKillRadius, 999, Infinity);
 
-          // Only heavy vehicles send bodies flying (ragdoll effect)
           if (this.vehicle.causesRagdoll()) {
             this.crowd.applyVehicleKnockback(currentPos, vehicleVelocity, vehicleKillRadius);
           }
 
-          // Handle kills with panic bonus tracking
           const regularKills = result.kills - result.panicKills;
           for (let i = 0; i < regularKills; i++) {
             this.handleVehicleKill(result.positions[i] || currentPos, false);
@@ -1230,53 +1161,37 @@ export class Engine {
           }
         }
       } else if (this.player) {
-        // Player-pedestrian collisions (knockback only)
         this.crowd.handlePlayerCollisions(currentPos);
       }
 
-      // Cleanup pedestrians AFTER physics step
       this.crowd.cleanup(currentPos);
     }
 
-    // Update cops
     if (this.cops) {
-      // Update cop spawns based on heat
       this.cops.updateSpawns(this.stats.heat, currentPos);
 
-      // Track pursuit state - in pursuit when any cops are active
       this.stats.inPursuit = this.cops.getActiveCopCount() > 0;
 
-      // Check if player can be tased (not immune and not already tased, and NOT in vehicle)
       const playerCanBeTased = !this.isInVehicle && this.player ? this.player.canBeTased() : false;
 
-      // Update cop AI with damage callback (action-based damage)
       this.cops.update(dt, currentPos, this.stats.wantedStars, playerCanBeTased, (damage: number) => {
-        // Route damage to vehicle or player
         if (this.isInVehicle && this.vehicle) {
-          // Cops damage car instead of player (no taser in vehicle, only shooting)
           this.vehicle.takeDamage(damage);
         } else if (this.player) {
-          // Check if this is a taser attack (1 star AND player can be tased right now)
           const isTaserAttack = this.stats.wantedStars === 1 && this.player.canBeTased();
 
           if (isTaserAttack) {
-            // Taser attacks don't deal damage - only stun
             this.player.applyTaserStun();
           } else {
-            // Punch, Shoot, or fallback punch at 1 star - apply damage normally
             this.stats.health -= damage;
             this.player.applyHitStun();
           }
 
-          // Check for game over (only when on foot)
           if (this.stats.health <= 0 && !this.isDying) {
             this.stats.health = 0;
             this.isDying = true;
-            console.log('[Engine] Player killed');
 
-            // Trigger death animation, then show game over screen
             this.player.die(() => {
-              console.log('[Engine] Game Over');
               this.state = GameState.GAME_OVER;
               if (this.callbacks.onGameOver) {
                 this.callbacks.onGameOver({ ...this.stats });
@@ -1287,16 +1202,10 @@ export class Engine {
       });
     }
 
-    // Update AI
     this.ai.update(dt);
-
-    // Update particles
     this.particles.update(dt);
-
-    // Update blood decals (removes expired ones)
     this.bloodDecals.update();
 
-    // Record entity update timing
     this.performanceStats.entities = performance.now() - entitiesStart;
 
     // Camera follow player/car (unless manual control is active)

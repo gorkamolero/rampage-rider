@@ -4,51 +4,37 @@ import { AssetLoader } from '../core/AssetLoader';
 import { AnimationHelper } from '../utils/AnimationHelper';
 import { VehicleConfig } from '../constants';
 
-/**
- * Collision groups for vehicles
- */
 const COLLISION_GROUPS = {
   GROUND: 0x0001,
   BUILDING: 0x0040,
   VEHICLE: 0x0080,
 } as const;
 
-/**
- * Vehicle - Generic driveable vehicle entity
- * Configured via VehicleConfig for different vehicle types (bicycle, motorbike, sedan)
- */
 export class Vehicle extends THREE.Group {
-  // Config
   private config: VehicleConfig;
 
-  // Physics
   private rigidBody: RAPIER.RigidBody | null = null;
   private world: RAPIER.World | null = null;
   private collider: RAPIER.Collider | null = null;
   private characterController: RAPIER.KinematicCharacterController | null = null;
 
-  // Visual
   private modelContainer: THREE.Group;
   private modelLoaded: boolean = false;
-  private wheels: THREE.Object3D[] = []; // Wheel objects for rotation animation
+  private wheels: THREE.Object3D[] = [];
 
-  // State
   private health: number;
   private maxHealth: number;
   private maxSpeed: number;
-  private currentSpeed: number = 0; // Current velocity for acceleration
+  private currentSpeed: number = 0;
   private isDestroyed: boolean = false;
 
-  // Acceleration config
-  private readonly acceleration: number = 15; // Units per second squared
-  private readonly deceleration: number = 20; // Braking/friction when not accelerating
+  private readonly acceleration: number = 15;
+  private readonly deceleration: number = 20;
 
-  // Movement collision filter (collide with GROUND and BUILDING, pass through cops/peds)
   private movementCollisionFilter: number =
     ((COLLISION_GROUPS.GROUND | COLLISION_GROUPS.BUILDING) << 16) |
     COLLISION_GROUPS.VEHICLE;
 
-  // Input state
   private input = {
     up: false,
     down: false,
@@ -56,7 +42,6 @@ export class Vehicle extends THREE.Group {
     right: false,
   };
 
-  // Callbacks
   private onDestroyedCallback: (() => void) | null = null;
 
   constructor(config: VehicleConfig) {
@@ -67,39 +52,25 @@ export class Vehicle extends THREE.Group {
     this.maxHealth = config.maxHealth;
     this.maxSpeed = config.speed;
 
-    // Model container
     this.modelContainer = new THREE.Group();
     this.modelContainer.position.y = 0;
     (this as THREE.Group).add(this.modelContainer);
 
-    // Load vehicle model
     this.loadModel();
   }
 
-  /**
-   * Get vehicle type name
-   */
   getTypeName(): string {
     return this.config.name;
   }
 
-  /**
-   * Get kill radius for pedestrian collision detection
-   */
   getKillRadius(): number {
     return this.config.killRadius;
   }
 
-  /**
-   * Check if this vehicle causes ragdoll physics on kill
-   */
   causesRagdoll(): boolean {
     return this.config.causesRagdoll;
   }
 
-  /**
-   * Get rider position config
-   */
   getRiderConfig(): { offsetY: number; offsetZ: number; hideRider: boolean } {
     return {
       offsetY: this.config.riderOffsetY,
@@ -108,9 +79,6 @@ export class Vehicle extends THREE.Group {
     };
   }
 
-  /**
-   * Load the vehicle GLTF model from cache
-   */
   private async loadModel(): Promise<void> {
     try {
       const assetLoader = AssetLoader.getInstance();
@@ -141,8 +109,6 @@ export class Vehicle extends THREE.Group {
       model.position.z = -center.z;
       model.position.y = this.config.modelOffsetY;
 
-      console.log(`[Vehicle] ${this.config.name} auto-centered from (${center.x.toFixed(2)}, ${center.z.toFixed(2)})`);
-
       this.modelContainer.add(model);
       this.modelLoaded = true;
 
@@ -151,16 +117,12 @@ export class Vehicle extends THREE.Group {
       model.traverse((child) => {
         if (child.name) {
           const name = child.name.toLowerCase();
-          // Match tire, spokes, and gear parts (but not center gear/pedals)
           if ((name.includes('tire') || name.includes('spokes')) &&
               !name.includes('pattern')) {
             this.wheels.push(child);
           }
         }
       });
-      console.log(`[Vehicle] ${this.config.name} found ${this.wheels.length} wheel parts`);
-
-      console.log(`[Vehicle] ${this.config.name} model loaded successfully`);
     } catch (error) {
       console.error(`[Vehicle] Failed to load ${this.config.name} model:`, error);
       this.createFallbackMesh();
@@ -182,7 +144,6 @@ export class Vehicle extends THREE.Group {
     fallbackMesh.position.y = this.config.colliderHeight;
     this.modelContainer.add(fallbackMesh);
     this.modelLoaded = true;
-    console.log(`[Vehicle] ${this.config.name} using fallback mesh`);
   }
 
   /**
@@ -213,10 +174,7 @@ export class Vehicle extends THREE.Group {
     this.characterController.enableAutostep(0.3, 0.1, true);
     this.characterController.enableSnapToGround(0.3);
 
-    // Sync visual position
     (this as THREE.Group).position.copy(position);
-
-    console.log(`[Vehicle] ${this.config.name} physics body created at`, position);
   }
 
   /**
@@ -362,8 +320,6 @@ export class Vehicle extends THREE.Group {
     if (this.isDestroyed) return;
 
     this.health = Math.max(0, this.health - amount);
-    console.log(`[Vehicle] ${this.config.name} took ${amount} damage, health: ${this.health}/${this.maxHealth}`);
-
     this.flashDamage();
 
     if (this.health <= 0) {
@@ -399,8 +355,6 @@ export class Vehicle extends THREE.Group {
     if (this.isDestroyed) return;
 
     this.isDestroyed = true;
-    console.log(`[Vehicle] ${this.config.name} EXPLODED!`);
-
     const originalScale = this.modelContainer.scale.clone();
     this.modelContainer.scale.multiplyScalar(1.5);
 
@@ -493,7 +447,5 @@ export class Vehicle extends THREE.Group {
         }
       }
     });
-
-    console.log(`[Vehicle] ${this.config.name} disposed`);
   }
 }
