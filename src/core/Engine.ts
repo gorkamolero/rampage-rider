@@ -488,9 +488,8 @@ export class Engine {
 
     const playerPos = this.player.getPosition();
 
-    // Spawn car slightly ahead of player
-    const spawnOffset = new THREE.Vector3(3, 0, 3);
-    const carPos = playerPos.clone().add(spawnOffset);
+    // Find a safe spawn position (not inside buildings)
+    const carPos = this.findSafeCarSpawnPosition(playerPos);
 
     // Create car
     this.car = new Car();
@@ -507,6 +506,55 @@ export class Engine {
 
     // Notify player that car is available
     this.triggerKillNotification('CAR UNLOCKED!', true, 0);
+  }
+
+  /**
+   * Find a safe position to spawn car (not inside buildings)
+   */
+  private findSafeCarSpawnPosition(playerPos: THREE.Vector3): THREE.Vector3 {
+    const world = this.physics.getWorld();
+    if (!world) return playerPos.clone().add(new THREE.Vector3(5, 0, 5));
+
+    // Try offsets at increasing distances, preferring road areas
+    const offsets = [
+      new THREE.Vector3(5, 0, 0),    // Right (along road)
+      new THREE.Vector3(-5, 0, 0),   // Left (along road)
+      new THREE.Vector3(0, 0, 5),    // Forward
+      new THREE.Vector3(0, 0, -5),   // Back
+      new THREE.Vector3(7, 0, 0),    // Further right
+      new THREE.Vector3(-7, 0, 0),   // Further left
+      new THREE.Vector3(5, 0, 5),    // Diagonal
+      new THREE.Vector3(-5, 0, -5),  // Diagonal
+      new THREE.Vector3(10, 0, 0),   // Even further
+      new THREE.Vector3(-10, 0, 0),
+    ];
+
+    for (const offset of offsets) {
+      const testPos = playerPos.clone().add(offset);
+
+      // Cast ray downward to check what's below
+      const ray = new RAPIER.Ray(
+        { x: testPos.x, y: testPos.y + 10, z: testPos.z },
+        { x: 0, y: -1, z: 0 }
+      );
+
+      const hit = world.castRay(ray, 15, true);
+      if (hit) {
+        const hitCollider = hit.collider;
+        const groups = hitCollider.collisionGroups();
+        const membership = groups & 0xFFFF;
+
+        // If we hit ground (0x0001), this is a safe spot
+        if (membership === 0x0001) {
+          console.log('[Engine] Found safe car spawn at offset', offset);
+          return testPos;
+        }
+      }
+    }
+
+    // Fallback: spawn further away on the road (X axis is typically road direction)
+    console.log('[Engine] No safe spawn found, using fallback position');
+    return playerPos.clone().add(new THREE.Vector3(8, 0, 0));
   }
 
   /**
@@ -938,8 +986,8 @@ export class Engine {
     // Measure entity updates
     const entitiesStart = performance.now();
 
-    // Tier progression: 10 kills = spawn car (not auto-enter)
-    if (this.stats.kills >= 10 && !this.carSpawned && this.player) {
+    // Tier progression: 0 kills = spawn car immediately (for testing)
+    if (this.stats.kills >= 0 && !this.carSpawned && this.player) {
       this.spawnCar();
     }
 

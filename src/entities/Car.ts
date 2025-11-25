@@ -10,10 +10,10 @@ const CAR_CONFIG = {
   SPEED: 15, // Much faster than player sprint (7)
   MAX_HEALTH: 100,
   TURN_SPEED: 5, // Radians per second for rotation
-  // Collider dimensions (half-extents)
-  COLLIDER_WIDTH: 1.0,
-  COLLIDER_HEIGHT: 0.5,
-  COLLIDER_LENGTH: 2.0,
+  // Collider dimensions (half-extents) - sized for monster truck at 75% scale
+  COLLIDER_WIDTH: 0.9,
+  COLLIDER_HEIGHT: 0.6,
+  COLLIDER_LENGTH: 1.7,
   // Collision groups
   COLLISION_GROUPS: {
     GROUND: 0x0001,
@@ -96,9 +96,12 @@ export class Car extends THREE.Group {
       AnimationHelper.setupShadows(model);
 
       // Scale and position the model appropriately
-      // The Sketchfab model may need adjustment
-      model.scale.set(0.5, 0.5, 0.5); // Adjust based on model size
-      model.rotation.y = 0; // Face forward (model's default direction)
+      // Monster truck model is ~284 units long, scale to ~3.4 game units (75% of original)
+      model.scale.set(0.012, 0.012, 0.012);
+      // Rotate -90° so model's +X (front) faces game's -Z (forward)
+      model.rotation.y = -Math.PI / 2;
+      // Offset Y to sit on ground properly
+      model.position.y = -0.2;
 
       this.modelContainer.add(model);
       this.modelLoaded = true;
