@@ -136,10 +136,8 @@ export class BuildingManager {
     // Clone the model template
     const mesh = this.modelTemplate.clone();
 
-    // Scale to fit grid cell (model is ~6x8, we want it to fit BUILDING_WIDTH x BUILDING_DEPTH)
-    const scaleX = CITY_CONFIG.BUILDING_WIDTH / this.MODEL_WIDTH;
-    const scaleZ = CITY_CONFIG.BUILDING_DEPTH / this.MODEL_DEPTH;
-    const scale = Math.min(scaleX, scaleZ); // Uniform scale to maintain proportions
+    // Scale to match building depth exactly (length of the stall)
+    const scale = CITY_CONFIG.BUILDING_DEPTH / this.MODEL_DEPTH;
     mesh.scale.setScalar(scale);
 
     // Position the model
