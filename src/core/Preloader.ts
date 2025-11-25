@@ -55,14 +55,8 @@ class Preloader {
   private async preloadRapier(): Promise<void> {
     if (this.rapierLoaded) return;
 
-    console.log('[Preloader] Loading Rapier WASM...');
-    const start = performance.now();
-
     await RAPIER.init();
-
     this.rapierLoaded = true;
-    const elapsed = (performance.now() - start).toFixed(0);
-    console.log(`[Preloader] Rapier WASM loaded in ${elapsed}ms`);
   }
 
   /**

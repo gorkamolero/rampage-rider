@@ -18,6 +18,7 @@ export class BuildingManager {
   private buildings: Map<string, {
     mesh: THREE.Group;
     body: RAPIER.RigidBody;
+    roofMeshes: THREE.Mesh[];
   }> = new Map();
 
   // Grid cell size (building + street)
@@ -41,10 +42,7 @@ export class BuildingManager {
     this.cellWidth = CITY_CONFIG.BUILDING_WIDTH + CITY_CONFIG.STREET_WIDTH;
     this.cellDepth = CITY_CONFIG.BUILDING_DEPTH + CITY_CONFIG.STREET_WIDTH;
 
-    // Load the Christmas market model
     this.loadModel();
-
-    console.log('[BuildingManager] Created with grid cells:', this.cellWidth, 'x', this.cellDepth);
   }
 
   /**
@@ -66,9 +64,7 @@ export class BuildingManager {
       });
 
       this.modelReady = true;
-      console.log('[BuildingManager] Christmas market model loaded');
     } else {
-      console.warn('[BuildingManager] Christmas market model not in cache, will retry');
       // Retry after a delay
       setTimeout(() => this.loadModel(), 500);
     }
@@ -110,6 +106,28 @@ export class BuildingManager {
         this.removeBuilding(key, building);
       }
     }
+
+    // Update roof transparency based on distance to player
+    const fadeStartDistance = 12; // Start fading at this distance
+    const fadeEndDistance = 5;    // Fully transparent at this distance
+
+    for (const [, building] of this.buildings) {
+      const buildingPos = building.mesh.position;
+      const distance = playerPosition.distanceTo(buildingPos);
+
+      // Calculate opacity: 1 at fadeStart, 0 at fadeEnd
+      let opacity = 1;
+      if (distance < fadeStartDistance) {
+        opacity = Math.max(0, (distance - fadeEndDistance) / (fadeStartDistance - fadeEndDistance));
+      }
+
+      // Apply opacity to roof meshes
+      for (const roofMesh of building.roofMeshes) {
+        const material = roofMesh.material as THREE.MeshStandardMaterial;
+        material.opacity = opacity;
+        material.transparent = opacity < 1;
+      }
+    }
   }
 
   /**
@@ -148,6 +166,20 @@ export class BuildingManager {
 
     this.scene.add(mesh);
 
+    // Find roof meshes (meshes with "snow" or "roof" in name, or high Y position)
+    const roofMeshes: THREE.Mesh[] = [];
+    mesh.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        const name = child.name.toLowerCase();
+        // Check if it's a roof/snow mesh by name or position
+        if (name.includes('snow') || name.includes('roof') || name.includes('dach')) {
+          // Clone material so we can modify opacity independently
+          child.material = (child.material as THREE.Material).clone();
+          roofMeshes.push(child);
+        }
+      }
+    });
+
     // Create physics collider (static) with collision groups
     const colliderHeight = this.MODEL_HEIGHT * scale;
     const colliderWidth = (this.MODEL_WIDTH * scale) / 2;
@@ -169,22 +201,26 @@ export class BuildingManager {
 
     this.world.createCollider(colliderDesc, body);
 
-    // Store building
-    this.buildings.set(key, { mesh, body });
+    // Store building with roof meshes
+    this.buildings.set(key, { mesh, body, roofMeshes });
   }
 
   /**
    * Remove a building
    */
-  private removeBuilding(key: string, building: { mesh: THREE.Group; body: RAPIER.RigidBody }): void {
+  private removeBuilding(key: string, building: { mesh: THREE.Group; body: RAPIER.RigidBody; roofMeshes: THREE.Mesh[] }): void {
     // Remove from scene
     this.scene.remove(building.mesh);
+
+    // Dispose roof materials (these were cloned)
+    for (const roofMesh of building.roofMeshes) {
+      (roofMesh.material as THREE.Material).dispose();
+    }
 
     // Dispose mesh resources
     building.mesh.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.geometry?.dispose();
-        // Don't dispose materials as they're shared from the template
       }
     });
 
@@ -202,7 +238,6 @@ export class BuildingManager {
     for (const [key, building] of this.buildings) {
       this.removeBuilding(key, building);
     }
-    console.log('[BuildingManager] Cleared all buildings');
   }
 
   /**

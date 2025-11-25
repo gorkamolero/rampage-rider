@@ -18,12 +18,8 @@ export class AIManager {
    * Initialize the AI system
    */
   init(): void {
-    if (this.initialized) {
-      console.warn('AIManager already initialized');
-      return;
-    }
+    if (this.initialized) return;
     this.initialized = true;
-    console.log('AIManager initialized');
   }
 
   /**

@@ -70,10 +70,7 @@ export class CrowdManager {
     this.world = world;
     this.entityManager = new YUKA.EntityManager();
 
-    // Calculate total weight for weighted random selection
     this.totalWeight = this.characterPool.reduce((sum, char) => sum + char.weight, 0);
-
-    console.log('[CrowdManager] Created with', this.characterPool.length, 'character types');
   }
 
   /**
@@ -101,10 +98,7 @@ export class CrowdManager {
       this.spawnPedestrian(playerPosition);
     }
 
-    // Setup flocking behaviors after all pedestrians exist
     this.setupFlocking();
-
-    console.log(`[CrowdManager] Spawned ${this.maxPedestrians} pedestrians`);
   }
 
   /**
@@ -346,8 +340,6 @@ export class CrowdManager {
     this.deathTimers.clear();
     this.pedestriansToRemove = [];
     this.entityManager.clear();
-
-    console.log('[CrowdManager] Cleared all pedestrians');
   }
 
   /**

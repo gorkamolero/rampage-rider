@@ -27,10 +27,7 @@ export class AssetLoader {
    * Preload all game assets
    */
   async preloadAll(onProgress?: (progress: number) => void): Promise<void> {
-    if (this.isLoaded) {
-      console.log('[AssetLoader] Assets already loaded');
-      return;
-    }
+    if (this.isLoaded) return;
 
     const assetPaths = [
       // Player model
@@ -70,8 +67,6 @@ export class AssetLoader {
       '/assets/props/christmas-market.glb',
     ];
 
-    console.log(`[AssetLoader] Preloading ${assetPaths.length} assets...`);
-
     let loaded = 0;
     const total = assetPaths.length;
 
@@ -85,16 +80,13 @@ export class AssetLoader {
           onProgress(loaded / total);
         }
 
-        console.log(`[AssetLoader] Loaded ${path} (${loaded}/${total})`);
       } catch (error) {
-        console.error(`[AssetLoader] Failed to load ${path}:`, error);
       }
     });
 
     await Promise.all(loadPromises);
 
     this.isLoaded = true;
-    console.log('[AssetLoader] All assets loaded!');
   }
 
   /**

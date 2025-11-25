@@ -24,8 +24,6 @@ export class CopManager {
     this.scene = scene;
     this.world = world;
     this.entityManager = new YUKA.EntityManager();
-
-    console.log('[CopManager] Created');
   }
 
   /**
@@ -51,10 +49,6 @@ export class CopManager {
     // Spawn more cops if below desired count
     const activeCops = this.cops.filter(cop => !cop.isDeadState()).length;
     const copsToSpawn = Math.min(desiredCops - activeCops, this.maxCops - this.cops.length);
-
-    if (copsToSpawn > 0) {
-      console.log(`[CopManager] Heat: ${heat.toFixed(1)}% - Spawning ${copsToSpawn} cops (desired: ${desiredCops}, active: ${activeCops})`);
-    }
 
     for (let i = 0; i < copsToSpawn; i++) {
       this.spawnCop(playerPosition);
@@ -198,7 +192,6 @@ export class CopManager {
       cop.dispose();
     }
     this.cops = [];
-    console.log('[CopManager] Cleared all cops');
   }
 
   /**
@@ -248,10 +241,6 @@ export class CopManager {
         cop.applyKnockback(fromPosition, scaledForce);
         affectedCount++;
       }
-    }
-
-    if (affectedCount > 0) {
-      console.log(`[CopManager] Knockback applied to ${affectedCount} cops`);
     }
 
     return affectedCount;
