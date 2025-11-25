@@ -14,6 +14,12 @@ const CAR_CONFIG = {
   COLLIDER_WIDTH: 1.0,
   COLLIDER_HEIGHT: 0.5,
   COLLIDER_LENGTH: 2.0,
+  // Collision groups
+  COLLISION_GROUPS: {
+    GROUND: 0x0001,
+    BUILDING: 0x0040,
+    VEHICLE: 0x0080,
+  },
 } as const;
 
 /**
@@ -37,6 +43,11 @@ export class Car extends THREE.Group {
   private maxHealth: number = CAR_CONFIG.MAX_HEALTH;
   private speed: number = CAR_CONFIG.SPEED;
   private isDestroyed: boolean = false;
+
+  // Movement collision filter (only collide with GROUND and BUILDING, pass through cops/peds)
+  private movementCollisionFilter: number =
+    (CAR_CONFIG.COLLISION_GROUPS.GROUND | CAR_CONFIG.COLLISION_GROUPS.BUILDING) << 16 |
+    CAR_CONFIG.COLLISION_GROUPS.VEHICLE;
 
   // Input state
   private input = {
@@ -237,8 +248,13 @@ export class Car extends THREE.Group {
         z: velocity.z * deltaTime,
       };
 
-      // Compute movement accounting for obstacles
-      this.characterController.computeColliderMovement(this.collider, desiredMovement);
+      // Compute movement accounting for obstacles (only GROUND and BUILDING, pass through cops/peds)
+      this.characterController.computeColliderMovement(
+        this.collider,
+        desiredMovement,
+        undefined, // filterFlags
+        this.movementCollisionFilter // Only collide with ground and buildings
+      );
 
       // Get corrected movement
       const correctedMovement = this.characterController.computedMovement();
