@@ -65,6 +65,9 @@ export class AssetLoader {
       '/assets/vehicles/bicycle.glb',
       '/assets/vehicles/motorbike.glb',
       '/assets/vehicles/car.glb',
+
+      // Props
+      '/assets/props/christmas-market.glb',
     ];
 
     console.log(`[AssetLoader] Preloading ${assetPaths.length} assets...`);

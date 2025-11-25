@@ -1,15 +1,13 @@
 import * as THREE from 'three';
 import * as RAPIER from '@dimforge/rapier3d-compat';
 import { CITY_CONFIG } from '../constants';
+import { AssetLoader } from '../core/AssetLoader';
 
 /**
  * BuildingManager
  *
  * Manages infinite procedural city generation using modulo-based grid system.
- * Textured boxes arranged in a Christmas market pattern:
- * - Uniform rectangular buildings (8x15 units)
- * - Equal spacing on all sides (5 unit streets)
- * - Painted wood facades, brown plank sides
+ * Uses Christmas market stall GLB models arranged in a grid pattern.
  * - Infinite generation based on player position
  */
 export class BuildingManager {
@@ -18,8 +16,7 @@ export class BuildingManager {
 
   // Track visible buildings by grid coordinates "x,z"
   private buildings: Map<string, {
-    mesh: THREE.Mesh;
-    roof: THREE.Mesh;
+    mesh: THREE.Group;
     body: RAPIER.RigidBody;
   }> = new Map();
 
@@ -27,109 +24,62 @@ export class BuildingManager {
   private cellWidth: number;
   private cellDepth: number;
 
-  // Texture loader
-  private textureLoader: THREE.TextureLoader;
+  // Model template
+  private modelTemplate: THREE.Group | null = null;
+  private modelReady: boolean = false;
 
-  // Preloaded textures
-  private facadeTexture: THREE.Texture | null = null;
-  private facadeRoughness: THREE.Texture | null = null;
-  private facadeNormal: THREE.Texture | null = null;
-  private sideTexture: THREE.Texture | null = null;
-  private sideRoughness: THREE.Texture | null = null;
-  private texturesLoaded: boolean = false;
-
-  // Cached materials (shared across all buildings)
-  private sideMaterial: THREE.MeshStandardMaterial | null = null;
-  private roofMaterial: THREE.MeshStandardMaterial | null = null;
-  private bottomMaterial: THREE.MeshStandardMaterial | null = null;
-  private facadeMaterial: THREE.MeshStandardMaterial | null = null;
+  // Model dimensions (from GLB inspection)
+  private readonly MODEL_WIDTH = 6.1;  // X: -3.04 to 3.04
+  private readonly MODEL_HEIGHT = 3.8; // Y: 0 to 3.8
+  private readonly MODEL_DEPTH = 8.0;  // Z: -3.96 to 4.03
 
   constructor(scene: THREE.Scene, world: RAPIER.World) {
     this.scene = scene;
     this.world = world;
-    this.textureLoader = new THREE.TextureLoader();
 
     // Calculate grid cell size (building dimension + street gap)
     this.cellWidth = CITY_CONFIG.BUILDING_WIDTH + CITY_CONFIG.STREET_WIDTH;
     this.cellDepth = CITY_CONFIG.BUILDING_DEPTH + CITY_CONFIG.STREET_WIDTH;
 
-    // Preload textures
-    this.preloadTextures();
+    // Load the Christmas market model
+    this.loadModel();
 
     console.log('[BuildingManager] Created with grid cells:', this.cellWidth, 'x', this.cellDepth);
   }
 
   /**
-   * Preload all textures
+   * Load the Christmas market GLB model
    */
-  private preloadTextures(): void {
-    // Facade (Painted Wood)
-    this.facadeTexture = this.textureLoader.load('/assets/textures/painted-wood/color.jpg', () => {
-      this.checkTexturesLoaded();
-    });
-    this.facadeTexture.wrapS = THREE.RepeatWrapping;
-    this.facadeTexture.wrapT = THREE.RepeatWrapping;
-    this.facadeTexture.colorSpace = THREE.SRGBColorSpace;
+  private loadModel(): void {
+    const assetLoader = AssetLoader.getInstance();
+    const gltf = assetLoader.getModel('/assets/props/christmas-market.glb');
 
-    this.facadeRoughness = this.textureLoader.load('/assets/textures/painted-wood/roughness.jpg');
-    this.facadeRoughness.wrapS = THREE.RepeatWrapping;
-    this.facadeRoughness.wrapT = THREE.RepeatWrapping;
+    if (gltf) {
+      this.modelTemplate = gltf.scene.clone();
 
-    this.facadeNormal = this.textureLoader.load('/assets/textures/painted-wood/normal.jpg');
-    this.facadeNormal.wrapS = THREE.RepeatWrapping;
-    this.facadeNormal.wrapT = THREE.RepeatWrapping;
+      // Setup shadows on template
+      this.modelTemplate.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
 
-    // Sides (Brown Planks)
-    this.sideTexture = this.textureLoader.load('/assets/textures/brown-planks/color.jpg');
-    this.sideTexture.wrapS = THREE.RepeatWrapping;
-    this.sideTexture.wrapT = THREE.RepeatWrapping;
-    this.sideTexture.colorSpace = THREE.SRGBColorSpace;
-
-    this.sideRoughness = this.textureLoader.load('/assets/textures/brown-planks/roughness.jpg');
-    this.sideRoughness.wrapS = THREE.RepeatWrapping;
-    this.sideRoughness.wrapT = THREE.RepeatWrapping;
-  }
-
-  private checkTexturesLoaded(): void {
-    this.texturesLoaded = true;
-
-    // Create shared materials once textures are loaded
-    this.sideMaterial = new THREE.MeshStandardMaterial({
-      map: this.sideTexture,
-      roughnessMap: this.sideRoughness,
-      roughness: 1.0,
-      side: THREE.DoubleSide
-    });
-
-    this.facadeMaterial = new THREE.MeshStandardMaterial({
-      map: this.facadeTexture,
-      roughnessMap: this.facadeRoughness,
-      normalMap: this.facadeNormal,
-      roughness: 0.8,
-      side: THREE.DoubleSide
-    });
-
-    this.roofMaterial = new THREE.MeshStandardMaterial({
-      color: 0x5c4033,
-      roughness: 0.9,
-      side: THREE.DoubleSide
-    });
-
-    this.bottomMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4a3728,
-      roughness: 1.0,
-      side: THREE.DoubleSide
-    });
-
-    console.log('[BuildingManager] Textures loaded and materials cached');
+      this.modelReady = true;
+      console.log('[BuildingManager] Christmas market model loaded');
+    } else {
+      console.warn('[BuildingManager] Christmas market model not in cache, will retry');
+      // Retry after a delay
+      setTimeout(() => this.loadModel(), 500);
+    }
   }
 
   /**
    * Update visible buildings based on player position
    */
   update(playerPosition: THREE.Vector3): void {
-    // Wait for textures to load
-    if (!this.texturesLoaded) return;
+    // Wait for model to load
+    if (!this.modelReady) return;
 
     // Calculate player's grid cell
     const playerGridX = Math.floor(playerPosition.x / this.cellWidth);
@@ -175,121 +125,71 @@ export class BuildingManager {
    * Create a building at the given grid coordinate
    */
   private createBuilding(gridX: number, gridZ: number): void {
+    if (!this.modelTemplate) return;
+
     const key = `${gridX},${gridZ}`;
 
     // Calculate world position from grid coordinate
     const worldX = gridX * this.cellWidth;
     const worldZ = gridZ * this.cellDepth;
 
-    const height = CITY_CONFIG.BUILDING_HEIGHT;
+    // Clone the model template
+    const mesh = this.modelTemplate.clone();
 
-    // Create box geometry
-    const geometry = new THREE.BoxGeometry(
-      CITY_CONFIG.BUILDING_WIDTH,
-      height,
-      CITY_CONFIG.BUILDING_DEPTH
-    );
+    // Scale to fit grid cell (model is ~6x8, we want it to fit BUILDING_WIDTH x BUILDING_DEPTH)
+    const scaleX = CITY_CONFIG.BUILDING_WIDTH / this.MODEL_WIDTH;
+    const scaleZ = CITY_CONFIG.BUILDING_DEPTH / this.MODEL_DEPTH;
+    const scale = Math.min(scaleX, scaleZ); // Uniform scale to maintain proportions
+    mesh.scale.setScalar(scale);
 
-    // Different texture per face: [right, left, top, bottom, front, back]
-    // Use shared materials for performance
-    const materials = [
-      this.sideMaterial!,    // Right side (X+)
-      this.sideMaterial!,    // Left side (X-)
-      this.roofMaterial!,    // Top (Y+)
-      this.bottomMaterial!,  // Bottom (Y-)
-      this.facadeMaterial!,  // Front (Z+)
-      this.sideMaterial!     // Back (Z-)
-    ];
+    // Position the model
+    mesh.position.set(worldX, 0, worldZ);
 
-    const mesh = new THREE.Mesh(geometry, materials);
-    mesh.position.set(worldX, height / 2, worldZ);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    // Random rotation (0, 90, 180, or 270 degrees) for variety
+    const rotations = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
+    mesh.rotation.y = rotations[Math.floor(Math.random() * rotations.length)];
+
     this.scene.add(mesh);
 
-    // Create peaked roof (rectangular pyramid matching building footprint)
-    const roofHeight = 2.0;
-
-    // Create custom rectangular pyramid geometry
-    const roofGeometry = new THREE.BufferGeometry();
-    const w = CITY_CONFIG.BUILDING_WIDTH / 2;
-    const d = CITY_CONFIG.BUILDING_DEPTH / 2;
-
-    // 5 vertices: 4 corners at base + 1 peak at top
-    const vertices = new Float32Array([
-      // Base corners (at building top)
-      -w, 0, -d,  // 0: back-left
-       w, 0, -d,  // 1: back-right
-       w, 0,  d,  // 2: front-right
-      -w, 0,  d,  // 3: front-left
-      // Peak
-       0, roofHeight, 0   // 4: top center
-    ]);
-
-    // 4 triangular faces + 1 square base (6 triangles total)
-    const indices = new Uint16Array([
-      // 4 sloped faces (triangles)
-      0, 1, 4,  // Back face
-      1, 2, 4,  // Right face
-      2, 3, 4,  // Front face
-      3, 0, 4,  // Left face
-      // Base (2 triangles to close bottom)
-      0, 2, 1,
-      0, 3, 2
-    ]);
-
-    roofGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-    roofGeometry.setIndex(new THREE.BufferAttribute(indices, 1));
-    roofGeometry.computeVertexNormals();
-
-    // Use shared dark brown roof material
-    const roofMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8B4513,
-      roughness: 0.9,
-      metalness: 0.1,
-      side: THREE.DoubleSide
-    });
-
-    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-    roof.position.set(worldX, height, worldZ); // Position at building top
-    roof.castShadow = true;
-    roof.receiveShadow = true;
-    this.scene.add(roof);
-
     // Create physics collider (static) with collision groups
+    const colliderHeight = this.MODEL_HEIGHT * scale;
+    const colliderWidth = (this.MODEL_WIDTH * scale) / 2;
+    const colliderDepth = (this.MODEL_DEPTH * scale) / 2;
+
     const bodyDesc = RAPIER.RigidBodyDesc.fixed()
-      .setTranslation(worldX, height / 2, worldZ);
+      .setTranslation(worldX, colliderHeight / 2, worldZ);
     const body = this.world.createRigidBody(bodyDesc);
 
     // Building collision groups:
     // Membership: 0x0040 (BUILDING group)
     // Filter: 0x009E (PLAYER=0x0002, PEDESTRIAN=0x0004, COP=0x0008, DEBRIS=0x0010, VEHICLE=0x0080)
-    // Format: (filter << 16) | membership
     const colliderDesc = RAPIER.ColliderDesc.cuboid(
-      CITY_CONFIG.BUILDING_WIDTH / 2,
-      height / 2,
-      CITY_CONFIG.BUILDING_DEPTH / 2
+      colliderWidth,
+      colliderHeight / 2,
+      colliderDepth
     )
-      .setCollisionGroups(0x009E0040); // Filter=0x009E (includes VEHICLE), Membership=0x0040
+      .setCollisionGroups(0x009E0040);
 
     this.world.createCollider(colliderDesc, body);
 
-    // Store building with roof
-    this.buildings.set(key, { mesh, roof, body });
+    // Store building
+    this.buildings.set(key, { mesh, body });
   }
 
   /**
    * Remove a building
    */
-  private removeBuilding(key: string, building: { mesh: THREE.Mesh; roof: THREE.Mesh; body: RAPIER.RigidBody }): void {
+  private removeBuilding(key: string, building: { mesh: THREE.Group; body: RAPIER.RigidBody }): void {
     // Remove from scene
     this.scene.remove(building.mesh);
-    this.scene.remove(building.roof);
 
-    // Only dispose geometries (materials are shared, don't dispose them!)
-    building.mesh.geometry.dispose();
-    building.roof.geometry.dispose();
-    (building.roof.material as THREE.Material).dispose(); // Roof material is unique per building
+    // Dispose mesh resources
+    building.mesh.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.geometry?.dispose();
+        // Don't dispose materials as they're shared from the template
+      }
+    });
 
     // Remove physics body
     this.world.removeRigidBody(building.body);
