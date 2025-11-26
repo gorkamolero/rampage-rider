@@ -66,6 +66,10 @@ export class CrowdManager {
 
   private totalWeight: number;
 
+  // Track recently spawned types to avoid duplicates appearing together
+  private recentlySpawnedTypes: string[] = [];
+  private readonly MAX_RECENT_TYPES = 5; // Don't repeat last 5 types
+
   // Pre-allocated vectors for per-frame operations (avoid GC pressure)
   private readonly _tempDirection: THREE.Vector3 = new THREE.Vector3();
   private readonly _tempKillPos: THREE.Vector3 = new THREE.Vector3();
@@ -82,20 +86,34 @@ export class CrowdManager {
   }
 
   /**
-   * Get weighted random character type
+   * Get weighted random character type, avoiding recently spawned types
    */
   private getRandomCharacterType(): string {
-    let random = Math.random() * this.totalWeight;
+    // Filter out recently spawned types
+    const availableChars = this.characterPool.filter(
+      char => !this.recentlySpawnedTypes.includes(char.type)
+    );
 
-    for (const char of this.characterPool) {
+    // If all types are recent (shouldn't happen with 15+ types and 5 recent), use full pool
+    const pool = availableChars.length > 0 ? availableChars : this.characterPool;
+    const poolWeight = pool.reduce((sum, char) => sum + char.weight, 0);
+
+    let random = Math.random() * poolWeight;
+
+    for (const char of pool) {
       random -= char.weight;
       if (random <= 0) {
+        // Track this type as recently spawned
+        this.recentlySpawnedTypes.push(char.type);
+        if (this.recentlySpawnedTypes.length > this.MAX_RECENT_TYPES) {
+          this.recentlySpawnedTypes.shift(); // Remove oldest
+        }
         return char.type;
       }
     }
 
     // Fallback to first character
-    return this.characterPool[0].type;
+    return pool[0].type;
   }
 
   /**

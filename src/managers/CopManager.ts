@@ -21,6 +21,10 @@ export class CopManager {
   private spawnRadius: number = 15;
   private damageCallback: ((damage: number) => void) | null = null;
 
+  // Pre-allocated vectors to avoid GC pressure in hot paths
+  private _tempDirection = new THREE.Vector3();
+  private _tempSpawnPos = new THREE.Vector3();
+
   constructor(scene: THREE.Scene, world: RAPIER.World, aiManager: AIManager) {
     this.scene = scene;
     this.world = world;
@@ -76,13 +80,13 @@ export class CopManager {
     const angle = Math.random() * Math.PI * 2;
     const distance = this.spawnRadius + Math.random() * 5;
 
-    const spawnPos = new THREE.Vector3(
+    this._tempSpawnPos.set(
       playerPosition.x + Math.cos(angle) * distance,
       0,
       playerPosition.z + Math.sin(angle) * distance
     );
 
-    const cop = new Cop(spawnPos, this.world, this.aiManager.getEntityManager());
+    const cop = new Cop(this._tempSpawnPos, this.world, this.aiManager.getEntityManager());
     cop.setParentScene(this.scene); // Enable visual effects
     if (this.damageCallback) {
       cop.setDamageCallback(this.damageCallback);
@@ -144,8 +148,8 @@ export class CopManager {
         let inCone = true;
 
         if (direction) {
-          const toCop = new THREE.Vector3().subVectors(copPos, position).normalize();
-          const dotProduct = direction.dot(toCop);
+          this._tempDirection.subVectors(copPos, position).normalize();
+          const dotProduct = direction.dot(this._tempDirection);
           const angle = Math.acos(Math.max(-1, Math.min(1, dotProduct)));
           inCone = angle <= coneAngle / 2;
         }
@@ -153,13 +157,9 @@ export class CopManager {
         if (inCone) {
           cop.takeDamage(damage);
 
-          // Always apply knockback when hit (even if not killed) - helps player escape
-          const knockbackForce = 15;
-          cop.applyKnockback(position, knockbackForce);
-
           if (cop.isDeadState()) {
             killCount++;
-            killPositions.push(copPos.clone());
+            killPositions.push(copPos.clone()); // Only allocates on kill, acceptable
           }
         }
       }
@@ -217,12 +217,13 @@ export class CopManager {
 
   /**
    * Get all active cops' positions and health for UI rendering
+   * Returns references directly - caller should not modify
    */
   getCopData(): Array<{ position: THREE.Vector3; health: number; maxHealth: number }> {
     return this.cops
       .filter(cop => !cop.isDeadState())
       .map(cop => ({
-        position: (cop as THREE.Group).position.clone(),
+        position: (cop as THREE.Group).position, // Return reference, not clone
         health: cop.getHealth(),
         maxHealth: 3
       }));
