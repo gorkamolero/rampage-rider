@@ -371,6 +371,33 @@ export class Engine {
 
     if (this.cops) {
       this.cops.clear();
+      // Set damage callback once (not every frame)
+      this.cops.setDamageCallback((damage: number) => {
+        if (this.isInVehicle && this.vehicle) {
+          this.vehicle.takeDamage(damage);
+        } else if (this.player) {
+          const isTaserAttack = this.stats.wantedStars === 1 && this.player.canBeTased();
+
+          if (isTaserAttack) {
+            this.player.applyTaserStun();
+          } else {
+            this.stats.health -= damage;
+            this.player.applyHitStun();
+          }
+
+          if (this.stats.health <= 0 && !this.isDying) {
+            this.stats.health = 0;
+            this.isDying = true;
+
+            this.player.die(() => {
+              this.state = GameState.GAME_OVER;
+              if (this.callbacks.onGameOver) {
+                this.callbacks.onGameOver({ ...this.stats });
+              }
+            });
+          }
+        }
+      });
     }
 
     if (this.motorbikeCops) {
@@ -1306,38 +1333,13 @@ export class Engine {
 
     // Cops (foot cops and motorbike cops)
     const copsStart = performance.now();
-    // Regular foot cops
+    // Regular foot cops (damage callback set once in resetGame, not every frame)
     if (this.cops) {
       this.cops.updateSpawns(this.stats.heat, currentPos);
 
       const playerCanBeTased = !this.isInVehicle && this.player ? this.player.canBeTased() : false;
 
-      this.cops.update(dt, currentPos, this.stats.wantedStars, playerCanBeTased, (damage: number) => {
-        if (this.isInVehicle && this.vehicle) {
-          this.vehicle.takeDamage(damage);
-        } else if (this.player) {
-          const isTaserAttack = this.stats.wantedStars === 1 && this.player.canBeTased();
-
-          if (isTaserAttack) {
-            this.player.applyTaserStun();
-          } else {
-            this.stats.health -= damage;
-            this.player.applyHitStun();
-          }
-
-          if (this.stats.health <= 0 && !this.isDying) {
-            this.stats.health = 0;
-            this.isDying = true;
-
-            this.player.die(() => {
-              this.state = GameState.GAME_OVER;
-              if (this.callbacks.onGameOver) {
-                this.callbacks.onGameOver({ ...this.stats });
-              }
-            });
-          }
-        }
-      });
+      this.cops.update(dt, currentPos, this.stats.wantedStars, playerCanBeTased);
     }
 
     // Motorbike cops (heat-based pursuit system)

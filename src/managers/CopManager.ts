@@ -19,11 +19,23 @@ export class CopManager {
 
   private maxCops: number = 8;
   private spawnRadius: number = 15;
+  private damageCallback: ((damage: number) => void) | null = null;
 
   constructor(scene: THREE.Scene, world: RAPIER.World) {
     this.scene = scene;
     this.world = world;
     this.entityManager = new YUKA.EntityManager();
+  }
+
+  /**
+   * Set damage callback once (called when cop deals damage)
+   */
+  setDamageCallback(callback: (damage: number) => void): void {
+    this.damageCallback = callback;
+    // Update existing cops
+    for (const cop of this.cops) {
+      cop.setDamageCallback(callback);
+    }
   }
 
   /**
@@ -72,16 +84,19 @@ export class CopManager {
 
     const cop = new Cop(spawnPos, this.world, this.entityManager);
     cop.setParentScene(this.scene); // Enable visual effects
+    if (this.damageCallback) {
+      cop.setDamageCallback(this.damageCallback);
+    }
     this.cops.push(cop);
     this.scene.add(cop);
     this.scene.add(cop.getBlobShadow()); // Add blob shadow to scene
-
   }
 
   /**
    * Update all cops
+   * NOTE: Damage callback is set once via setDamageCallback(), not every frame
    */
-  update(deltaTime: number, playerPosition: THREE.Vector3, wantedStars: number, playerCanBeTased: boolean, onCopAttack: (damage: number) => void): void {
+  update(deltaTime: number, playerPosition: THREE.Vector3, wantedStars: number, playerCanBeTased: boolean): void {
     // Update Yuka entity manager
     this.entityManager.update(deltaTime);
 
@@ -93,9 +108,6 @@ export class CopManager {
 
         // Tell cop if player can be tased (affects attack choice at 1 star)
         cop.setPlayerCanBeTased(playerCanBeTased);
-
-        // Set damage callback
-        cop.setDamageCallback(onCopAttack);
 
         // Set chase target to player
         cop.setChaseTarget(playerPosition);

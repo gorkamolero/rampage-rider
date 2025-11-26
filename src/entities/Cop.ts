@@ -36,6 +36,9 @@ export class Cop extends THREE.Group {
   // Yuka AI
   private yukaVehicle: YUKA.Vehicle;
   private yukaEntityManager: YUKA.EntityManager;
+  private seekBehavior: YUKA.SeekBehavior;
+  private separationBehavior: YUKA.SeparationBehavior;
+  private obstacleBehavior: YUKA.ObstacleAvoidanceBehavior;
 
   // State
   private isDead: boolean = false;
@@ -55,6 +58,7 @@ export class Cop extends THREE.Group {
   // Attack visual effects
   private taserBeam: THREE.Line | null = null;
   private taserBeamActive: boolean = false;
+  private taserBeamPositions: Float32Array | null = null; // Reusable buffer
   private bulletProjectile: THREE.Mesh | null = null;
   private bulletTarget: THREE.Vector3 | null = null;
   private bulletSpeed: number = 40; // units per second
@@ -79,6 +83,19 @@ export class Cop extends THREE.Group {
     this.yukaVehicle.maxSpeed = this.chaseSpeed;
     this.yukaVehicle.maxForce = COP_CONFIG.MAX_FORCE;
     this.yukaVehicle.updateOrientation = false; // We handle rotation manually
+
+    // Create steering behaviors ONCE (reused every frame)
+    this.seekBehavior = new YUKA.SeekBehavior(new YUKA.Vector3(position.x, 0, position.z));
+    this.seekBehavior.weight = 2.0;
+    this.yukaVehicle.steering.add(this.seekBehavior);
+
+    this.separationBehavior = new YUKA.SeparationBehavior();
+    this.separationBehavior.weight = 0.8;
+    this.yukaVehicle.steering.add(this.separationBehavior);
+
+    this.obstacleBehavior = new YUKA.ObstacleAvoidanceBehavior();
+    this.obstacleBehavior.weight = 0.5;
+    this.yukaVehicle.steering.add(this.obstacleBehavior);
 
     // Add to Yuka entity manager
     this.yukaEntityManager.add(this.yukaVehicle);
@@ -236,6 +253,7 @@ export class Cop extends THREE.Group {
 
   /**
    * Set chase target (player position)
+   * NOTE: Behaviors are created once in constructor - only update target here
    */
   setChaseTarget(target: THREE.Vector3): void {
     if (this.isDead) return;
@@ -243,26 +261,8 @@ export class Cop extends THREE.Group {
     // Store target for rotation calculation
     this.lastTarget = target;
 
-    // Clear existing behaviors
-    this.yukaVehicle.steering.clear();
-
-    // Flatten target to 2D to prevent vertical movement
-    const flatTarget = new YUKA.Vector3(target.x, 0, target.z);
-
-    // Chase player with high priority
-    const seekBehavior = new YUKA.SeekBehavior(flatTarget);
-    seekBehavior.weight = 2.0; // Much stronger seek
-    this.yukaVehicle.steering.add(seekBehavior);
-
-    // Separate from other cops to prevent overlapping
-    const separationBehavior = new YUKA.SeparationBehavior();
-    separationBehavior.weight = 0.8; // Reduced to prioritize chase
-    this.yukaVehicle.steering.add(separationBehavior);
-
-    // Add obstacle avoidance
-    const obstacleBehavior = new YUKA.ObstacleAvoidanceBehavior();
-    obstacleBehavior.weight = 0.5;
-    this.yukaVehicle.steering.add(obstacleBehavior);
+    // Just update the seek target - behaviors are created once in constructor
+    this.seekBehavior.target.set(target.x, 0, target.z);
   }
 
   /**
@@ -577,9 +577,19 @@ export class Cop extends THREE.Group {
     const copPos = this.getPosition();
     copPos.y += 0.8; // Chest height
 
-    // Create electric beam geometry
-    const points = [copPos, targetPos.clone().setY(targetPos.y + 0.5)];
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const targetWithHeight = targetPos.clone().setY(targetPos.y + 0.5);
+    const midPoint = new THREE.Vector3().lerpVectors(copPos, targetWithHeight, 0.5);
+
+    // Create reusable Float32Array buffer for 3 points (9 floats)
+    this.taserBeamPositions = new Float32Array([
+      copPos.x, copPos.y, copPos.z,
+      midPoint.x, midPoint.y, midPoint.z,
+      targetWithHeight.x, targetWithHeight.y, targetWithHeight.z
+    ]);
+
+    // Create geometry with the buffer
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(this.taserBeamPositions, 3));
 
     // Electric yellow material with glow
     const material = new THREE.LineBasicMaterial({
@@ -596,9 +606,10 @@ export class Cop extends THREE.Group {
 
   /**
    * Update taser beam to follow cop and player
+   * NOTE: Reuses pre-allocated Float32Array buffer to avoid GC pressure
    */
   private updateTaserBeam(targetPos: THREE.Vector3): void {
-    if (!this.taserBeam || !this.taserBeamActive) return;
+    if (!this.taserBeam || !this.taserBeamActive || !this.taserBeamPositions) return;
 
     const copPos = this.getPosition();
     copPos.y += 0.8;
@@ -607,18 +618,22 @@ export class Cop extends THREE.Group {
 
     // Add some electric jitter
     const jitter = 0.05;
-    const midPoint = new THREE.Vector3().lerpVectors(copPos, targetWithHeight, 0.5);
-    midPoint.x += (Math.random() - 0.5) * jitter;
-    midPoint.y += (Math.random() - 0.5) * jitter;
-    midPoint.z += (Math.random() - 0.5) * jitter;
+    const midX = (copPos.x + targetWithHeight.x) / 2 + (Math.random() - 0.5) * jitter;
+    const midY = (copPos.y + targetWithHeight.y) / 2 + (Math.random() - 0.5) * jitter;
+    const midZ = (copPos.z + targetWithHeight.z) / 2 + (Math.random() - 0.5) * jitter;
 
-    // Update line points
-    const positions = new Float32Array([
-      copPos.x, copPos.y, copPos.z,
-      midPoint.x, midPoint.y, midPoint.z,
-      targetWithHeight.x, targetWithHeight.y, targetWithHeight.z
-    ]);
-    this.taserBeam.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    // Update buffer in-place (no allocations)
+    const positions = this.taserBeamPositions;
+    positions[0] = copPos.x;
+    positions[1] = copPos.y;
+    positions[2] = copPos.z;
+    positions[3] = midX;
+    positions[4] = midY;
+    positions[5] = midZ;
+    positions[6] = targetWithHeight.x;
+    positions[7] = targetWithHeight.y;
+    positions[8] = targetWithHeight.z;
+
     this.taserBeam.geometry.attributes.position.needsUpdate = true;
 
     // Flicker effect
