@@ -14,6 +14,7 @@ import { VehicleType, VehicleConfig, VEHICLE_CONFIGS, TIER_VEHICLE_MAP, TIER_CON
 import { BloodDecalSystem } from '../rendering/BloodDecalSystem';
 import { GameState, Tier, InputState, GameStats, KillNotification } from '../types';
 import { ActionController, ActionType } from './ActionController';
+import { CircularBuffer } from '../utils/CircularBuffer';
 
 export class Engine {
   private scene: THREE.Scene;
@@ -64,19 +65,19 @@ export class Engine {
       geometries: 0,
       textures: 0,
     },
+    // Circular buffers for O(1) push instead of O(n) shift
     history: {
-      frameTime: [] as number[],
-      physics: [] as number[],
-      entities: [] as number[],
-      player: [] as number[],
-      cops: [] as number[],
-      pedestrians: [] as number[],
-      world: [] as number[],
-      particles: [] as number[],
-      bloodDecals: [] as number[],
-      rendering: [] as number[],
-      drawCalls: [] as number[],
-      maxSize: 120
+      frameTime: new CircularBuffer(120),
+      physics: new CircularBuffer(120),
+      entities: new CircularBuffer(120),
+      player: new CircularBuffer(120),
+      cops: new CircularBuffer(120),
+      pedestrians: new CircularBuffer(120),
+      world: new CircularBuffer(120),
+      particles: new CircularBuffer(120),
+      bloodDecals: new CircularBuffer(120),
+      rendering: new CircularBuffer(120),
+      drawCalls: new CircularBuffer(120),
     },
     worstFrame: {
       frameTime: 0,
@@ -313,9 +314,10 @@ export class Engine {
 
     this.bloodDecals.setGroundMesh(this.groundMesh);
 
-    const gridHelper = new THREE.GridHelper(groundSize, 100, 0x444444, 0x333333);
-    gridHelper.position.y = 0;
-    this.scene.add(gridHelper);
+    // DEBUG: GridHelper - uncomment for debugging
+    // const gridHelper = new THREE.GridHelper(groundSize, 100, 0x444444, 0x333333);
+    // gridHelper.position.y = 0;
+    // this.scene.add(gridHelper);
 
     const groundBody = this.physics.createRigidBody(
       RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0, 0)
@@ -793,6 +795,35 @@ export class Engine {
     });
   }
 
+  /**
+   * Update wanted stars based on cop kills - consolidated from multiple attack handlers
+   */
+  private updateWantedStars(): void {
+    if (this.stats.copKills === 0) {
+      this.stats.wantedStars = 0;
+    } else if (this.stats.copKills <= 3) {
+      this.stats.wantedStars = 1;
+    } else {
+      this.stats.wantedStars = 2;
+    }
+  }
+
+  /**
+   * Emit blood effects at kill positions - consolidated from multiple attack handlers
+   */
+  private emitBloodEffects(
+    killPositions: THREE.Vector3[],
+    sourcePosition: THREE.Vector3,
+    particleCount: number = 30,
+    sprayCount: number = 20
+  ): void {
+    for (const killPos of killPositions) {
+      this._tempAttackDir.subVectors(killPos, sourcePosition).normalize();
+      this.particles.emitBlood(killPos, particleCount);
+      this.particles.emitBloodSpray(killPos, this._tempAttackDir, sprayCount);
+    }
+  }
+
   private handlePlayerAttack(attackPosition: THREE.Vector3): void {
     const attackStart = performance.now();
 
@@ -875,15 +906,7 @@ export class Engine {
         const pointsPerKill = basePoints * 2;
         this.stats.score += copResult.kills * pointsPerKill;
         this.stats.copKills += copResult.kills;
-
-        if (this.stats.copKills === 0) {
-          this.stats.wantedStars = 0;
-        } else if (this.stats.copKills >= 1 && this.stats.copKills <= 3) {
-          this.stats.wantedStars = 1;
-        } else {
-          this.stats.wantedStars = 2;
-        }
-
+        this.updateWantedStars();
         this.stats.heat = Math.min(100, this.stats.heat + (copResult.kills * 25));
 
         totalKills += copResult.kills;
@@ -899,14 +922,7 @@ export class Engine {
     // --- Blood particles and decals ---
     const particlesStart = performance.now();
     if (totalKills > 0) {
-      const playerPos = this.player!.getPosition();
-      for (const killPos of allKillPositions) {
-        // Reuse pre-allocated vector instead of new THREE.Vector3()
-        this._tempAttackDir.subVectors(killPos, playerPos).normalize();
-        this.particles.emitBlood(killPos, 30);
-        this.particles.emitBloodSpray(killPos, this._tempAttackDir, 20);
-      }
-
+      this.emitBloodEffects(allKillPositions, this.player!.getPosition(), 30, 20);
       this.shakeCamera(0.5 * totalKills);
     }
     const particlesTime = performance.now() - particlesStart;
@@ -1002,13 +1018,7 @@ export class Engine {
         const pointsPerKill = basePoints * 2;
         this.stats.score += copResult.kills * pointsPerKill;
         this.stats.copKills += copResult.kills;
-
-        if (this.stats.copKills >= 1 && this.stats.copKills <= 3) {
-          this.stats.wantedStars = 1;
-        } else if (this.stats.copKills > 3) {
-          this.stats.wantedStars = 2;
-        }
-
+        this.updateWantedStars();
         this.stats.heat = Math.min(100, this.stats.heat + (copResult.kills * 25));
         totalKills += copResult.kills;
         allKillPositions.push(...copResult.positions);
@@ -1020,13 +1030,7 @@ export class Engine {
     }
 
     if (totalKills > 0) {
-      const vehiclePos = this.vehicle.getPosition();
-      for (const killPos of allKillPositions) {
-        // Reuse pre-allocated vector instead of new THREE.Vector3()
-        this._tempAttackDir.subVectors(killPos, vehiclePos).normalize();
-        this.particles.emitBlood(killPos, 30);
-        this.particles.emitBloodSpray(killPos, this._tempAttackDir, 20);
-      }
+      this.emitBloodEffects(allKillPositions, this.vehicle.getPosition(), 30, 20);
       this.shakeCamera(0.5 * totalKills);
     }
   }
@@ -1091,13 +1095,7 @@ export class Engine {
         const pointsPerKill = basePoints * 2;
         this.stats.score += copResult.kills * pointsPerKill;
         this.stats.copKills += copResult.kills;
-
-        if (this.stats.copKills >= 1 && this.stats.copKills <= 3) {
-          this.stats.wantedStars = 1;
-        } else if (this.stats.copKills > 3) {
-          this.stats.wantedStars = 2;
-        }
-
+        this.updateWantedStars();
         this.stats.heat = Math.min(100, this.stats.heat + (copResult.kills * 30));
         totalKills += copResult.kills;
         allKillPositions.push(...copResult.positions);
@@ -1107,13 +1105,7 @@ export class Engine {
     }
 
     if (totalKills > 0) {
-      const vehiclePos = this.vehicle.getPosition();
-      for (const killPos of allKillPositions) {
-        // Reuse pre-allocated vector instead of new THREE.Vector3()
-        this._tempAttackDir.subVectors(killPos, vehiclePos).normalize();
-        this.particles.emitBlood(killPos, 40);
-        this.particles.emitBloodSpray(killPos, this._tempAttackDir, 30);
-      }
+      this.emitBloodEffects(allKillPositions, this.vehicle.getPosition(), 40, 30);
       this.shakeCamera(0.8);
     }
 
@@ -1203,6 +1195,7 @@ export class Engine {
       buildings: this.buildings?.getBuildingCount() || 0
     };
 
+    // Push to circular buffers (O(1) - no shift needed, auto-overwrites old values)
     const history = this.performanceStats.history;
     history.frameTime.push(this.performanceStats.frameTime);
     history.physics.push(this.performanceStats.physics);
@@ -1214,28 +1207,16 @@ export class Engine {
     history.rendering.push(this.performanceStats.rendering);
     history.drawCalls.push(this.performanceStats.renderer.drawCalls);
 
-    if (history.frameTime.length > history.maxSize) {
-      history.frameTime.shift();
-      history.physics.shift();
-      history.entities.shift();
-      history.player.shift();
-      history.cops.shift();
-      history.pedestrians.shift();
-      history.world.shift();
-      history.rendering.shift();
-      history.drawCalls.shift();
-    }
-
-    const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
-    this.performanceStats.avgFrameTime = sum(history.frameTime) / history.frameTime.length;
-    this.performanceStats.avgPhysics = sum(history.physics) / history.physics.length;
-    this.performanceStats.avgEntities = sum(history.entities) / history.entities.length;
-    this.performanceStats.avgPlayer = sum(history.player) / history.player.length;
-    this.performanceStats.avgCops = sum(history.cops) / history.cops.length;
-    this.performanceStats.avgPedestrians = sum(history.pedestrians) / history.pedestrians.length;
-    this.performanceStats.avgWorld = sum(history.world) / history.world.length;
-    this.performanceStats.avgRendering = sum(history.rendering) / history.rendering.length;
-    this.performanceStats.avgDrawCalls = sum(history.drawCalls) / history.drawCalls.length;
+    // Calculate averages using circular buffer's built-in average()
+    this.performanceStats.avgFrameTime = history.frameTime.average();
+    this.performanceStats.avgPhysics = history.physics.average();
+    this.performanceStats.avgEntities = history.entities.average();
+    this.performanceStats.avgPlayer = history.player.average();
+    this.performanceStats.avgCops = history.cops.average();
+    this.performanceStats.avgPedestrians = history.pedestrians.average();
+    this.performanceStats.avgWorld = history.world.average();
+    this.performanceStats.avgRendering = history.rendering.average();
+    this.performanceStats.avgDrawCalls = history.drawCalls.average();
 
     // Log performance stats every 15 frames (~0.25 seconds)
     if (history.frameTime.length % 15 === 0) {

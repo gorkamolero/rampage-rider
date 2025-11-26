@@ -24,6 +24,10 @@ import {
  * - Can be killed by player attacks
  */
 export class Cop extends THREE.Group {
+  // Shared geometry/material for bullets (one instance for all cops)
+  private static sharedBulletGeometry: THREE.SphereGeometry | null = null;
+  private static sharedBulletMaterial: THREE.MeshBasicMaterial | null = null;
+
   private rigidBody: RAPIER.RigidBody;
   private collider: RAPIER.Collider;
   private characterController: RAPIER.KinematicCharacterController;
@@ -738,7 +742,7 @@ export class Cop extends THREE.Group {
   }
 
   /**
-   * Create bullet projectile
+   * Create bullet projectile (uses shared geometry/material across all cops)
    */
   private createBulletProjectile(targetPos: THREE.Vector3): void {
     if (!this.parentScene) return;
@@ -746,18 +750,22 @@ export class Cop extends THREE.Group {
     // Remove existing bullet
     this.removeBulletProjectile();
 
+    // Lazily initialize shared geometry/material (one instance for all cops)
+    if (!Cop.sharedBulletGeometry) {
+      Cop.sharedBulletGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+    }
+    if (!Cop.sharedBulletMaterial) {
+      Cop.sharedBulletMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffcc00,
+        emissive: 0xffcc00,
+        emissiveIntensity: 1,
+      });
+    }
+
     const copPos = this.getPosition();
     copPos.y += 0.8; // Chest height
 
-    // Create small bullet mesh
-    const geometry = new THREE.SphereGeometry(0.08, 8, 8);
-    const material = new THREE.MeshBasicMaterial({
-      color: 0xffcc00,
-      emissive: 0xffcc00,
-      emissiveIntensity: 1,
-    });
-
-    this.bulletProjectile = new THREE.Mesh(geometry, material);
+    this.bulletProjectile = new THREE.Mesh(Cop.sharedBulletGeometry, Cop.sharedBulletMaterial);
     this.bulletProjectile.position.copy(copPos);
     this.bulletTarget = targetPos.clone().setY(targetPos.y + 0.5);
     this.parentScene.add(this.bulletProjectile);
@@ -789,13 +797,12 @@ export class Cop extends THREE.Group {
   }
 
   /**
-   * Remove bullet projectile
+   * Remove bullet projectile (does NOT dispose shared geometry/material)
    */
   private removeBulletProjectile(): void {
     if (this.bulletProjectile && this.parentScene) {
       this.parentScene.remove(this.bulletProjectile);
-      this.bulletProjectile.geometry.dispose();
-      (this.bulletProjectile.material as THREE.Material).dispose();
+      // Don't dispose - geometry and material are shared across all cops
       this.bulletProjectile = null;
     }
     this.bulletTarget = null;

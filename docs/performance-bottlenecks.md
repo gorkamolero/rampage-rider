@@ -188,13 +188,90 @@ This document identifies all performance bottlenecks in the Rampage Rider codeba
 
 ## Quick Wins (Priority Order)
 
-1. **Merge Yuka EntityManagers** (#3) - Single shared manager in Engine
-2. **Stop cloning particle materials** (#5) - Use THREE.Points or shared material
-3. **Reduce taser beam update frequency** (#4) - Every 3 frames
-4. **Skip animation updates for distant entities** (#7) - Distance-based LOD
+1. ✅ **Merge Yuka EntityManagers** (#3) - Single shared manager in Engine
+2. ✅ **Stop cloning particle materials** (#5) - Use THREE.Points or shared material
+3. ✅ **Reduce taser beam update frequency** (#4) - Every 3 frames (already implemented)
+4. ✅ **Skip animation updates for distant entities** (#7) - Distance-based LOD
 5. **Cache camera quaternion** (#9) - Only update on movement threshold
-6. **Use squared distance for bullets** (#15) - Remove sqrt
-7. **Remove redundant flocking setup** (#8) - Already in constructor
+6. ✅ **Use squared distance for bullets** (#15) - Remove sqrt (already implemented)
+7. ✅ **Remove redundant flocking setup** (#8) - Already in constructor
+8. ✅ **Share bullet geometry** (#32) - Static shared geometry/material
+9. ✅ **Remove GridHelper from production** - Commented out debug visualization
+
+---
+
+## CODE QUALITY ISSUES
+
+### 25. Duplicated Attack Logic ✅ PARTIALLY FIXED
+**Location**: `src/core/Engine.ts:796-1123`
+- **Issue**: `handlePlayerAttack()`, `handleBicycleAttack()`, `handleMotorbikeShoot()`, `handleVehicleKill()` share ~70% identical code
+- **Fix**: Extract into reusable `applyAreaDamage(config)` method
+- **Status**: ✅ Partially fixed - extracted `updateWantedStars()` and `emitBloodEffects()` helpers
+- **Impact**: High maintainability risk, bug-prone
+
+### 26. Magic Numbers Scattered
+**Location**: Multiple files
+- **Examples**:
+  - `Engine.ts:205` - `frustumSize = 15`
+  - `Engine.ts:689` - `distance < 15.0` (vehicle enter distance)
+  - `Engine.ts:799-801` - `pedAttackRadius = 2.5`, `copAttackRadius = 4.5`
+- **Fix**: Move all gameplay tuning values to `constants.ts`
+- **Impact**: Hard to tune game balance
+
+### 27. Collision Group Duplication
+**Location**: `PhysicsWorld.ts`, `Engine.ts`, entity files
+- **Issue**: Collision groups defined in multiple places (e.g., `BUILDING_GROUP = 0x0040`)
+- **Fix**: Consolidate into single `constants.ts` export
+- **Impact**: Maintenance risk
+
+### 28. History Arrays Use .shift() ✅ FIXED
+**Location**: `src/core/Engine.ts:1218-1227`
+- **Issue**: `.shift()` is O(n), called 9x per frame to trim history arrays
+- **Fix**: Use circular buffer pattern
+- **Status**: ✅ Fixed - Created `CircularBuffer` class with O(1) push and built-in average()
+- **Impact**: Medium - unnecessary CPU work
+
+---
+
+## MEMORY/ALLOCATION ISSUES
+
+### 29. Vector3 Allocations in Hot Paths ✅ FIXED
+**Location**:
+- `CopManager.ts:147` - `new THREE.Vector3()` in damage loop
+- `CopManager.ts:221-229` - `position.clone()` for every cop every frame
+- `Engine.ts:607-656` - Multiple allocations in `findSafeVehicleSpawnPosition()`
+- **Fix**: Use pre-allocated temp vectors (pattern exists in CrowdManager)
+- **Status**: ✅ Fixed - CopManager now uses `_tempDirection`, `_tempSpawnPos`, and returns position references
+- **Impact**: High GC pressure
+
+### 30. Rapier Ray Allocations
+**Location**: `src/core/Engine.ts:628-656`
+- **Issue**: Creates new `RAPIER.Ray` for every raycast in vehicle spawn tests
+- **Fix**: Pre-allocate ray object, reuse with setters
+- **Impact**: High during spawn calculations
+
+### 31. Material Cloning Per Building
+**Location**: `src/managers/BuildingManager.ts:145`
+- **Issue**: `child.material = child.material.clone()` for every building instance
+- **Fix**: Use shared materials or vertex color attributes
+- **Impact**: 40+ materials instead of 4 shared
+
+### 32. Bullet/Taser Geometry Per Instance ✅ PARTIALLY FIXED
+**Location**: `src/entities/Cop.ts:667-678, 753-764`
+- **Issue**: New geometry created for every bullet and taser beam
+- **Fix**: Share geometry across instances
+- **Status**: ✅ Fixed for bullets - now uses static `sharedBulletGeometry` and `sharedBulletMaterial`
+- **Impact**: Memory churn during combat
+
+---
+
+## TIMING ISSUES
+
+### 33. setTimeout for Animation Timing
+**Location**: `Player.ts:240,687,841,880,900`, `Cop.ts:324`
+- **Issue**: setTimeout unreliable at low FPS, animations can desync
+- **Fix**: Use deltaTime counters in update() loop
+- **Impact**: Animation glitches under load
 
 ---
 
