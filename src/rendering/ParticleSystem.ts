@@ -2,12 +2,12 @@ import * as THREE from 'three';
 
 /**
  * ParticleEmitter - Manages blood splatter particle effects with ground collision
- * OPTIMIZED: Uses shared textures and materials, pools sprites
+ * OPTIMIZED: Uses THREE.Points with shared geometry/material (no material clones!)
  */
 export class ParticleEmitter {
   private scene: THREE.Scene;
   private particles: Array<{
-    sprite: THREE.Sprite;
+    index: number;
     velocity: THREE.Vector3;
     life: number;
     maxLife: number;
@@ -17,11 +17,17 @@ export class ParticleEmitter {
 
   // Shared resources (created once, reused)
   private sharedTexture: THREE.Texture;
-  private sharedMaterial: THREE.SpriteMaterial;
+  private pointsMaterial: THREE.PointsMaterial;
+  private pointsGeometry: THREE.BufferGeometry;
+  private pointsObject: THREE.Points;
 
-  // Object pool for sprites
-  private spritePool: THREE.Sprite[] = [];
-  private readonly MAX_POOL_SIZE = 200;
+  // Buffer attributes
+  private positions: Float32Array;
+  private sizes: Float32Array;
+  private alphas: Float32Array;
+  private readonly MAX_PARTICLES = 200;
+  private activeParticles: number = 0;
+  private freeIndices: number[] = [];
 
   private onGroundHitCallback: ((position: THREE.Vector3, size: number) => void) | null = null;
 
@@ -35,14 +41,60 @@ export class ParticleEmitter {
     // Create shared blood texture ONCE
     this.sharedTexture = this.createBloodTexture();
 
-    // Create shared material ONCE
-    this.sharedMaterial = new THREE.SpriteMaterial({
+    // Initialize buffer arrays
+    this.positions = new Float32Array(this.MAX_PARTICLES * 3);
+    this.sizes = new Float32Array(this.MAX_PARTICLES);
+    this.alphas = new Float32Array(this.MAX_PARTICLES);
+
+    // Initialize free indices pool
+    for (let i = 0; i < this.MAX_PARTICLES; i++) {
+      this.freeIndices.push(i);
+      this.alphas[i] = 0; // Start invisible
+    }
+
+    // Create geometry with buffer attributes
+    this.pointsGeometry = new THREE.BufferGeometry();
+    this.pointsGeometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
+    this.pointsGeometry.setAttribute('size', new THREE.BufferAttribute(this.sizes, 1));
+    this.pointsGeometry.setAttribute('alpha', new THREE.BufferAttribute(this.alphas, 1));
+
+    // Create shared material ONCE (no clones!)
+    this.pointsMaterial = new THREE.PointsMaterial({
       map: this.sharedTexture,
       transparent: true,
-      opacity: 1,
       depthWrite: false,
       blending: THREE.NormalBlending,
+      sizeAttenuation: true,
+      vertexColors: false,
     });
+
+    // Enable custom alpha per particle
+    this.pointsMaterial.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader.replace(
+        'void main() {',
+        `
+        attribute float alpha;
+        varying float vAlpha;
+        void main() {
+          vAlpha = alpha;
+        `
+      );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        'void main() {',
+        `
+        varying float vAlpha;
+        void main() {
+        `
+      );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        'gl_FragColor = vec4( outgoingLight, diffuseColor.a * opacity );',
+        'gl_FragColor = vec4( outgoingLight, diffuseColor.a * opacity * vAlpha );'
+      );
+    };
+
+    // Create Points object
+    this.pointsObject = new THREE.Points(this.pointsGeometry, this.pointsMaterial);
+    this.scene.add(this.pointsObject);
   }
 
   /**
@@ -69,34 +121,23 @@ export class ParticleEmitter {
   }
 
   /**
-   * Get a sprite from pool or create new one
+   * Get a free particle index from pool
    */
-  private getSprite(): THREE.Sprite {
-    if (this.spritePool.length > 0) {
-      const sprite = this.spritePool.pop()!;
-      sprite.visible = true;
-      sprite.material.opacity = 1;
-      return sprite;
-    }
-
-    // Create new sprite with CLONED material (so opacity can vary per particle)
-    const material = this.sharedMaterial.clone();
-    return new THREE.Sprite(material);
+  private getParticleIndex(): number | null {
+    if (this.freeIndices.length === 0) return null;
+    const index = this.freeIndices.pop()!;
+    this.activeParticles++;
+    return index;
   }
 
   /**
-   * Return sprite to pool
+   * Return particle index to pool
    */
-  private returnSprite(sprite: THREE.Sprite): void {
-    sprite.visible = false;
-    this.scene.remove(sprite);
-
-    if (this.spritePool.length < this.MAX_POOL_SIZE) {
-      this.spritePool.push(sprite);
-    } else {
-      // Pool full, dispose
-      sprite.material.dispose();
-    }
+  private returnParticleIndex(index: number): void {
+    // Hide particle
+    this.alphas[index] = 0;
+    this.freeIndices.push(index);
+    this.activeParticles--;
   }
 
   /**
@@ -114,37 +155,47 @@ export class ParticleEmitter {
     const actualCount = Math.min(count, 15);
 
     for (let i = 0; i < actualCount; i++) {
-      const sprite = this.getSprite();
-      const size = 0.1 + Math.random() * 0.2;
-      sprite.scale.set(size, size, 1);
+      const index = this.getParticleIndex();
+      if (index === null) continue; // Pool full
 
-      sprite.position.set(
-        position.x + (Math.random() - 0.5) * 0.5,
-        position.y + 0.8 + Math.random() * 0.4,
-        position.z + (Math.random() - 0.5) * 0.5
-      );
+      const size = 10 + Math.random() * 20; // Points size in pixels
+      const baseIdx = index * 3;
 
-      this.scene.add(sprite);
+      // Set position
+      this.positions[baseIdx] = position.x + (Math.random() - 0.5) * 0.5;
+      this.positions[baseIdx + 1] = position.y + 0.8 + Math.random() * 0.4;
+      this.positions[baseIdx + 2] = position.z + (Math.random() - 0.5) * 0.5;
+
+      // Set size and alpha
+      this.sizes[index] = size;
+      this.alphas[index] = 1;
 
       const angle = Math.random() * Math.PI * 2;
       const speed = 1 + Math.random() * 3;
 
       // Create velocity vector for this particle (stored in particle object, not per-frame)
-      const maxLife = 2.0; // Reduced from 3.0
+      const velocity = new THREE.Vector3(
+        Math.cos(angle) * speed,
+        1 + Math.random() * 2,
+        Math.sin(angle) * speed
+      );
+
+      const maxLife = 2.0;
 
       this.particles.push({
-        sprite,
-        velocity: new THREE.Vector3(
-          Math.cos(angle) * speed,
-          1 + Math.random() * 2,
-          Math.sin(angle) * speed
-        ),
+        index,
+        velocity,
         life: maxLife,
         maxLife,
         hasCollided: false,
-        size: size * 8,
+        size: size / 10, // For decal size
       });
     }
+
+    // Mark buffers for GPU update
+    this.pointsGeometry.attributes.position.needsUpdate = true;
+    this.pointsGeometry.attributes.size.needsUpdate = true;
+    this.pointsGeometry.attributes.alpha.needsUpdate = true;
   }
 
   /**
@@ -155,38 +206,49 @@ export class ParticleEmitter {
     const actualCount = Math.min(count, 10);
 
     for (let i = 0; i < actualCount; i++) {
-      const sprite = this.getSprite();
-      const size = 0.08 + Math.random() * 0.15;
-      sprite.scale.set(size, size, 1);
+      const index = this.getParticleIndex();
+      if (index === null) continue; // Pool full
 
-      sprite.position.set(
-        position.x,
-        position.y + 0.8 + Math.random() * 0.4,
-        position.z
-      );
+      const size = 8 + Math.random() * 15;
+      const baseIdx = index * 3;
 
-      this.scene.add(sprite);
+      // Set position
+      this.positions[baseIdx] = position.x;
+      this.positions[baseIdx + 1] = position.y + 0.8 + Math.random() * 0.4;
+      this.positions[baseIdx + 2] = position.z;
+
+      // Set size and alpha
+      this.sizes[index] = size;
+      this.alphas[index] = 1;
 
       const spread = 0.5;
       const speedMult = 3 + Math.random() * 4;
       // Normalize direction once (reuse temp vector for calculation)
       const dirLen = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z) || 1;
 
-      const maxLife = 2.0; // Reduced from 3.0
+      // Create velocity vector for this particle (stored in particle object, not per-frame)
+      const velocity = new THREE.Vector3(
+        (direction.x / dirLen) * speedMult + (Math.random() - 0.5) * spread,
+        0.5 + Math.random() * 1.5,
+        (direction.z / dirLen) * speedMult + (Math.random() - 0.5) * spread
+      );
+
+      const maxLife = 2.0;
 
       this.particles.push({
-        sprite,
-        velocity: new THREE.Vector3(
-          (direction.x / dirLen) * speedMult + (Math.random() - 0.5) * spread,
-          0.5 + Math.random() * 1.5,
-          (direction.z / dirLen) * speedMult + (Math.random() - 0.5) * spread
-        ),
+        index,
+        velocity,
         life: maxLife,
         maxLife,
         hasCollided: false,
-        size: size * 6,
+        size: size / 10,
       });
     }
+
+    // Mark buffers for GPU update
+    this.pointsGeometry.attributes.position.needsUpdate = true;
+    this.pointsGeometry.attributes.size.needsUpdate = true;
+    this.pointsGeometry.attributes.alpha.needsUpdate = true;
   }
 
   /**
@@ -195,39 +257,58 @@ export class ParticleEmitter {
   update(deltaTime: number): void {
     const gravity = -9.8;
     const groundLevel = 0.05;
+    let needsUpdate = false;
 
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const particle = this.particles[i];
+      const index = particle.index;
+      const baseIdx = index * 3;
 
       // Update lifetime
       particle.life -= deltaTime;
 
       if (particle.life <= 0) {
-        this.returnSprite(particle.sprite);
+        this.returnParticleIndex(index);
         this.particles.splice(i, 1);
+        needsUpdate = true;
         continue;
       }
 
+      // Update velocity and position (directly update buffer - no allocations)
       particle.velocity.y += gravity * deltaTime;
-      // Use addScaledVector instead of clone().multiplyScalar() to avoid allocation
-      particle.sprite.position.addScaledVector(particle.velocity, deltaTime);
+      this.positions[baseIdx] += particle.velocity.x * deltaTime;
+      this.positions[baseIdx + 1] += particle.velocity.y * deltaTime;
+      this.positions[baseIdx + 2] += particle.velocity.z * deltaTime;
 
-      if (!particle.hasCollided && particle.sprite.position.y <= groundLevel) {
+      // Check ground collision
+      if (!particle.hasCollided && this.positions[baseIdx + 1] <= groundLevel) {
         particle.hasCollided = true;
 
         if (this.onGroundHitCallback) {
-          // Reuse pre-allocated vector instead of clone()
-          this._tempHitPosition.copy(particle.sprite.position);
-          this._tempHitPosition.y = 0.01;
+          // Reuse pre-allocated vector instead of creating new one
+          this._tempHitPosition.set(
+            this.positions[baseIdx],
+            0.01,
+            this.positions[baseIdx + 2]
+          );
           this.onGroundHitCallback(this._tempHitPosition, particle.size);
         }
-        this.returnSprite(particle.sprite);
+        this.returnParticleIndex(index);
         this.particles.splice(i, 1);
+        needsUpdate = true;
         continue;
       }
 
+      // Update alpha based on lifetime
       const lifePercent = particle.life / particle.maxLife;
-      (particle.sprite.material as THREE.SpriteMaterial).opacity = lifePercent;
+      this.alphas[index] = lifePercent;
+      needsUpdate = true;
+    }
+
+    // Only update GPU buffers if particles changed
+    if (needsUpdate) {
+      this.pointsGeometry.attributes.position.needsUpdate = true;
+      this.pointsGeometry.attributes.alpha.needsUpdate = true;
     }
   }
 
@@ -236,15 +317,18 @@ export class ParticleEmitter {
    */
   clear(): void {
     for (const particle of this.particles) {
-      this.returnSprite(particle.sprite);
+      this.returnParticleIndex(particle.index);
     }
     this.particles = [];
+
+    // Update buffers to hide all particles
+    this.pointsGeometry.attributes.alpha.needsUpdate = true;
   }
 
   /**
    * Get particle count (for debugging)
    */
   getParticleCount(): number {
-    return this.particles.length;
+    return this.activeParticles;
   }
 }

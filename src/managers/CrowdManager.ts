@@ -3,6 +3,7 @@ import * as RAPIER from '@dimforge/rapier3d-compat';
 import * as YUKA from 'yuka';
 import { Pedestrian } from '../entities/Pedestrian';
 import { InstancedBlobShadows } from '../rendering/InstancedBlobShadows';
+import { AIManager } from '../core/AIManager';
 
 /**
  * CrowdManager
@@ -17,7 +18,7 @@ export class CrowdManager {
   private pedestrianPool: Pedestrian[] = [];
   private scene: THREE.Scene;
   private world: RAPIER.World;
-  private entityManager: YUKA.EntityManager;
+  private aiManager: AIManager;
   private shadowManager: InstancedBlobShadows;
 
   // Deferred cleanup queue (clean AFTER physics step)
@@ -71,10 +72,10 @@ export class CrowdManager {
   // Pre-allocated vectors for per-frame operations (avoid GC pressure)
   private readonly _tempDirection: THREE.Vector3 = new THREE.Vector3();
 
-  constructor(scene: THREE.Scene, world: RAPIER.World) {
+  constructor(scene: THREE.Scene, world: RAPIER.World, aiManager: AIManager) {
     this.scene = scene;
     this.world = world;
-    this.entityManager = new YUKA.EntityManager();
+    this.aiManager = aiManager;
 
     // Create instanced shadow manager (max 60 shadows for pedestrians)
     this.shadowManager = new InstancedBlobShadows(scene, 60);
@@ -106,8 +107,8 @@ export class CrowdManager {
     for (let i = 0; i < this.maxPedestrians; i++) {
       this.spawnPedestrian(playerPosition);
     }
-
-    this.setupFlocking();
+    // Note: Flocking behaviors (separation, alignment, cohesion) are set up
+    // in Pedestrian constructor, no need for separate setupFlocking()
   }
 
   /**
@@ -133,7 +134,7 @@ export class CrowdManager {
       pedestrian = this.pedestrianPool.pop()!;
       pedestrian.reset(position, characterType);
     } else {
-      pedestrian = new Pedestrian(position, this.world, characterType, this.entityManager, this.shadowManager);
+      pedestrian = new Pedestrian(position, this.world, characterType, this.aiManager.getEntityManager(), this.shadowManager);
     }
 
     // Add to scene and list
@@ -142,32 +143,6 @@ export class CrowdManager {
 
     // Set wander behavior
     pedestrian.setWanderBehavior();
-  }
-
-  /**
-   * Setup Yuka flocking behavior for all pedestrians
-   */
-  private setupFlocking(): void {
-    // Create alignment, cohesion, and separation behaviors
-    for (const pedestrian of this.pedestrians) {
-      const vehicle = pedestrian.getYukaVehicle();
-
-      // Alignment: steer towards average heading of neighbors
-      const alignmentBehavior = new YUKA.AlignmentBehavior();
-      alignmentBehavior.weight = 0.1;
-      vehicle.steering.add(alignmentBehavior);
-
-      // Cohesion: steer towards average position of neighbors
-      const cohesionBehavior = new YUKA.CohesionBehavior();
-      cohesionBehavior.weight = 0.1;
-      vehicle.steering.add(cohesionBehavior);
-
-      // Separation: avoid crowding neighbors (most important)
-      const separationBehavior = new YUKA.SeparationBehavior();
-      separationBehavior.weight = 1.5;
-      vehicle.steering.add(separationBehavior);
-    }
-
   }
 
   /**
@@ -285,15 +260,14 @@ export class CrowdManager {
   }
 
   /**
-   * Update all pedestrians and Yuka entity manager
+   * Update all pedestrians (Yuka AI updated by Engine's AIManager)
    */
   update(deltaTime: number, playerPosition: THREE.Vector3): void {
-    // Update Yuka entity manager (handles steering calculations)
-    this.entityManager.update(deltaTime);
-
     // Mark pedestrians for removal (don't remove during iteration)
     for (const pedestrian of this.pedestrians) {
-      pedestrian.update(deltaTime);
+      // Calculate distance once for both removal check and animation LOD
+      const distance = (pedestrian as THREE.Group).position.distanceTo(playerPosition);
+      pedestrian.update(deltaTime, distance);
 
       // Track and remove dead pedestrians after death animation
       if (pedestrian.isDeadState()) {
@@ -313,8 +287,7 @@ export class CrowdManager {
         }
       }
 
-      // Mark pedestrians that wandered too far for removal
-      const distance = (pedestrian as THREE.Group).position.distanceTo(playerPosition);
+      // Mark pedestrians that wandered too far for removal (distance already calculated above)
       if (distance > 40 && !pedestrian.isDeadState()) {
         this.pedestriansToRemove.push(pedestrian);
       }
@@ -355,8 +328,8 @@ export class CrowdManager {
     // Remove from scene
     this.scene.remove(pedestrian);
 
-    // Remove from Yuka entity manager
-    this.entityManager.remove(pedestrian.getYukaVehicle());
+    // Remove from Yuka entity manager via AIManager
+    this.aiManager.removeEntity(pedestrian.getYukaVehicle());
 
     // Add to pool for reuse
     this.pedestrianPool.push(pedestrian);
@@ -378,7 +351,7 @@ export class CrowdManager {
     this.pedestrianPool = [];
     this.deathTimers.clear();
     this.pedestriansToRemove = [];
-    this.entityManager.clear();
+    // Note: AIManager is shared, don't clear it here
 
     // Dispose shadow manager
     this.shadowManager.dispose();
