@@ -23,6 +23,7 @@ import {
   VEHICLE_INTERACTION,
   WANTED_STARS,
   RENDERING_CONFIG,
+  COLLISION_GROUPS,
 } from '../constants';
 import { BloodDecalSystem } from '../rendering/BloodDecalSystem';
 import { GameState, Tier, InputState, GameStats, KillNotification } from '../types';
@@ -645,8 +646,9 @@ export class Engine {
       return this._tempSpawnTestPos.clone();
     }
 
-    const BUILDING_GROUP = 0x0040;
-    const GROUND_GROUP = 0x0001;
+    // Use centralized collision group constants
+    const BUILDING_GROUP = COLLISION_GROUPS.BUILDING;
+    const GROUND_GROUP = COLLISION_GROUPS.GROUND;
 
     // Lazily initialize reusable Rapier rays
     if (!this._horizontalRay) {
@@ -793,7 +795,7 @@ export class Engine {
         const groups = hitCollider.collisionGroups();
         const membership = groups & 0xFFFF;
 
-        if (membership === 0x0001) {
+        if (membership === COLLISION_GROUPS.GROUND) {
           return this._tempSpawnTestPos.clone();
         }
       }

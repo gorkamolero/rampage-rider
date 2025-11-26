@@ -1,5 +1,6 @@
 import * as RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
+import { COLLISION_GROUPS } from '../constants';
 
 /**
  * KinematicCharacterHelper
@@ -87,40 +88,30 @@ export class KinematicCharacterHelper {
 
   /**
    * Get standard collision groups for different entity types
+   * Re-exports COLLISION_GROUPS from constants for backwards compatibility
    */
   static getCollisionGroups() {
-    return {
-      GROUND: 0x0001,
-      PLAYER: 0x0002,
-      PEDESTRIAN: 0x0004,
-      COP: 0x0008,
-      DEBRIS: 0x0010,
-      PROJECTILE: 0x0020,
-      BUILDING: 0x0040,
-    };
+    return COLLISION_GROUPS;
   }
 
   /**
    * Get collision filter for player (collides with GROUND, BUILDING, PEDESTRIAN, COP)
    */
   static getPlayerCollisionFilter(): number {
-    const groups = this.getCollisionGroups();
-    return groups.GROUND | groups.BUILDING | groups.PEDESTRIAN | groups.COP;
+    return COLLISION_GROUPS.GROUND | COLLISION_GROUPS.BUILDING | COLLISION_GROUPS.PEDESTRIAN | COLLISION_GROUPS.COP;
   }
 
   /**
    * Get collision filter for pedestrian (collides with GROUND, BUILDING, PLAYER, COP)
    */
   static getPedestrianCollisionFilter(): number {
-    const groups = this.getCollisionGroups();
-    return groups.GROUND | groups.BUILDING | groups.PLAYER | groups.COP;
+    return COLLISION_GROUPS.GROUND | COLLISION_GROUPS.BUILDING | COLLISION_GROUPS.PLAYER | COLLISION_GROUPS.COP;
   }
 
   /**
    * Get collision filter for cop (collides with GROUND, BUILDING, PEDESTRIAN, other COPS)
    */
   static getCopCollisionFilter(): number {
-    const groups = this.getCollisionGroups();
-    return groups.GROUND | groups.BUILDING | groups.PEDESTRIAN | groups.COP;
+    return COLLISION_GROUPS.GROUND | COLLISION_GROUPS.BUILDING | COLLISION_GROUPS.PEDESTRIAN | COLLISION_GROUPS.COP;
   }
 }

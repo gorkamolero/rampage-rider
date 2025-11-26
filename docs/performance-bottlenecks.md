@@ -4,17 +4,17 @@ This document identifies all performance bottlenecks in the Rampage Rider codeba
 
 ## CRITICAL - High Impact
 
-### 1. Pedestrian Character Controller (PARTIALLY FIXED)
-**Location**: `src/entities/Pedestrian.ts:559-585`
+### 1. Pedestrian Character Controller ✅ FIXED
+**Location**: `src/entities/Pedestrian.ts`
 - **Issue**: Uses expensive `characterController.computeColliderMovement()` every frame
-- **Status**: Already switched to simple position sync at line 335
-- **Remaining Work**: Remove unused character controller code
+- **Status**: ✅ Fixed - Character controller fully removed. Line 27: "characterController removed - using simple position sync instead for performance". Uses Yuka position sync (lines 364-377).
 - **Impact**: High - affects 40+ entities per frame
 
-### 2. Cop Character Controller
-**Location**: `src/entities/Cop.ts:431-436`
+### 2. Cop Character Controller ✅ FIXED
+**Location**: `src/entities/Cop.ts:484-496`
 - **Issue**: Full collision resolution for 3-8 cops every frame
 - **Fix**: Use simpler collision or direct position sync like pedestrians
+- **Status**: ✅ Fixed - Cops now use simple Yuka position sync (line 33: "characterController removed - using simple position sync instead for performance")
 - **Impact**: High - expensive Rapier calculations
 
 ### 3. Duplicate Yuka AI Updates ✅ FIXED
@@ -107,19 +107,22 @@ This document identifies all performance bottlenecks in the Rampage Rider codeba
 - **Fix**: Calculate once and cache
 - **Impact**: Low-Medium
 
-### 13. Rotation Angle Calculations
+### 13. Rotation Angle Calculations ✅ ALREADY OPTIMIZED
 **Location**:
-- `src/entities/Player.ts:547-555`
-- `src/entities/Pedestrian.ts:346-348`
-- `src/entities/Cop.ts:448-457`
+- `src/entities/Player.ts:559-561` - guarded by `isMoving && !isAttacking`
+- `src/entities/Pedestrian.ts:380-382` - guarded by `velocity.length() > 0.1`
+- `src/entities/Cop.ts:505-507` - guarded by `distSq > 0.01`
+- `src/entities/MotorbikeCop.ts:658-660` - guarded by `moveLen > 0.01`
 - **Issue**: `Math.atan2()` for every moving entity every frame
 - **Fix**: Skip when velocity is minimal
-- **Impact**: Moderate when many entities moving
+- **Status**: ✅ Already optimized - All atan2 calls have guards to skip when entity isn't moving
+- **Impact**: Minimal - only calculated when actually moving
 
-### 14. Dead Pedestrian Raycasts
-**Location**: `src/entities/Pedestrian.ts:269-288`
+### 14. Dead Pedestrian Raycasts ✅ FIXED
+**Location**: `src/entities/Pedestrian.ts:290-321`
 - **Issue**: Dead bodies raycast for building collisions while bouncing
 - **Fix**: Limit to first 2 seconds after death
+- **Status**: ✅ Fixed - Line 292 checks `timeSinceDeath < 2.0`. Also uses pre-allocated `_deadBodyRay` (line 57) to avoid per-frame allocation.
 - **Impact**: Low-Medium depending on kill count
 
 ### 15. Bullet Distance Checks with sqrt ✅ FIXED
@@ -225,10 +228,11 @@ This document identifies all performance bottlenecks in the Rampage Rider codeba
 - **Status**: ✅ Fixed - Extracted CAMERA_CONFIG, PLAYER_ATTACK_CONFIG, SCORING_CONFIG, VEHICLE_INTERACTION, WANTED_STARS, RENDERING_CONFIG to constants.ts
 - **Impact**: Hard to tune game balance
 
-### 27. Collision Group Duplication
+### 27. Collision Group Duplication ✅ FIXED
 **Location**: `PhysicsWorld.ts`, `Engine.ts`, entity files
 - **Issue**: Collision groups defined in multiple places (e.g., `BUILDING_GROUP = 0x0040`)
 - **Fix**: Consolidate into single `constants.ts` export
+- **Status**: ✅ Fixed - All collision groups now import from `COLLISION_GROUPS` in constants.ts. Updated KinematicCharacterHelper, Engine.ts, Player.ts, Vehicle.ts.
 - **Impact**: Maintenance risk
 
 ### 28. History Arrays Use .shift() ✅ FIXED
@@ -258,11 +262,12 @@ This document identifies all performance bottlenecks in the Rampage Rider codeba
 - **Status**: ✅ Fixed - Added `_horizontalRay` and `_downRay` pre-allocated rays, updated via property setters
 - **Impact**: High during spawn calculations
 
-### 31. Material Cloning Per Building
-**Location**: `src/managers/BuildingManager.ts:145`
-- **Issue**: `child.material = child.material.clone()` for every building instance
+### 31. Material Cloning Per Building (INTENTIONAL)
+**Location**: `src/managers/BuildingManager.ts:143-147`
+- **Issue**: `child.material = child.material.clone()` for building instances
 - **Fix**: Use shared materials or vertex color attributes
-- **Impact**: 40+ materials instead of 4 shared
+- **Status**: INTENTIONAL - Only roof materials (`lambert1`) are cloned because each building needs independent opacity for proximity-based fade effect (lines 358-362). Base model materials remain shared. With only 4 buildings in pool, this is 4 roof materials per building = minimal overhead.
+- **Impact**: Acceptable - only ~16 cloned materials total (vs 40+ originally estimated)
 
 ### 32. Bullet/Taser Geometry Per Instance ✅ PARTIALLY FIXED
 **Location**: `src/entities/Cop.ts:667-678, 753-764`

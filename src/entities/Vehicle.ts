@@ -158,13 +158,15 @@ export class Vehicle extends THREE.Group {
     this.rigidBody = world.createRigidBody(bodyDesc);
 
     // Create box collider with config dimensions
-    // Membership: 0x0080 (VEHICLE group)
-    // Filter: 0x0045 (can collide with GROUND=0x0001, PEDESTRIAN=0x0004, BUILDING=0x0040)
+    // Membership: VEHICLE group
+    // Filter: can collide with GROUND, PEDESTRIAN, BUILDING
+    const vehicleFilter = COLLISION_GROUPS.GROUND | COLLISION_GROUPS.PEDESTRIAN | COLLISION_GROUPS.BUILDING;
+    const collisionGroups = (vehicleFilter << 16) | COLLISION_GROUPS.VEHICLE;
     const colliderDesc = RAPIER.ColliderDesc.cuboid(
       this.config.colliderWidth,
       this.config.colliderHeight,
       this.config.colliderLength
-    ).setCollisionGroups(0x00450080);
+    ).setCollisionGroups(collisionGroups);
 
     this.collider = world.createCollider(colliderDesc, this.rigidBody);
 
