@@ -516,17 +516,10 @@ export class Pedestrian extends THREE.Group {
     // Remove from scene
     (this as THREE.Group).parent?.remove(this);
 
-    // Defer geometry disposal (geometries are unique per instance)
-    // Materials/textures are shared between GLTF instances, so we DON'T dispose them
-    setTimeout(() => {
-      (this as THREE.Group).traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          if (child.geometry) {
-            child.geometry.dispose();
-          }
-        }
-      });
-    }, 0);
+    // DON'T dispose geometries or materials - they're shared by SkeletonUtils.clone()!
+    // SkeletonUtils.clone() shares geometries and materials by reference (line 393 of SkeletonUtils.js)
+    // Only the skeleton and scene graph are cloned, not the actual mesh data
+    // Disposing shared resources would break other pedestrian instances
 
   }
 }
