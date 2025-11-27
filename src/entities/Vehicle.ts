@@ -15,6 +15,11 @@ export class Vehicle extends THREE.Group {
   private modelContainer: THREE.Group;
   private modelLoaded: boolean = false;
   private wheels: THREE.Object3D[] = [];
+  private frontWheels: THREE.Object3D[] = [];
+  private rearWheels: THREE.Object3D[] = [];
+  private currentSteeringAngle: number = 0;
+  private readonly maxSteeringAngle: number = Math.PI / 6; // 30 degrees max steering
+  private readonly steeringSpeed: number = 8; // How fast steering responds
 
   private health: number;
   private maxHealth: number;
@@ -134,17 +139,51 @@ export class Vehicle extends THREE.Group {
       this.modelContainer.add(model);
       this.modelLoaded = true;
 
+      // DEBUG boxes removed for performance
+
       // Find wheel objects for rotation animation
       this.wheels = [];
+      this.frontWheels = [];
+      this.rearWheels = [];
       model.traverse((child) => {
         if (child.name) {
           const name = child.name.toLowerCase();
           if ((name.includes('tire') || name.includes('spokes')) &&
               !name.includes('pattern')) {
             this.wheels.push(child);
+            // Categorize as front or rear wheel based on name
+            if (name.includes('front') || name.includes('_f_') || name.includes('_f.')) {
+              this.frontWheels.push(child);
+            } else if (name.includes('rear') || name.includes('back') || name.includes('_r_') || name.includes('_r.')) {
+              this.rearWheels.push(child);
+            }
           }
         }
       });
+
+      // If no wheels were categorized by name, use Z position to determine front/rear
+      if (this.frontWheels.length === 0 && this.rearWheels.length === 0 && this.wheels.length > 0) {
+        // Get world positions of all wheels
+        const wheelPositions: { wheel: THREE.Object3D; z: number }[] = [];
+        for (const wheel of this.wheels) {
+          const worldPos = new THREE.Vector3();
+          wheel.getWorldPosition(worldPos);
+          wheelPositions.push({ wheel, z: worldPos.z });
+        }
+
+        // Sort by Z position (in model space, lower Z is typically front)
+        wheelPositions.sort((a, b) => a.z - b.z);
+
+        // First half are front wheels, second half are rear
+        const midpoint = Math.floor(wheelPositions.length / 2);
+        for (let i = 0; i < wheelPositions.length; i++) {
+          if (i < midpoint) {
+            this.frontWheels.push(wheelPositions[i].wheel);
+          } else {
+            this.rearWheels.push(wheelPositions[i].wheel);
+          }
+        }
+      }
     } catch (error) {
       console.error(`[Vehicle] Failed to load ${this.config.name} model:`, error);
       this.createFallbackMesh();
@@ -326,18 +365,24 @@ export class Vehicle extends THREE.Group {
       (this as THREE.Group).position.set(newPosition.x, newPosition.y, newPosition.z);
     }
 
+    // Calculate target steering angle based on input
+    let targetSteeringAngle = 0;
+    if (this.input.left) targetSteeringAngle = this.maxSteeringAngle;
+    if (this.input.right) targetSteeringAngle = -this.maxSteeringAngle;
+
+    // Smoothly interpolate steering angle
+    const steeringDelta = targetSteeringAngle - this.currentSteeringAngle;
+    this.currentSteeringAngle += steeringDelta * Math.min(1, this.steeringSpeed * deltaTime);
+
     // Rotate wheels based on velocity
-    if (this.wheels.length > 0 && isMoving) {
+    if (this.wheels.length > 0) {
       // Wheel rotation speed based on velocity magnitude
       // Assuming wheel radius ~0.3m, rotation = distance / radius
       const wheelRadius = 0.3;
       const distance = velocity.length() * deltaTime;
       const rotationAngle = distance / wheelRadius;
 
-      for (const wheel of this.wheels) {
-        // Rotate around X axis (wheels roll forward/backward)
-        wheel.rotation.x += rotationAngle;
-      }
+      // Wheel animation disabled for performance
     }
   }
 

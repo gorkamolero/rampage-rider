@@ -295,8 +295,8 @@ export const VEHICLE_CONFIGS: Record<VehicleType, VehicleConfig> = {
     type: VehicleType.TRUCK,
     name: "18-Wheeler",
     modelPath: "/assets/vehicles/truck.glb",
-    speed: 12, // Slow but unstoppable
-    turnSpeed: 2.5, // Very slow turning - it's an 18-wheeler!
+    speed: 24, // 2x faster - unstoppable!
+    turnSpeed: 3.5, // Slightly faster turning
     maxHealth: 300, // Tank-level
     // Adjusted based on actual gameplay testing - need to match visual model
     // Pedestrians at dx=2.71 should be hit, so halfWidth needs to be > 2.71

@@ -17,7 +17,7 @@ export class CopManager {
   private world: RAPIER.World;
   private aiManager: AIManager;
 
-  private maxCops: number = 8;
+  private maxCops: number = 3; // Reduced for performance
   private spawnRadius: number = 15;
   private damageCallback: ((damage: number) => void) | null = null;
 
