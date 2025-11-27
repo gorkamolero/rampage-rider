@@ -472,6 +472,32 @@ export const WANTED_STARS = {
 } as const;
 
 /**
+ * Rampage system configuration
+ * Rampage activates when score thresholds are reached, providing visual effects and multipliers
+ */
+export const RAMPAGE_CONFIG = {
+  // Score thresholds (based on scoreThisLife)
+  FRENZY_THRESHOLD: 500, // Score to enter Frenzy mode
+  RAMPAGE_THRESHOLD: 2000, // Score to enter Rampage mode
+
+  // Duration & decay
+  BASE_DURATION: 10, // Seconds of rampage when activated
+  KILL_EXTENSION: 1.5, // Seconds added per kill during rampage
+  MAX_DURATION: 30, // Cap on rampage time
+
+  // Score multipliers (applied on top of combo/pursuit multipliers)
+  FRENZY_MULTIPLIER: 1.5,
+  RAMPAGE_MULTIPLIER: 2.5,
+
+  // Visual effects
+  CAMERA_SHAKE_BOOST: 1.5, // Multiplier for camera shake during rampage
+  PARTICLE_BOOST_FRENZY: 1.5, // Particle count multiplier in Frenzy
+  PARTICLE_BOOST_RAMPAGE: 2.0, // Particle count multiplier in Rampage
+  ZOOM_PULSE_INTENSITY: 0.02, // How much to pulse the camera zoom
+  ZOOM_PULSE_SPEED: 4, // Pulses per second
+} as const;
+
+/**
  * Rendering configuration
  */
 export const RENDERING_CONFIG = {

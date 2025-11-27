@@ -21,6 +21,12 @@ export enum Tier {
   SEDAN = 4,
 }
 
+export enum RampageLevel {
+  NONE = 0,
+  FRENZY = 1,
+  RAMPAGE = 2,
+}
+
 export interface TierConfig {
   name: string;
   minKills: number;
@@ -44,6 +50,7 @@ export interface InputState {
 export interface KillNotification {
   message: string;
   isPursuit: boolean;
+  isRampage?: boolean; // For rampage activation notifications
   points: number;
 }
 
@@ -63,6 +70,11 @@ export interface GameStats {
   copHealthBars: Array<{ x: number; y: number; health: number; maxHealth: number }>; // Screen-space positions for cop health bars
   isTased: boolean; // Player is being tased
   taseEscapeProgress: number; // 0-100, escape progress
+  // Rampage system
+  rampageLevel: RampageLevel;
+  rampageTimer: number; // Seconds remaining in rampage
+  rampageMultiplier: number; // Current rampage score multiplier
+  scoreThisLife: number; // Score accumulated this life (resets on death)
   vehicleHealth?: number; // Car health when in vehicle
   vehicleMaxHealth?: number; // Car max health
   isInVehicle?: boolean; // True when player is in a car

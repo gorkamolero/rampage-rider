@@ -1,6 +1,6 @@
-import React from 'react';
-import { GameStats, TierConfig, Tier } from '../../types';
-import { TIER_CONFIGS } from '../../constants';
+import React, { useMemo } from 'react';
+import { GameStats, TierConfig, Tier, RampageLevel } from '../../types';
+import { TIER_CONFIGS, RAMPAGE_CONFIG } from '../../constants';
 import { Badge } from '@/components/ui/8bit/badge';
 import HealthBar from '@/components/ui/8bit/health-bar';
 import HeatBar from '@/components/ui/8bit/heat-bar';
@@ -10,16 +10,77 @@ interface OverlayProps {
   stats: GameStats;
 }
 
+// Memoized Rampage Indicator - only re-renders when rampage state changes
+const RampageIndicator = React.memo<{
+  level: RampageLevel;
+  timer: number;
+  multiplier: number;
+}>(({ level, timer, multiplier }) => {
+  if (level === RampageLevel.NONE) return null;
+
+  const isRampage = level === RampageLevel.RAMPAGE;
+  // Throttle timer display to 1 decimal (already done) - display rounds to 0.1s
+  const timerDisplay = Math.floor(timer * 10) / 10;
+  const progressValue = (timer / RAMPAGE_CONFIG.MAX_DURATION) * 100;
+
+  return (
+    <div
+      className="absolute left-1/2 -translate-x-1/2 top-4 text-center"
+      style={{ transform: 'translateX(-50%) scale(0.85)', transformOrigin: 'top center' }}
+    >
+      <div
+        className={`px-6 py-3 rounded-none border-4 ${
+          isRampage
+            ? 'bg-red-600/90 border-red-400 animate-pulse'
+            : 'bg-orange-500/90 border-orange-300'
+        }`}
+      >
+        <div
+          className={`text-3xl font-black tracking-wider retro ${
+            isRampage
+              ? 'text-white drop-shadow-[0_0_10px_rgba(255,0,0,0.8)]'
+              : 'text-black'
+          }`}
+        >
+          {isRampage ? '🔥 RAMPAGE! 🔥' : '⚡ FRENZY! ⚡'}
+        </div>
+        <div className="flex items-center justify-center gap-2 mt-2">
+          <span className="text-xs font-bold text-white/80 retro">x{multiplier.toFixed(1)} BONUS</span>
+          <span className="text-xs text-white/60">|</span>
+          <span className="text-xs font-mono text-white/80">{timerDisplay.toFixed(1)}s</span>
+        </div>
+        <div className="mt-2">
+          <Progress
+            value={progressValue}
+            variant="retro"
+            className="h-2"
+            progressBg={isRampage ? 'bg-red-300' : 'bg-orange-300'}
+          />
+        </div>
+      </div>
+    </div>
+  );
+});
+
+RampageIndicator.displayName = 'RampageIndicator';
+
 const Overlay: React.FC<OverlayProps> = ({ stats }) => {
   const currentConfig: TierConfig = TIER_CONFIGS[stats.tier];
   const nextTier = (stats.tier + 1) as Tier;
   const nextConfig = TIER_CONFIGS[nextTier];
 
-  const progress = nextConfig
-    ? ((stats.kills - TIER_CONFIGS[stats.tier].minKills) / (nextConfig.minKills - TIER_CONFIGS[stats.tier].minKills)) * 100
-    : 100;
+  // Memoize progress calculation - only changes when kills change
+  const progress = useMemo(() => {
+    if (!nextConfig) return 100;
+    return ((stats.kills - TIER_CONFIGS[stats.tier].minKills) / (nextConfig.minKills - TIER_CONFIGS[stats.tier].minKills)) * 100;
+  }, [stats.kills, stats.tier, nextConfig]);
 
   const healthPercent = (stats.health / currentConfig.maxHealth) * 100;
+
+  // Memoize combined multiplier - only changes when combo or rampage changes
+  const combinedMultiplier = useMemo(() => {
+    return (1 + (Math.min(stats.combo, 50) * 0.1)) * stats.rampageMultiplier;
+  }, [stats.combo, stats.rampageMultiplier]);
 
   return (
     <div className="absolute top-0 left-0 w-full h-full pointer-events-none p-4 flex flex-col justify-between z-10">
@@ -45,6 +106,13 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
           ))}
         </div>
       ))}
+
+      {/* Rampage Indicator (Top Center) - Memoized component */}
+      <RampageIndicator
+        level={stats.rampageLevel}
+        timer={stats.rampageTimer}
+        multiplier={stats.rampageMultiplier}
+      />
 
       {/* Performance Monitor (Right Side, Centered) */}
       {stats.performance && (
@@ -123,9 +191,19 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
 
           <div className="mt-2 flex items-center gap-2">
             <span className="text-xs text-muted-foreground retro">MULTIPLIER</span>
-            <Badge variant="default" className="text-lg bg-yellow-500 text-black">
-              x{(1 + (Math.min(stats.combo, 50) * 0.1)).toFixed(1)}
+            <Badge
+              variant="default"
+              className={`text-lg ${
+                stats.rampageLevel !== RampageLevel.NONE
+                  ? 'bg-red-500 text-white animate-pulse'
+                  : 'bg-yellow-500 text-black'
+              }`}
+            >
+              x{combinedMultiplier.toFixed(1)}
             </Badge>
+            {stats.rampageLevel !== RampageLevel.NONE && (
+              <span className="text-xs text-red-400 font-bold retro animate-pulse">RAMPAGE!</span>
+            )}
           </div>
           {stats.combo > 0 && (
             <div className="mt-2">
@@ -257,4 +335,5 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
   );
 };
 
-export default Overlay;
+// Wrap entire Overlay in React.memo - only re-renders when stats object reference changes
+export default React.memo(Overlay);

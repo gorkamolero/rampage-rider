@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 /**
  * Notification types with different visual styles
  */
-export type NotificationType = 'kill' | 'pursuit' | 'prompt' | 'alert';
+export type NotificationType = 'kill' | 'pursuit' | 'prompt' | 'alert' | 'rampage';
 
 interface TransientNotification {
   id: number;
@@ -51,6 +51,12 @@ const NOTIFICATION_STYLES: Record<NotificationType, {
     textShadow: '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000',
     subtextClass: 'text-xl text-white',
     subtextShadow: '2px 2px 0 #000',
+  },
+  rampage: {
+    textClass: 'text-5xl text-red-500 scale-125',
+    textShadow: '0 0 20px #ef4444, 0 0 40px #dc2626, 0 0 80px #b91c1c, 0 0 120px #991b1b, 4px 4px 0 #000',
+    subtextClass: 'text-2xl text-orange-300',
+    subtextShadow: '0 0 15px #fb923c, 0 0 30px #f97316, 3px 3px 0 #000',
   },
 };
 

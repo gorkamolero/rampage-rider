@@ -10,6 +10,80 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2024-11-27]
+
+### Rampage System
+
+**Added:**
+- **RampageLevel enum** (`types.ts`) - NONE, FRENZY, RAMPAGE states
+- **RAMPAGE_CONFIG constants** (`constants.ts`) - Configurable thresholds and multipliers:
+  ```typescript
+  FRENZY_THRESHOLD: 500,    // Score to enter Frenzy mode
+  RAMPAGE_THRESHOLD: 2000,  // Score to enter Rampage mode
+  BASE_DURATION: 10,        // Seconds of rampage when activated
+  KILL_EXTENSION: 1.5,      // Seconds added per kill during rampage
+  MAX_DURATION: 30,         // Cap on rampage time
+  FRENZY_MULTIPLIER: 1.5,   // Score multiplier in Frenzy
+  RAMPAGE_MULTIPLIER: 2.5,  // Score multiplier in Rampage
+  CAMERA_SHAKE_BOOST: 1.5,  // Camera shake intensity multiplier
+  ```
+
+- **Rampage state management** (`Engine.ts`):
+  - `checkRampageActivation()` - Tracks scoreThisLife and activates/upgrades rampage
+  - `activateRampage()` - Sets rampage level, timer, multiplier, triggers notification
+  - `endRampage()` - Resets rampage state when timer expires
+  - Rampage timer countdown in main update loop
+  - Kill extensions during active rampage
+
+- **Score integration** - Rampage multiplier applied to all scoring:
+  - Pedestrian kills (knife, bicycle, motorbike, vehicle)
+  - Cop kills (all attack types)
+  - Stacks multiplicatively with combo and pursuit multipliers
+  - Formula: `basePoints × pursuitMult × panicMult × rampageMultiplier`
+
+- **Rampage HUD indicator** (`Overlay.tsx`):
+  - Center-top positioned during active rampage
+  - Orange background for Frenzy, red pulsing for Rampage
+  - Shows multiplier bonus and countdown timer
+  - Progress bar showing time remaining
+  - Multiplier badge updates to show combined combo×rampage multiplier
+
+- **Rampage notification type** (`NotificationSystem.tsx`):
+  - New 'rampage' notification style with intense red glow
+  - Large 5xl text with multiple drop shadows
+  - Triggered on rampage activation with emoji-enhanced messages
+
+- **Visual feedback**:
+  - Enhanced camera shake during rampage (1.5x boost)
+  - Pulsing red multiplier badge when rampage active
+  - "RAMPAGE!" indicator next to multiplier
+
+**GameStats extensions:**
+```typescript
+rampageLevel: RampageLevel;     // Current rampage state
+rampageTimer: number;            // Seconds remaining
+rampageMultiplier: number;       // Current score multiplier
+scoreThisLife: number;           // Cumulative score (triggers rampage)
+```
+
+**KillNotification extension:**
+```typescript
+isRampage?: boolean;  // For rampage-specific notification styling
+```
+
+**Files Created:**
+- None (all changes to existing files)
+
+**Files Modified:**
+- `src/types.ts` - Added RampageLevel enum, extended GameStats and KillNotification
+- `src/constants.ts` - Added RAMPAGE_CONFIG
+- `src/core/Engine.ts` - Rampage state management, score integration, camera shake boost
+- `src/components/UI/Overlay.tsx` - Rampage HUD indicator
+- `src/components/UI/NotificationSystem.tsx` - Rampage notification type
+- `src/App.tsx` - Handle rampage notification type mapping
+
+---
+
 ## [2024-11-25]
 
 ### Performance Optimizations
