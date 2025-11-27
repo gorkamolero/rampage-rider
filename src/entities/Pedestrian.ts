@@ -24,7 +24,7 @@ import {
 export class Pedestrian extends THREE.Group {
   private rigidBody: RAPIER.RigidBody;
   private collider: RAPIER.Collider;
-  private characterController: RAPIER.KinematicCharacterController;
+  // Note: characterController removed - using simple position sync instead for performance
   private world: RAPIER.World;
   private mixer: THREE.AnimationMixer | null = null;
   private animations: THREE.AnimationClip[] = [];
@@ -105,7 +105,7 @@ export class Pedestrian extends THREE.Group {
 
     this.rigidBody = body;
     this.collider = collider;
-    this.characterController = controller;
+    // controller not stored - simple position sync used instead
 
     // Load character model
     this.loadModel(characterType);
@@ -362,44 +362,17 @@ export class Pedestrian extends THREE.Group {
       }
     }
 
-    // Get desired movement from Yuka AI
+    // Simple position sync from Yuka AI (no expensive character controller)
+    // Pedestrians use Yuka's separation behavior to avoid each other
+    // Vehicle collisions are handled by damageInRadius/damageInBox kill checks
     const yukaPos = this.yukaVehicle.position;
-    const currentPos = this.rigidBody.translation();
+    this._tempPosition.set(yukaPos.x, 0, yukaPos.z);
 
-    // Calculate desired movement vector
-    const desiredMovement = {
-      x: yukaPos.x - currentPos.x,
-      y: 0,
-      z: yukaPos.z - currentPos.z
-    };
+    // Sync Three.js position directly (much cheaper than character controller)
+    (this as THREE.Group).position.copy(this._tempPosition);
 
-    // Use character controller for collision-aware movement
-    // This prevents pedestrians from walking through vehicles
-    const collisionFilter = KinematicCharacterHelper.getPedestrianCollisionFilter();
-    this.characterController.computeColliderMovement(
-      this.collider,
-      desiredMovement,
-      undefined, // filterFlags
-      collisionFilter
-    );
-
-    // Get collision-corrected movement
-    const correctedMovement = this.characterController.computedMovement();
-
-    // Apply corrected position to physics body
-    this._tempPosition.set(
-      currentPos.x + correctedMovement.x,
-      currentPos.y + correctedMovement.y,
-      currentPos.z + correctedMovement.z
-    );
-    this.rigidBody.setNextKinematicTranslation(this._tempPosition);
-
-    // Sync Yuka position back to match physics (so AI knows where it actually is)
-    this.yukaVehicle.position.x = this._tempPosition.x;
-    this.yukaVehicle.position.z = this._tempPosition.z;
-
-    // Sync Three.js visual position
-    (this as THREE.Group).position.set(this._tempPosition.x, 0, this._tempPosition.z);
+    // Sync physics body position for collision detection by player
+    this.rigidBody.setNextKinematicTranslation({ x: this._tempPosition.x, y: 0.5, z: this._tempPosition.z });
 
     // Update instanced shadow position (stays on ground)
     if (this.shadowIndex >= 0) {

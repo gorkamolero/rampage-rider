@@ -134,43 +134,6 @@ export class Vehicle extends THREE.Group {
       this.modelContainer.add(model);
       this.modelLoaded = true;
 
-      // DEBUG: Add solid red box showing PHYSICS collision bounds
-      // Added directly to Vehicle group (not modelContainer) to show true collision area
-      if (this.config.canCrushBuildings) {
-        // Must match CrowdManager.damageInBox margins!
-        const killMarginLength = 2.5; // Front/back
-        const killMarginWidth = 0.5;  // Sides
-
-        // RED = Physics collision box (what pushes pedestrians)
-        const physicsBoxGeom = new THREE.BoxGeometry(
-          this.config.colliderWidth * 2,  // Full width (config is half-extent)
-          this.config.colliderHeight * 2, // Full height
-          this.config.colliderLength * 2  // Full length
-        );
-        const physicsMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.3 });
-        const physicsBox = new THREE.Mesh(physicsBoxGeom, physicsMat);
-        physicsBox.position.y = this.config.colliderHeight; // Center vertically
-        (this as THREE.Group).add(physicsBox);
-
-        // YELLOW = Kill zone (larger at front/back, minimal on sides)
-        const killBoxGeom = new THREE.BoxGeometry(
-          (this.config.colliderWidth + killMarginWidth) * 2,
-          0.2, // Thin so it doesn't obscure view
-          (this.config.colliderLength + killMarginLength) * 2
-        );
-        const killMat = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.4 });
-        const killBox = new THREE.Mesh(killBoxGeom, killMat);
-        killBox.position.y = 0.1; // On ground
-        (this as THREE.Group).add(killBox);
-
-        // DEBUG: Add bright green sphere at exact collision center (0,0,0 in vehicle space)
-        const sphereGeom = new THREE.SphereGeometry(0.5);
-        const sphereMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        const centerMarker = new THREE.Mesh(sphereGeom, sphereMat);
-        centerMarker.position.y = 1; // Slightly above ground so it's visible
-        (this as THREE.Group).add(centerMarker);
-      }
-
       // Find wheel objects for rotation animation
       this.wheels = [];
       model.traverse((child) => {
