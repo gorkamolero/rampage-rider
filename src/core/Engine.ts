@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { PhysicsWorld } from './PhysicsWorld';
 import { AIManager } from './AIManager';
+import { VehicleManager } from './VehicleManager';
+import { VisualEffectsManager } from './VisualEffectsManager';
 import { CrowdManager } from '../managers/CrowdManager';
 import { CopManager } from '../managers/CopManager';
 import { MotorbikeCopManager } from '../managers/MotorbikeCopManager';
@@ -328,14 +330,10 @@ export class Engine {
     const world = this.physics.getWorld();
     if (world) {
       this.crowd = new CrowdManager(this.scene, world, this.ai);
-      // DISABLED: Cops for truck debugging
-      // this.cops = new CopManager(this.scene, world, this.ai);
-      // DISABLED: Motorbike cops for performance testing
-      // this.motorbikeCops = new MotorbikeCopManager(this.scene, world, this.ai);
-      // DEBUG: Disable buildings to debug truck collision
-      // this.buildings = new BuildingManager(this.scene, world);
-      this.buildings = null;
-      // this.lampPosts = new LampPostManager(this.scene);
+      this.cops = new CopManager(this.scene, world, this.ai);
+      this.motorbikeCops = new MotorbikeCopManager(this.scene, world, this.ai);
+      this.buildings = new BuildingManager(this.scene, world);
+      this.lampPosts = new LampPostManager(this.scene);
     }
   }
 
