@@ -86,6 +86,8 @@ This document outlines the complete implementation roadmap for Rampage Rider. Wh
 - [x] Add LampPostManager for street lighting
 - [x] Add Christmas lights decoration system
 - [x] Implement chunk-based building loading/unloading
+- [x] Add TableManager with wooden tables at building corners
+- [x] Add static pedestrian patrons at tables with idle animations
 
 ### 3.3 Visual Enhancements ✅
 - [x] Create BlobShadow system (performance-optimized fake shadows)

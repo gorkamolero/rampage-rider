@@ -12,6 +12,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2024-11-27]
 
+### Outdoor Cafe Tables with Patrons
+
+**Added:**
+- **TableManager** (`src/managers/TableManager.ts`) - Creates low poly wooden tables at street corners between buildings
+  - 4 tables (one per building corner in 2x2 grid)
+  - Each table has 3 static pedestrians (patrons) with idle animations
+  - Tables and patrons follow BuildingManager pattern (reposition as player moves)
+  - Performance optimizations:
+    - Shared BoxGeometry for all table parts (reused)
+    - Animation LOD: Skip animation updates for patrons > 20 units from player
+    - InstancedBlobShadows for patron shadows (16 max)
+    - Synchronous creation (models already preloaded)
+    - Proper material disposal on patron cleanup
+
+- **Low poly wooden tables**
+  - Table top: 2m × 0.1m × 1.2m
+  - Four legs: 0.1m × 0.7m × 0.1m each
+  - Warm saddle brown material (roughness 0.8, no metalness)
+  - Random rotation per table for visual variety
+
+- **Table patrons**
+  - Reuses existing casual pedestrian models (7 types)
+  - Random skin tones via AnimationHelper
+  - Idle animation with randomized start time (prevents sync)
+  - Standing positions: front, left, right of table
+  - Face toward table center
+
+**Performance Impact:**
+- Total new entities: 4 tables + 12 patrons
+- Animation updates: Only for patrons within 20 units (LOD)
+- Draw calls: +1 (instanced shadows) + 12 pedestrian meshes
+- No physics bodies (static visual-only entities)
+
+**Files Created:**
+- `src/managers/TableManager.ts`
+
+**Files Modified:**
+- `src/core/Engine.ts` - Import, initialize, update, clear TableManager
+
+---
+
 ### ESC to Pause
 
 **Added:**

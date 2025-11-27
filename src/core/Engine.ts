@@ -7,6 +7,7 @@ import { CopManager } from '../managers/CopManager';
 import { MotorbikeCopManager } from '../managers/MotorbikeCopManager';
 import { BuildingManager } from '../managers/BuildingManager';
 import { LampPostManager } from '../managers/LampPostManager';
+import { TableManager } from '../managers/TableManager';
 import { Player } from '../entities/Player';
 import { Vehicle } from '../entities/Vehicle';
 import { ParticleEmitter } from '../rendering/ParticleSystem';
@@ -44,6 +45,7 @@ export class Engine {
   public motorbikeCops: MotorbikeCopManager | null = null;
   public buildings: BuildingManager | null = null;
   public lampPosts: LampPostManager | null = null;
+  public tables: TableManager | null = null;
   public particles: ParticleEmitter;
   public bloodDecals: BloodDecalSystem;
 
@@ -322,6 +324,7 @@ export class Engine {
       // this.motorbikeCops = new MotorbikeCopManager(this.scene, world, this.ai); // Disabled for performance
       this.buildings = new BuildingManager(this.scene, world);
       this.lampPosts = new LampPostManager(this.scene);
+      this.tables = new TableManager(this.scene);
     }
   }
 
@@ -515,6 +518,10 @@ export class Engine {
 
     if (this.buildings) {
       this.buildings.clear();
+    }
+
+    if (this.tables) {
+      this.tables.clear();
     }
 
     this.particles.clear();
@@ -1637,6 +1644,9 @@ export class Engine {
     if (this.lampPosts) {
       this.lampPosts.update(currentPos);
     }
+    if (this.tables) {
+      this.tables.update(currentPos, dt);
+    }
     if (DEBUG_PERFORMANCE_PANEL) this.performanceStats.world = performance.now() - worldStart;
 
     // Pedestrians
@@ -2088,6 +2098,9 @@ export class Engine {
     }
     if (this.buildings) {
       this.buildings.clear();
+    }
+    if (this.tables) {
+      this.tables.clear();
     }
     this.particles.clear();
     this.bloodDecals.dispose();
