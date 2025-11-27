@@ -7,6 +7,7 @@ import { CopManager } from '../managers/CopManager';
 import { MotorbikeCopManager } from '../managers/MotorbikeCopManager';
 import { BuildingManager } from '../managers/BuildingManager';
 import { LampPostManager } from '../managers/LampPostManager';
+import { ChristmasTreeManager } from '../managers/ChristmasTreeManager';
 import { Player } from '../entities/Player';
 import { Vehicle } from '../entities/Vehicle';
 import { ParticleEmitter } from '../rendering/ParticleSystem';
@@ -44,6 +45,7 @@ export class Engine {
   public motorbikeCops: MotorbikeCopManager | null = null;
   public buildings: BuildingManager | null = null;
   public lampPosts: LampPostManager | null = null;
+  public christmasTrees: ChristmasTreeManager | null = null;
   public particles: ParticleEmitter;
   public bloodDecals: BloodDecalSystem;
 
@@ -322,6 +324,7 @@ export class Engine {
       // this.motorbikeCops = new MotorbikeCopManager(this.scene, world, this.ai); // Disabled for performance
       this.buildings = new BuildingManager(this.scene, world);
       this.lampPosts = new LampPostManager(this.scene);
+      this.christmasTrees = new ChristmasTreeManager(this.scene);
     }
   }
 
@@ -515,6 +518,9 @@ export class Engine {
 
     if (this.buildings) {
       this.buildings.clear();
+    }
+    if (this.christmasTrees) {
+      this.christmasTrees.clear();
     }
 
     this.particles.clear();
@@ -1637,6 +1643,9 @@ export class Engine {
     if (this.lampPosts) {
       this.lampPosts.update(currentPos);
     }
+    if (this.christmasTrees) {
+      this.christmasTrees.update(currentPos);
+    }
     if (DEBUG_PERFORMANCE_PANEL) this.performanceStats.world = performance.now() - worldStart;
 
     // Pedestrians
@@ -2088,6 +2097,9 @@ export class Engine {
     }
     if (this.buildings) {
       this.buildings.clear();
+    }
+    if (this.christmasTrees) {
+      this.christmasTrees.dispose();
     }
     this.particles.clear();
     this.bloodDecals.dispose();
