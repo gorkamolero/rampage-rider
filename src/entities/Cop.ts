@@ -37,12 +37,10 @@ export class Cop extends THREE.Group {
   private currentAnimation: string = 'Idle';
   private modelLoaded: boolean = false;
 
-  // Yuka AI
+  // Yuka AI (only seek behavior - separation/obstacle avoidance disabled for performance)
   private yukaVehicle: YUKA.Vehicle;
   private yukaEntityManager: YUKA.EntityManager;
   private seekBehavior: YUKA.SeekBehavior;
-  private separationBehavior: YUKA.SeparationBehavior;
-  private obstacleBehavior: YUKA.ObstacleAvoidanceBehavior;
 
   // State
   private isDead: boolean = false;
@@ -101,17 +99,19 @@ export class Cop extends THREE.Group {
     this.yukaVehicle.updateOrientation = false; // We handle rotation manually
 
     // Create steering behaviors ONCE (reused every frame)
+    // PERFORMANCE: Only use seek behavior - separation and obstacle avoidance are O(n²) expensive
     this.seekBehavior = new YUKA.SeekBehavior(new YUKA.Vector3(position.x, 0, position.z));
-    this.seekBehavior.weight = 2.0;
+    this.seekBehavior.weight = 1.0;
     this.yukaVehicle.steering.add(this.seekBehavior);
 
-    this.separationBehavior = new YUKA.SeparationBehavior();
-    this.separationBehavior.weight = 0.8;
-    this.yukaVehicle.steering.add(this.separationBehavior);
+    // DISABLED for performance - these iterate through all entities every frame
+    // this.separationBehavior = new YUKA.SeparationBehavior();
+    // this.separationBehavior.weight = 0.8;
+    // this.yukaVehicle.steering.add(this.separationBehavior);
 
-    this.obstacleBehavior = new YUKA.ObstacleAvoidanceBehavior();
-    this.obstacleBehavior.weight = 0.5;
-    this.yukaVehicle.steering.add(this.obstacleBehavior);
+    // this.obstacleBehavior = new YUKA.ObstacleAvoidanceBehavior();
+    // this.obstacleBehavior.weight = 0.5;
+    // this.yukaVehicle.steering.add(this.obstacleBehavior);
 
     // Add to Yuka entity manager
     this.yukaEntityManager.add(this.yukaVehicle);
@@ -332,8 +332,9 @@ export class Cop extends THREE.Group {
     }, 2000);
   }
 
-  // Pre-calculated squared distance threshold for animation LOD (25^2 = 625)
-  private static readonly ANIMATION_LOD_DISTANCE_SQ = 625;
+  // Pre-calculated squared distance threshold for animation LOD (15^2 = 225)
+  // Reduced from 25 for better performance - cops beyond 15 units don't animate
+  private static readonly ANIMATION_LOD_DISTANCE_SQ = 225;
 
   /**
    * Update cop AI and animation

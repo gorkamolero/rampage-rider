@@ -42,7 +42,10 @@
       "Bash(python3:*)",
       "Bash(npx @gltf-transform/cli inspect:*)",
       "Bash(npx @gltf-transform/cli simplify:*)",
-      "Bash(npx @gltf-transform/cli draco:*)"
+      "Bash(npx @gltf-transform/cli draco:*)",
+      "Bash(uvx blender-mcp:*)",
+      "Bash(brew install:*)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []
