@@ -24,9 +24,10 @@ import {
   WANTED_STARS,
   RENDERING_CONFIG,
   COLLISION_GROUPS,
+  RAMPAGE_CONFIG,
 } from '../constants';
 import { BloodDecalSystem } from '../rendering/BloodDecalSystem';
-import { GameState, Tier, InputState, GameStats, KillNotification } from '../types';
+import { GameState, Tier, InputState, GameStats, KillNotification, RampageLevel } from '../types';
 import { ActionController, ActionType } from './ActionController';
 import { CircularBuffer } from '../utils/CircularBuffer';
 
@@ -215,6 +216,10 @@ export class Engine {
     copHealthBars: [],
     isTased: false,
     taseEscapeProgress: 0,
+    rampageLevel: RampageLevel.NONE,
+    rampageTimer: 0,
+    rampageMultiplier: 1,
+    scoreThisLife: 0,
   };
 
   private callbacks: {
@@ -532,6 +537,10 @@ export class Engine {
       copHealthBars: [],
       isTased: false,
       taseEscapeProgress: 0,
+      rampageLevel: RampageLevel.NONE,
+      rampageTimer: 0,
+      rampageMultiplier: 1,
+      scoreThisLife: 0,
     };
 
     this.spawnPlayer();
@@ -895,8 +904,10 @@ export class Engine {
 
         const regularPoints = regularKills * (this.stats.inPursuit ? basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER : basePoints);
         const panicPoints = panicKills * (this.stats.inPursuit ? basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER * SCORING_CONFIG.PANIC_MULTIPLIER : basePoints * SCORING_CONFIG.PANIC_MULTIPLIER);
+        const totalPoints = Math.floor((regularPoints + panicPoints) * this.stats.rampageMultiplier);
 
-        this.stats.score += regularPoints + panicPoints;
+        this.stats.score += totalPoints;
+        this.checkRampageActivation(totalPoints);
         this.stats.combo += pedResult.kills;
         this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (pedResult.kills * SCORING_CONFIG.HEAT_PER_PED_KILL));
@@ -938,8 +949,10 @@ export class Engine {
 
       if (copResult.kills > 0) {
         const basePoints = SCORING_CONFIG.COP_BASE;
-        const pointsPerKill = basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER;
-        this.stats.score += copResult.kills * pointsPerKill;
+        const pointsPerKill = Math.floor(basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER * this.stats.rampageMultiplier);
+        const copTotalPoints = copResult.kills * pointsPerKill;
+        this.stats.score += copTotalPoints;
+        this.checkRampageActivation(copTotalPoints);
         this.stats.copKills += copResult.kills;
         this.updateWantedStars();
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (copResult.kills * SCORING_CONFIG.HEAT_PER_COP_KILL));
@@ -1014,8 +1027,10 @@ export class Engine {
 
         const regularPoints = regularKills * (this.stats.inPursuit ? basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER : basePoints);
         const panicPoints = panicKills * (this.stats.inPursuit ? basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER * SCORING_CONFIG.PANIC_MULTIPLIER : basePoints * SCORING_CONFIG.PANIC_MULTIPLIER);
+        const totalPoints = Math.floor((regularPoints + panicPoints) * this.stats.rampageMultiplier);
 
-        this.stats.score += regularPoints + panicPoints;
+        this.stats.score += totalPoints;
+        this.checkRampageActivation(totalPoints);
         this.stats.kills += pedResult.kills;
         this.stats.combo += pedResult.kills;
         this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
@@ -1052,8 +1067,10 @@ export class Engine {
 
       if (copResult.kills > 0) {
         const basePoints = SCORING_CONFIG.COP_BASE;
-        const pointsPerKill = basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER;
-        this.stats.score += copResult.kills * pointsPerKill;
+        const pointsPerKill = Math.floor(basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER * this.stats.rampageMultiplier);
+        const copTotalPoints = copResult.kills * pointsPerKill;
+        this.stats.score += copTotalPoints;
+        this.checkRampageActivation(copTotalPoints);
         this.stats.copKills += copResult.kills;
         this.updateWantedStars();
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (copResult.kills * SCORING_CONFIG.HEAT_PER_COP_KILL));
@@ -1101,8 +1118,10 @@ export class Engine {
       if (pedResult.kills > 0) {
         const basePoints = SCORING_CONFIG.PEDESTRIAN_MOTORBIKE;
         const points = this.stats.inPursuit ? basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER : basePoints;
+        const totalPoints = Math.floor(points * pedResult.kills * this.stats.rampageMultiplier);
 
-        this.stats.score += points * pedResult.kills;
+        this.stats.score += totalPoints;
+        this.checkRampageActivation(totalPoints);
         this.stats.kills += pedResult.kills;
         this.stats.combo += pedResult.kills;
         this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
@@ -1130,8 +1149,10 @@ export class Engine {
 
       if (copResult.kills > 0) {
         const basePoints = SCORING_CONFIG.COP_MOTORBIKE;
-        const pointsPerKill = basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER;
-        this.stats.score += copResult.kills * pointsPerKill;
+        const pointsPerKill = Math.floor(basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER * this.stats.rampageMultiplier);
+        const copTotalPoints = copResult.kills * pointsPerKill;
+        this.stats.score += copTotalPoints;
+        this.checkRampageActivation(copTotalPoints);
         this.stats.copKills += copResult.kills;
         this.updateWantedStars();
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (copResult.kills * SCORING_CONFIG.HEAT_PER_MOTORBIKE_COP_KILL));
@@ -1160,8 +1181,10 @@ export class Engine {
     let points = basePoints;
     if (wasPanicking) points *= SCORING_CONFIG.PANIC_MULTIPLIER;
     if (this.stats.inPursuit) points *= SCORING_CONFIG.PURSUIT_MULTIPLIER;
+    const totalPoints = Math.floor(points * this.stats.rampageMultiplier);
 
-    this.stats.score += points;
+    this.stats.score += totalPoints;
+    this.checkRampageActivation(totalPoints);
     this.stats.combo++;
     this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
     this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + SCORING_CONFIG.HEAT_PER_PED_KILL);
@@ -1349,6 +1372,14 @@ export class Engine {
       this.stats.comboTimer = Math.max(0, this.stats.comboTimer - dt);
       if (this.stats.comboTimer === 0) {
         this.stats.combo = 0;
+      }
+    }
+
+    // Rampage timer countdown
+    if (this.stats.rampageTimer > 0) {
+      this.stats.rampageTimer = Math.max(0, this.stats.rampageTimer - dt);
+      if (this.stats.rampageTimer === 0) {
+        this.endRampage();
       }
     }
 
@@ -1602,7 +1633,82 @@ export class Engine {
    * Trigger camera shake
    */
   private shakeCamera(intensity: number = 0.3): void {
-    this.cameraShakeIntensity = Math.max(this.cameraShakeIntensity, intensity);
+    // Boost shake during rampage
+    const boost = this.stats.rampageLevel !== RampageLevel.NONE ? RAMPAGE_CONFIG.CAMERA_SHAKE_BOOST : 1;
+    this.cameraShakeIntensity = Math.max(this.cameraShakeIntensity, intensity * boost);
+  }
+
+  /**
+   * Check if score threshold reached and activate/upgrade rampage
+   */
+  private checkRampageActivation(pointsEarned: number): void {
+    // Add to scoreThisLife
+    this.stats.scoreThisLife += pointsEarned;
+
+    const cfg = RAMPAGE_CONFIG;
+    const score = this.stats.scoreThisLife;
+    const currentLevel = this.stats.rampageLevel;
+
+    // Determine target level based on score
+    let targetLevel = RampageLevel.NONE;
+    if (score >= cfg.RAMPAGE_THRESHOLD) {
+      targetLevel = RampageLevel.RAMPAGE;
+    } else if (score >= cfg.FRENZY_THRESHOLD) {
+      targetLevel = RampageLevel.FRENZY;
+    }
+
+    // If we're already in rampage, extend timer on kills
+    if (currentLevel !== RampageLevel.NONE) {
+      this.stats.rampageTimer = Math.min(
+        this.stats.rampageTimer + cfg.KILL_EXTENSION,
+        cfg.MAX_DURATION
+      );
+    }
+
+    // Activate or upgrade rampage
+    if (targetLevel > currentLevel) {
+      this.activateRampage(targetLevel);
+    }
+  }
+
+  /**
+   * Activate rampage mode at a specific level
+   */
+  private activateRampage(level: RampageLevel): void {
+    const wasNone = this.stats.rampageLevel === RampageLevel.NONE;
+    this.stats.rampageLevel = level;
+    this.stats.rampageTimer = RAMPAGE_CONFIG.BASE_DURATION;
+
+    // Set multiplier based on level
+    if (level === RampageLevel.FRENZY) {
+      this.stats.rampageMultiplier = RAMPAGE_CONFIG.FRENZY_MULTIPLIER;
+    } else if (level === RampageLevel.RAMPAGE) {
+      this.stats.rampageMultiplier = RAMPAGE_CONFIG.RAMPAGE_MULTIPLIER;
+    }
+
+    // Visual feedback
+    this.shakeCamera(wasNone ? 1.5 : 1.0); // Bigger shake on initial activation
+
+    // Send notification with rampage styling
+    const message = level === RampageLevel.RAMPAGE ? '🔥 RAMPAGE! 🔥' : '⚡ FRENZY! ⚡';
+    if (this.callbacks.onKillNotification) {
+      this.callbacks.onKillNotification({
+        message,
+        isPursuit: false,
+        isRampage: true,
+        points: 0,
+      });
+    }
+  }
+
+  /**
+   * End rampage mode
+   */
+  private endRampage(): void {
+    this.stats.rampageLevel = RampageLevel.NONE;
+    this.stats.rampageTimer = 0;
+    this.stats.rampageMultiplier = 1;
+    // scoreThisLife persists - rampage can reactivate at higher thresholds
   }
 
   /**

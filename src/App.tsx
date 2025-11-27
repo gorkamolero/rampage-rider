@@ -6,7 +6,7 @@ import SnowOverlay from './components/ui/SnowOverlay';
 import VehicleSelector from './components/ui/VehicleSelector';
 import AnimationSelector from './components/ui/AnimationSelector';
 import { MainMenu, GameOver } from './components/ui/Menus';
-import { GameState, GameStats, Tier, KillNotification } from './types';
+import { GameState, GameStats, Tier, KillNotification, RampageLevel } from './types';
 import { VehicleType } from './constants';
 import ErrorBoundary from './components/ErrorBoundary';
 import { preloader } from './core/Preloader';
@@ -39,10 +39,15 @@ function App() {
     gameTime: 0,
     heat: 0,
     wantedStars: 0,
+    inPursuit: false,
     killHistory: [],
     copHealthBars: [],
     isTased: false,
-    taseEscapeProgress: 0
+    taseEscapeProgress: 0,
+    rampageLevel: RampageLevel.NONE,
+    rampageTimer: 0,
+    rampageMultiplier: 1,
+    scoreThisLife: 0,
   });
 
   const handleStatsUpdate = useCallback((newStats: GameStats) => {
@@ -59,8 +64,10 @@ function App() {
 
   const handleKillNotification = useCallback((notification: KillNotification) => {
     if (notificationControllerRef.current) {
-      const type = notification.isPursuit ? 'pursuit' : 'kill';
-      notificationControllerRef.current.addNotification(type, notification.message, `+${notification.points}`);
+      // Determine notification type: rampage > pursuit > kill
+      const type = notification.isRampage ? 'rampage' : notification.isPursuit ? 'pursuit' : 'kill';
+      const subtext = notification.points > 0 ? `+${notification.points}` : undefined;
+      notificationControllerRef.current.addNotification(type, notification.message, subtext);
     }
   }, []);
 
