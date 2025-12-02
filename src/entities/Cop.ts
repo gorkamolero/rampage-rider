@@ -571,6 +571,78 @@ export class Cop extends THREE.Group {
   }
 
   /**
+   * Reset cop for object pooling - reuse instead of creating new
+   */
+  reset(position: THREE.Vector3): void {
+    // Reset state
+    this.isDead = false;
+    this.health = COP_CONFIG.HEALTH;
+    this.isHitStunned = false;
+    this.hitStunTimer = 0;
+    this.isRagdolling = false;
+    this.ragdollTimer = 0;
+    this.ragdollVelocity.set(0, 0, 0);
+    this.currentWantedStars = 0;
+    this.playerCanBeTased = true;
+    this.attackCooldown = 0;
+    this.isCurrentlyAttacking = false;
+    this.taserBeamUpdateCounter = 0;
+
+    // Clear visual effects
+    this.removeTaserBeam();
+    this.removeBulletProjectile();
+
+    // Reset physics body
+    this.rigidBody.setTranslation({ x: position.x, y: 0, z: position.z }, true);
+    this.rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    this.rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+
+    // Reset Yuka AI
+    this.yukaVehicle.position.set(position.x, 0, position.z);
+    this.yukaVehicle.velocity.set(0, 0, 0);
+    this.seekBehavior.target.set(position.x, 0, position.z);
+    // Re-add to entity manager if removed during deactivate
+    if (!this.yukaEntityManager.entities.includes(this.yukaVehicle)) {
+      this.yukaEntityManager.add(this.yukaVehicle);
+    }
+
+    // Reset visuals
+    (this as THREE.Group).visible = true;
+    (this as THREE.Group).position.copy(position);
+    (this as THREE.Group).rotation.set(0, 0, 0);
+
+    // Reset blob shadow
+    this.blobShadow.position.set(position.x, 0.01, position.z);
+    this.blobShadow.visible = true;
+
+    // Reset animation
+    if (this.mixer) {
+      this.mixer.stopAllAction();
+      this.playAnimation('Run', 0.1);
+    }
+  }
+
+  /**
+   * Deactivate cop when returning to pool
+   */
+  deactivate(): void {
+    // Remove from AI manager
+    this.yukaEntityManager.remove(this.yukaVehicle);
+
+    // Clear effects
+    this.removeTaserBeam();
+    this.removeBulletProjectile();
+
+    // Move physics body out of the way
+    this.rigidBody.setTranslation({ x: 0, y: -500, z: 0 }, true);
+    this.rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+
+    // Hide visuals
+    (this as THREE.Group).visible = false;
+    this.blobShadow.visible = false;
+  }
+
+  /**
    * Check if cop is dead
    */
   isDeadState(): boolean {

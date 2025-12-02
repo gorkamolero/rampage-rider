@@ -13,6 +13,7 @@ import { AIManager } from '../core/AIManager';
  */
 export class CopManager {
   private cops: Cop[] = [];
+  private copPool: Cop[] = []; // PERF: Object pool to avoid allocations
   private scene: THREE.Scene;
   private world: RAPIER.World;
   private aiManager: AIManager;
@@ -49,14 +50,17 @@ export class CopManager {
    * Update cop spawns based on heat level
    */
   updateSpawns(heat: number, playerPosition: THREE.Vector3): void {
-    // Remove dead cops (PERF: use splice loop instead of filter to avoid allocations)
+    // Recycle dead cops to pool (PERF: reuse instead of dispose)
     let activeCops = 0;
     for (let i = this.cops.length - 1; i >= 0; i--) {
       const cop = this.cops[i];
       if (cop.isDeadState() && !(cop as THREE.Group).visible) {
+        // Remove from scene
         this.scene.remove(cop);
         this.scene.remove(cop.getBlobShadow());
-        cop.dispose();
+        // Deactivate and add to pool instead of disposing
+        cop.deactivate();
+        this.copPool.push(cop);
         this.cops.splice(i, 1);
       } else if (!cop.isDeadState()) {
         activeCops++;
@@ -78,7 +82,7 @@ export class CopManager {
   }
 
   /**
-   * Spawn a cop near the player
+   * Spawn a cop near the player (uses pool if available)
    */
   private spawnCop(playerPosition: THREE.Vector3): void {
     // Spawn at random angle around player, outside spawn radius
@@ -91,7 +95,16 @@ export class CopManager {
       playerPosition.z + Math.sin(angle) * distance
     );
 
-    const cop = new Cop(this._tempSpawnPos, this.world, this.aiManager.getEntityManager());
+    let cop: Cop;
+
+    // PERF: Reuse from pool if available
+    if (this.copPool.length > 0) {
+      cop = this.copPool.pop()!;
+      cop.reset(this._tempSpawnPos);
+    } else {
+      cop = new Cop(this._tempSpawnPos, this.world, this.aiManager.getEntityManager());
+    }
+
     cop.setParentScene(this.scene); // Enable visual effects
     if (this.damageCallback) {
       cop.setDamageCallback(this.damageCallback);
@@ -203,7 +216,7 @@ export class CopManager {
   }
 
   /**
-   * Clear all cops
+   * Clear all cops (active and pooled)
    */
   clear(): void {
     for (const cop of this.cops) {
@@ -211,7 +224,12 @@ export class CopManager {
       this.scene.remove(cop.getBlobShadow());
       cop.dispose();
     }
+    // Also dispose pooled cops
+    for (const cop of this.copPool) {
+      cop.dispose();
+    }
     this.cops = [];
+    this.copPool = [];
   }
 
   /**
