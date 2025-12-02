@@ -18,6 +18,22 @@ interface EngineControls {
   playAnimationOnce: (name: string) => void;
 }
 
+// PERF: Static animation list (moved outside component to avoid recreation on every render)
+const ANIMATIONS = [
+  'Death_A', 'Death_A_Pose', 'Death_B', 'Death_B_Pose',
+  'Hit_A', 'Hit_B', 'Idle_A', 'Idle_B', 'Interact',
+  'Jump_Full_Long', 'Jump_Full_Short', 'Jump_Idle', 'Jump_Land', 'Jump_Start',
+  'Melee_1H_Attack_Chop', 'Melee_1H_Attack_Jump_Chop', 'Melee_1H_Attack_Slice_Diagonal',
+  'Melee_1H_Attack_Slice_Horizontal', 'Melee_1H_Attack_Stab',
+  'Melee_2H_Attack_Chop', 'Melee_2H_Attack_Slice', 'Melee_2H_Attack_Spin',
+  'Melee_2H_Attack_Spinning', 'Melee_2H_Attack_Stab', 'Melee_2H_Idle',
+  'Melee_Block', 'Melee_Block_Attack', 'Melee_Block_Hit', 'Melee_Blocking',
+  'Melee_Dualwield_Attack_Chop', 'Melee_Dualwield_Attack_Slice', 'Melee_Dualwield_Attack_Stab',
+  'Melee_Unarmed_Attack_Kick', 'Melee_Unarmed_Attack_Punch_A', 'Melee_Unarmed_Idle',
+  'PickUp', 'Running_A', 'Running_B', 'Spawn_Air', 'Spawn_Ground',
+  'T-Pose', 'Throw', 'Use_Item', 'Walking_A', 'Walking_B', 'Walking_C', 'Seated_Bike'
+] as const;
+
 function App() {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,21 +101,7 @@ function App() {
   const [currentVehicle, setCurrentVehicle] = useState<VehicleType | null>(null);
   const [currentAnimation, setCurrentAnimation] = useState<string>('Idle_A');
 
-  // Hardcoded animation list (async loading makes dynamic list unreliable)
-  const animations = [
-    'Death_A', 'Death_A_Pose', 'Death_B', 'Death_B_Pose',
-    'Hit_A', 'Hit_B', 'Idle_A', 'Idle_B', 'Interact',
-    'Jump_Full_Long', 'Jump_Full_Short', 'Jump_Idle', 'Jump_Land', 'Jump_Start',
-    'Melee_1H_Attack_Chop', 'Melee_1H_Attack_Jump_Chop', 'Melee_1H_Attack_Slice_Diagonal',
-    'Melee_1H_Attack_Slice_Horizontal', 'Melee_1H_Attack_Stab',
-    'Melee_2H_Attack_Chop', 'Melee_2H_Attack_Slice', 'Melee_2H_Attack_Spin',
-    'Melee_2H_Attack_Spinning', 'Melee_2H_Attack_Stab', 'Melee_2H_Idle',
-    'Melee_Block', 'Melee_Block_Attack', 'Melee_Block_Hit', 'Melee_Blocking',
-    'Melee_Dualwield_Attack_Chop', 'Melee_Dualwield_Attack_Slice', 'Melee_Dualwield_Attack_Stab',
-    'Melee_Unarmed_Attack_Kick', 'Melee_Unarmed_Attack_Punch_A', 'Melee_Unarmed_Idle',
-    'PickUp', 'Running_A', 'Running_B', 'Spawn_Air', 'Spawn_Ground',
-    'T-Pose', 'Throw', 'Use_Item', 'Walking_A', 'Walking_B', 'Walking_C', 'Seated_Bike'
-  ];
+  // PERF: Use static ANIMATIONS constant (defined outside component)
 
   const handleEngineReady = useCallback((controls: EngineControls) => {
     engineControlsRef.current = controls;
@@ -158,7 +160,7 @@ function App() {
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex gap-2 bg-black/60 p-2 rounded-lg border border-white/20">
             <VehicleSelector onSelect={handleVehicleSelect} currentVehicle={currentVehicle} />
             <AnimationSelector
-              animations={animations}
+              animations={ANIMATIONS}
               onSelect={handleAnimationSelect}
               onPlayOnce={handleAnimationPlayOnce}
               currentAnimation={currentAnimation}

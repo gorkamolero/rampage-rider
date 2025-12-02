@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 
 interface AnimationSelectorProps {
-  animations: string[];
+  animations: readonly string[];
   onSelect: (name: string) => void;
   onPlayOnce?: (name: string) => void;
   currentAnimation: string;
 }
 
-const AnimationSelector: React.FC<AnimationSelectorProps> = ({ animations, onSelect, onPlayOnce, currentAnimation }) => {
+// PERF: Memoized to prevent re-renders when parent updates
+const AnimationSelector: React.FC<AnimationSelectorProps> = React.memo(({ animations, onSelect, onPlayOnce, currentAnimation }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -52,6 +53,6 @@ const AnimationSelector: React.FC<AnimationSelectorProps> = ({ animations, onSel
       )}
     </div>
   );
-};
+});
 
 export default AnimationSelector;

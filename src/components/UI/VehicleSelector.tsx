@@ -6,18 +6,20 @@ interface VehicleSelectorProps {
   currentVehicle: VehicleType | null;
 }
 
-const VehicleSelector: React.FC<VehicleSelectorProps> = ({ onSelect, currentVehicle }) => {
-  const vehicles = [
-    { type: null, icon: '🚶', label: 'Foot' },
-    { type: VehicleType.BICYCLE, icon: '🚲', label: 'Bicycle' },
-    { type: VehicleType.MOTORBIKE, icon: '🏍️', label: 'Motorbike' },
-    { type: VehicleType.SEDAN, icon: '🚗', label: 'Car' },
-    { type: VehicleType.TRUCK, icon: '🚛', label: '18-Wheeler' },
-  ];
+// PERF: Static vehicle list (outside component to avoid recreation)
+const VEHICLES = [
+  { type: null, icon: '🚶', label: 'Foot' },
+  { type: VehicleType.BICYCLE, icon: '🚲', label: 'Bicycle' },
+  { type: VehicleType.MOTORBIKE, icon: '🏍️', label: 'Motorbike' },
+  { type: VehicleType.SEDAN, icon: '🚗', label: 'Car' },
+  { type: VehicleType.TRUCK, icon: '🚛', label: '18-Wheeler' },
+] as const;
 
+// PERF: Memoized to prevent re-renders when parent updates
+const VehicleSelector: React.FC<VehicleSelectorProps> = React.memo(({ onSelect, currentVehicle }) => {
   return (
     <>
-      {vehicles.map((v) => (
+      {VEHICLES.map((v) => (
         <button
           key={v.label}
           onClick={() => onSelect(v.type)}
@@ -33,6 +35,6 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({ onSelect, currentVehi
       ))}
     </>
   );
-};
+});
 
 export default VehicleSelector;
