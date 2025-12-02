@@ -15,11 +15,9 @@ import { Vehicle } from '../entities/Vehicle';
 import { ParticleEmitter } from '../rendering/ParticleSystem';
 import {
   VehicleType,
-  VehicleConfig,
   VEHICLE_CONFIGS,
   TIER_VEHICLE_MAP,
   TIER_CONFIGS,
-  MOTORBIKE_COP_CONFIG,
   CAMERA_CONFIG,
   PLAYER_ATTACK_CONFIG,
   SCORING_CONFIG,
@@ -733,7 +731,7 @@ export class Engine {
    */
   debugBoostHeat(): void {
     this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + SCORING_CONFIG.HEAT_DEBUG_BOOST);
-    console.log(`[DEBUG] Heat boosted to ${this.stats.heat}%`);
+    console.warn(`[DEBUG] Heat boosted to ${this.stats.heat}%`);
   }
 
   private findSafeVehicleSpawnPosition(playerPos: THREE.Vector3): THREE.Vector3 {
@@ -1204,7 +1202,7 @@ export class Engine {
 
     // --- Pedestrian damage ---
     const pedDamageStart = performance.now();
-    let pedKills = 0;
+    let _pedKills = 0;
     if (this.crowd) {
       const pedResult = this.crowd.damageInRadius(
         attackPosition,
@@ -1214,7 +1212,7 @@ export class Engine {
         attackDirection,
         coneAngle
       );
-      pedKills = pedResult.kills;
+      _pedKills = pedResult.kills;
 
       if (pedResult.kills > 0) {
         this.stats.kills += pedResult.kills;
@@ -1251,7 +1249,7 @@ export class Engine {
         this.crowd.panicCrowd(attackPosition, cfg.panicRadius);
       }
     }
-    const pedDamageTime = performance.now() - pedDamageStart;
+    const _pedDamageTime = performance.now() - pedDamageStart;
 
     // --- Cop damage (foot cops, bike cops, motorbike cops) ---
     const copDamageStart = performance.now();
@@ -1314,7 +1312,7 @@ export class Engine {
         }
       }
     }
-    const copDamageTime = performance.now() - copDamageStart;
+    const _copDamageTime = performance.now() - copDamageStart;
 
     // --- Blood particles and decals ---
     const particlesStart = performance.now();
@@ -1322,9 +1320,9 @@ export class Engine {
       this.emitBloodEffects(allKillPositions, this.player!.getPosition(), cfg.particleCount, cfg.decalCount);
       this.shakeCamera(cfg.cameraShakeMultiplier * totalKills);
     }
-    const particlesTime = performance.now() - particlesStart;
+    const _particlesTime = performance.now() - particlesStart;
 
-    const totalTime = performance.now() - attackStart;
+    const _totalTime = performance.now() - attackStart;
 
   }
 

@@ -5,7 +5,6 @@ import { Button } from "@/components/UI/8bit/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/UI/8bit/card";
