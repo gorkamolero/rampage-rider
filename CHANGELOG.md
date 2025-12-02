@@ -59,6 +59,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 **Files Modified:**
 - `package.json` - Added lint scripts and ESLint dependencies
 
+### Designer Feedback Tuning Pass (PR #3)
+
+**Changed:**
+- **Bike→Moto threshold**: 2000 → 1200 score (faster progression)
+- **Motorbike blast scaling**: 5 base kills → 8 at 10+ combo → unlimited at 15+ combo
+- **Heat decay**: 3x faster after 10s of no kills (rewards aggression, forgives breaks)
+- **Wanted stars decay**: -1 star every 45s (escapable if patient)
+
+**Added:**
+- **Panic freeze**: 0.6s freeze before pedestrians flee (gives player reaction time)
+- **Combo milestone announcer**: "5X COMBO!", "10X RAMPAGE!", etc.
+- **Slow-mo on tier unlock**: 0.3s time dilation effect
+- **Scaled score popups**: Size increases with combo multiplier
+- **Crowd surge**: Extra pedestrians spawn after tier unlock (more targets to celebrate)
+
+**Files Created:**
+- `docs/COP_ESCALATION.md` - Police system design doc
+- `docs/GAMEPLAY_TUNING.md` - Balance values reference
+- `docs/GAME_OVERVIEW.md` - Game mechanics overview
+- `docs/RAMPAGE_ESCALATION.md` - Progression system design
+
+**Files Modified:**
+- `src/constants.ts` - Threshold and timing tweaks
+- `src/core/Engine.ts` - Slow-mo, announcer, decay logic
+- `src/entities/Pedestrian.ts` - Panic freeze behavior
+- `src/managers/CrowdManager.ts` - Crowd surge spawning
+- `src/components/UI/NotificationSystem.tsx` - Scaled popups
+
 ---
 
 ## [2024-11-28]
