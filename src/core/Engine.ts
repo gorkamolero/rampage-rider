@@ -173,6 +173,7 @@ export class Engine {
 
   // Slow-mo effect for tier unlocks (Burnout-style impact frame)
   private slowmoTimer: number = 0;
+  private sedanChipCooldown: number = 0; // Cooldown for sedan vs cop car chip damage
   private slowmoScale: number = 1.0;
   private readonly SLOWMO_DURATION: number = 0.8;
   private readonly SLOWMO_SCALE: number = 0.15; // 15% speed during slowmo
@@ -2060,6 +2061,37 @@ export class Engine {
             for (const pos of trampleResult.positions) {
               this.particles.emitBlood(pos, 80);
               this.triggerKillNotification('COP CAR CRUSHED!', true, 500);
+            }
+          }
+        }
+
+        // Sedan chip-damages cop cars on collision (fight back!)
+        if (this.currentVehicleTier === Tier.SEDAN && this.vehicle) {
+          this.sedanChipCooldown = Math.max(0, this.sedanChipCooldown - dt);
+          if (this.sedanChipCooldown <= 0) {
+            const cfg = VEHICLE_CONFIGS[VehicleType.SEDAN];
+            const chipRadius = cfg.copCarChipRadius ?? 4.0;
+            const chipDamage = cfg.copCarChipDamage ?? 1;
+            const chipCooldown = cfg.copCarChipCooldown ?? 1.0;
+
+            const chipResult = this.copCars.damageInRadius(currentPos, chipRadius, chipDamage);
+            if (chipResult.hits > 0) {
+              // Any damage dealt (even non-lethal) triggers cooldown
+              this.sedanChipCooldown = chipCooldown;
+
+              if (chipResult.kills > 0) {
+                this.stats.score += chipResult.points;
+                this.stats.copKills += chipResult.kills;
+                this.updateWantedStars(true);
+                this.shakeCamera(1.5);
+                for (const pos of chipResult.positions) {
+                  this.particles.emitBlood(pos, 60);
+                  this.triggerKillNotification('COP CAR WRECKED!', true, 300);
+                }
+              } else {
+                // Non-lethal hit - smaller feedback
+                this.shakeCamera(0.3);
+              }
             }
           }
         }

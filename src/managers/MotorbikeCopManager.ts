@@ -142,7 +142,7 @@ export class MotorbikeCopManager {
     const thresholds = MOTORBIKE_COP_CONFIG.HEAT_THRESHOLDS;
     const limits = MOTORBIKE_COP_CONFIG;
 
-    // Calculate desired cop counts based on heat
+    // Calculate desired cop counts based on heat (staggered to avoid 50% cliff)
     let desiredScouts = 0;
     let desiredSwarm = 0;
     let desiredBosses = 0;
@@ -152,10 +152,15 @@ export class MotorbikeCopManager {
       desiredScouts = limits.MAX_SCOUTS;
       desiredSwarm = limits.MAX_SWARM;
       desiredBosses = limits.MAX_BOSSES;
-    } else if (heat >= thresholds.SWARM) {
-      // Swarm at 50%+ heat
+    } else if (heat >= thresholds.SWARM_FULL) {
+      // Full swarm at 55%+ heat (6 bikes)
       desiredScouts = limits.MAX_SCOUTS;
-      desiredSwarm = Math.min(4, limits.MAX_SWARM);
+      desiredSwarm = limits.MAX_SWARM;
+      desiredBosses = 0;
+    } else if (heat >= thresholds.SWARM_INITIAL) {
+      // Initial swarm at 45%+ heat (only 2 bikes)
+      desiredScouts = limits.MAX_SCOUTS;
+      desiredSwarm = 2;
       desiredBosses = 0;
     } else if (heat >= thresholds.SCOUT) {
       // Scouts at 25%+ heat
