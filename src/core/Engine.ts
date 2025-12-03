@@ -2014,7 +2014,7 @@ export class Engine {
     if (this.awaitingVehicle && isNearAwaitingVehicle && !this.awaitingVehicleNotificationShown) {
       this.awaitingVehicleNotificationShown = true;
       const tierConfig = TIER_CONFIGS[this.awaitingVehicleTier!];
-      this.triggerKillNotification(`PRESS SPACE - ${tierConfig.name.toUpperCase()}`, true, 0);
+      this.triggerKillNotification(`PRESS SPACE - ${tierConfig.name.toUpperCase()}`, true, 0, 'prompt');
     }
     
     this._actionContext.isTased = taserState.isTased;
@@ -2706,9 +2706,9 @@ export class Engine {
   /**
    * Trigger a kill notification
    */
-  private triggerKillNotification(message: string, isPursuit: boolean, points: number): void {
+  private triggerKillNotification(message: string, isPursuit: boolean, points: number, type?: 'kill' | 'pursuit' | 'prompt' | 'alert'): void {
     if (this.callbacks.onKillNotification) {
-      this.callbacks.onKillNotification({ message, isPursuit, points, combo: this.stats.combo });
+      this.callbacks.onKillNotification({ message, isPursuit, points, combo: this.stats.combo, type });
     }
   }
 

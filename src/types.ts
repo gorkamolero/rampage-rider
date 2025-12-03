@@ -47,6 +47,7 @@ export interface KillNotification {
   isPursuit: boolean;
   points: number;
   combo: number; // For score popup scaling
+  type?: 'kill' | 'pursuit' | 'prompt' | 'alert'; // Optional override for notification type
 }
 
 export interface GameStats {
