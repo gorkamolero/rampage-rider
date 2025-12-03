@@ -286,6 +286,7 @@ export class Engine {
   private awaitingVehicleTier: Tier | null = null;
   private awaitingVehicleGlowTime: number = 0; // For pulsing glow animation
   private vehiclesToCleanup: Array<{ vehicle: Vehicle; timer: number }> = [];
+  private awaitingVehicleNotificationShown: boolean = false; // Track if proximity notification was shown
 
   private actionController: ActionController = new ActionController();
   private static readonly KILL_MESSAGES = ['SPLAT!', 'CRUSHED!', 'DEMOLISHED!', 'OBLITERATED!', 'TERMINATED!'];
@@ -978,6 +979,7 @@ export class Engine {
 
     this.awaitingVehicleTier = tier;
     this.awaitingVehicleGlowTime = 0;
+    this.awaitingVehicleNotificationShown = false; // Reset notification flag
 
     // Start the glow effect and cache materials for efficient per-frame updates
     this.setVehicleGlow(this.awaitingVehicle, 1.0, 0x00ffaa, true); // Bright cyan-green, cache=true
@@ -1987,24 +1989,6 @@ export class Engine {
     // Check for combo milestone announcements
     this.checkComboMilestones();
 
-    if (this.stats.heat > 0) {
-      // Track if heat has ever hit threshold (activates floor)
-      if (this.stats.heat >= SCORING_CONFIG.HEAT_FLOOR_THRESHOLD) {
-        this.heatFloorActive = true;
-      }
-
-      // Faster heat decay when not in combat for 10+ seconds (3x normal rate)
-      const timeSinceCombat = this.stats.gameTime - this.lastCombatTime;
-      const heatDecayRate = timeSinceCombat > 10 ? 1.5 : 0.5; // 3x decay when idle
-
-      // Apply floor if active (can't drop below 25% once you've hit 50%)
-      const heatFloor = this.heatFloorActive ? SCORING_CONFIG.HEAT_FLOOR_MIN : 0;
-      this.stats.heat = Math.max(heatFloor, this.stats.heat - (heatDecayRate * dt));
-    }
-
-    // Update wanted stars decay (stars decrease over time without cop kills)
-    this.updateWantedStars(false);
-
     // --- Entity Updates ---
     const entitiesStart = DEBUG_PERFORMANCE_PANEL ? performance.now() : 0;
 
@@ -2025,6 +2009,14 @@ export class Engine {
     const taserState = this.player?.getTaserState() || this._defaultTaserState;
     const isNearCurrentVehicle = this.isPlayerNearVehicle();
     const isNearAwaitingVehicle = this.isPlayerNearAwaitingVehicle();
+    
+    // Show "PRESS SPACE TO SWITCH" notification when player gets near awaiting vehicle
+    if (this.awaitingVehicle && isNearAwaitingVehicle && !this.awaitingVehicleNotificationShown) {
+      this.awaitingVehicleNotificationShown = true;
+      const tierConfig = TIER_CONFIGS[this.awaitingVehicleTier!];
+      this.triggerKillNotification(`PRESS SPACE - ${tierConfig.name.toUpperCase()}`, true, 0);
+    }
+    
     this._actionContext.isTased = taserState.isTased;
     this._actionContext.isNearCar = this.vehicleSpawned && isNearCurrentVehicle;
     this._actionContext.isNearAwaitingVehicle = this.awaitingVehicle !== null && isNearAwaitingVehicle;
