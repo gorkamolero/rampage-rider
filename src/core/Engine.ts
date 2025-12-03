@@ -183,6 +183,10 @@ export class Engine {
   private slowmoScale: number = 1.0;
   private readonly SLOWMO_DURATION: number = 0.8;
   private readonly SLOWMO_SCALE: number = 0.15; // 15% speed during slowmo
+
+  // Hit stop (complete freeze frame for anime power-up effect)
+  private hitStopTimer: number = 0;
+  private readonly HIT_STOP_DURATION: number = 0.08; // 80ms freeze
   private lastPlayerPosition: THREE.Vector3 = new THREE.Vector3();
   private cameraMoveThreshold: number = 0; // Update every frame (0.1 caused jerk)
   private healthBarUpdateCounter: number = 0; // Throttle health bar projection
@@ -1866,6 +1870,14 @@ export class Engine {
     const frameStart = DEBUG_PERFORMANCE_PANEL ? performance.now() : 0;
     const rawDeltaTime = this.clock.getDelta();
 
+    // Hit stop - complete freeze frame (anime power-up moment)
+    if (this.hitStopTimer > 0) {
+      this.hitStopTimer -= rawDeltaTime;
+      // Still render, just don't update
+      this.render();
+      return;
+    }
+
     // Apply slow-mo effect (Burnout-style impact frame on tier unlock)
     if (this.slowmoTimer > 0) {
       this.slowmoTimer -= rawDeltaTime;
@@ -2412,6 +2424,8 @@ export class Engine {
       this.callbacks.onStatsUpdate({
         ...this.stats,
         ...vehicleStats,
+        inRampageDimension: this.inRampageDimension,
+        rampageProgress: Math.min(100, (this.stats.combo / RAMPAGE_DIMENSION.COMBO_THRESHOLD) * 100),
         performance: DEBUG_PERFORMANCE_PANEL ? this.performanceStats : undefined
       });
     }
@@ -2735,6 +2749,13 @@ export class Engine {
   }
 
   /**
+   * Trigger hit stop (complete freeze frame for anime power-up effect)
+   */
+  private triggerHitStop(): void {
+    this.hitStopTimer = this.HIT_STOP_DURATION;
+  }
+
+  /**
    * Check and announce combo milestones (5, 10, 15, 20, 30, 50)
    */
   private checkComboMilestones(): void {
@@ -2784,8 +2805,18 @@ export class Engine {
     // Activate dimension effects
     this.rampageDimension.enter();
 
+    // Player glow - they're a god in this void
+    this.player?.setRampageGlow(true);
+
+    // BIG notification - reality just broke
+    this.triggerKillNotification('RAMPAGE!', true, 0, 'alert');
+
     // Extra camera shake for impact
     this.shakeCamera(2.5);
+
+    // Hit stop + slowmo on entry - anime power-up moment
+    this.triggerHitStop();
+    this.triggerSlowmo();
   }
 
   /**
@@ -2801,6 +2832,9 @@ export class Engine {
 
     // Deactivate dimension effects
     this.rampageDimension.exit();
+
+    // Remove player glow
+    this.player?.setRampageGlow(false);
   }
 
   /**

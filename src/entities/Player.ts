@@ -1097,4 +1097,31 @@ export class Player extends THREE.Group {
       }
     });
   }
+
+  // Rampage glow state
+  private rampageGlowActive = false;
+
+  /**
+   * Enable/disable rampage glow effect on player
+   * Gives the player a red emissive glow during rampage mode
+   */
+  setRampageGlow(active: boolean): void {
+    if (this.rampageGlowActive === active) return;
+    this.rampageGlowActive = active;
+
+    this.modelContainer.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material) {
+        const mat = child.material as THREE.MeshStandardMaterial;
+        if (mat.emissive) {
+          if (active) {
+            mat.emissive.setHex(0xff2200); // Red-orange glow
+            mat.emissiveIntensity = 0.4;
+          } else {
+            mat.emissive.setHex(0x000000);
+            mat.emissiveIntensity = 0;
+          }
+        }
+      }
+    });
+  }
 }
