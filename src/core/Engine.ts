@@ -58,6 +58,13 @@ export class Engine {
   private inRampageDimension = false;
   private readonly normalBackground = new THREE.Color(0x1a1a1a);
 
+  // Phase 2: Rampage slow motion - enemies move at 30% speed
+  private rampageTimeScale = 1.0;
+
+  // Phase 2: Rampage hit-stop on entry
+  private rampageHitStopTimer = 0;
+  private rampageScreenFlashCallback: (() => void) | null = null;
+
   private state: GameState = GameState.MENU;
   private isDying: boolean = false;
   private animationId: number | null = null;
@@ -1991,6 +1998,13 @@ export class Engine {
   };
 
   private update(dt: number): void {
+    // Phase 2: Rampage hit-stop - freeze everything for dramatic entry
+    if (this.rampageHitStopTimer > 0) {
+      this.rampageHitStopTimer -= dt;
+      // Still render, but skip all game logic
+      return;
+    }
+
     const physicsStart = DEBUG_PERFORMANCE_PANEL ? performance.now() : 0;
     if (this.physics.isReady()) {
       this.physics.step(dt);
@@ -1998,6 +2012,9 @@ export class Engine {
     if (DEBUG_PERFORMANCE_PANEL) this.performanceStats.physics = performance.now() - physicsStart;
 
     this.stats.gameTime += dt;
+
+    // Phase 2: Calculate entity delta time (slowed during rampage)
+    const entityDt = dt * this.rampageTimeScale;
 
     if (this.cameraShakeIntensity > 0) {
       this.cameraShakeIntensity = Math.max(0, this.cameraShakeIntensity - (this.cameraShakeDecay * dt));
@@ -2121,9 +2138,9 @@ export class Engine {
     if (this.christmasTrees) {
       this.christmasTrees.update(currentPos);
     }
-    // Update Rampage Dimension effect
+    // Update Rampage Dimension effect (pass player position for centered rays)
     if (this.rampageDimension) {
-      this.rampageDimension.update(dt, this.camera);
+      this.rampageDimension.update(dt, this.camera, currentPos);
       // Keep environment hidden while in rampage dimension (needed because buildings load async)
       if (this.inRampageDimension) {
         this.setEnvironmentVisible(false);
@@ -2131,12 +2148,12 @@ export class Engine {
     }
     if (DEBUG_PERFORMANCE_PANEL) this.performanceStats.world = performance.now() - worldStart;
 
-    // Pedestrians
+    // Pedestrians (use entityDt for slow-mo during rampage)
     const pedestriansStart = DEBUG_PERFORMANCE_PANEL ? performance.now() : 0;
     if (this.crowd) {
-      this.crowd.update(dt, currentPos);
+      this.crowd.update(entityDt, currentPos);
       this.crowd.updateTables(currentPos);
-      this.crowd.updateSurge(dt); // Handle tier unlock crowd surge
+      this.crowd.updateSurge(entityDt); // Handle tier unlock crowd surge
 
       // PERF: Cache vehicle type to avoid duplicate function calls
       const currentVehicleType = this.getCurrentVehicleType();
@@ -2204,29 +2221,29 @@ export class Engine {
     const copsStart = DEBUG_PERFORMANCE_PANEL ? performance.now() : 0;
     const playerCanBeTased = !this.isInVehicle && this.player ? this.player.canBeTased() : false;
 
-    // Regular foot cops - only when player is on foot (not spawning or updating when in any vehicle)
+    // Regular foot cops - only when player is on foot (use entityDt for slow-mo)
     if (this.cops) {
       if (!this.isInVehicle) {
         this.cops.updateSpawns(this.stats.heat, currentPos);
-        this.cops.update(dt, currentPos, this.stats.wantedStars, playerCanBeTased);
+        this.cops.update(entityDt, currentPos, this.stats.wantedStars, playerCanBeTased);
       }
     }
 
-    // Bike cops - only when player is on bicycle
+    // Bike cops - only when player is on bicycle (use entityDt for slow-mo)
     if (this.bikeCops) {
       if (this.isInVehicle && this.currentVehicleTier === Tier.BIKE) {
         this.bikeCops.updateSpawns(this.stats.heat, currentPos, dt);
       }
-      this.bikeCops.update(dt, currentPos, playerCanBeTased);
+      this.bikeCops.update(entityDt, currentPos, playerCanBeTased);
     }
 
-    // Motorbike cops - only when player is on motorbike or higher
+    // Motorbike cops - only when player is on motorbike or higher (use entityDt for slow-mo)
     if (this.motorbikeCops) {
       if (this.isInVehicle && this.currentVehicleTier !== null &&
           this.currentVehicleTier !== Tier.FOOT && this.currentVehicleTier !== Tier.BIKE) {
         this.motorbikeCops.updateSpawns(this.stats.heat, currentPos, playerVelocity, dt);
       }
-      this.motorbikeCops.update(dt, currentPos, playerVelocity, this.stats.wantedStars, playerCanBeTased);
+      this.motorbikeCops.update(entityDt, currentPos, playerVelocity, this.stats.wantedStars, playerCanBeTased);
     }
 
     // Cop cars - only when player is in sedan or truck
@@ -2302,7 +2319,7 @@ export class Engine {
           }
         }
       }
-      this.copCars.update(dt, currentPos);
+      this.copCars.update(entityDt, currentPos);
     }
     if (DEBUG_PERFORMANCE_PANEL) this.performanceStats.cops = performance.now() - copsStart;
 
@@ -2313,7 +2330,8 @@ export class Engine {
     this.stats.inPursuit = footCopCount + bikeCopCount + carCopCount > 0;
 
     this.ai.update(dt);
-    this.particles.update(dt);
+    // Blood/particles also slow during rampage for visual consistency
+    this.particles.update(entityDt);
     this.bloodDecals.update();
     this.updateEscapeFlash(dt);
     this.updateExplosionEffects(dt);
@@ -2822,6 +2840,17 @@ export class Engine {
 
     this.inRampageDimension = true;
 
+    // Phase 2: Enable slow motion for enemies
+    this.rampageTimeScale = RAMPAGE_DIMENSION.SLOW_MO_SCALE;
+
+    // Phase 2: Hit-stop freeze on entry
+    this.rampageHitStopTimer = RAMPAGE_DIMENSION.HIT_STOP_DURATION;
+
+    // Phase 2: Screen flash callback (React will handle the CSS animation)
+    if (this.rampageScreenFlashCallback) {
+      this.rampageScreenFlashCallback();
+    }
+
     // Hide environment
     this.setEnvironmentVisible(false);
 
@@ -2850,6 +2879,9 @@ export class Engine {
 
     this.inRampageDimension = false;
 
+    // Phase 2: Restore normal time
+    this.rampageTimeScale = 1.0;
+
     // Show environment
     this.setEnvironmentVisible(true);
 
@@ -2858,6 +2890,13 @@ export class Engine {
 
     // Remove player glow
     this.player?.setRampageGlow(false);
+  }
+
+  /**
+   * Set callback for rampage screen flash (called by React)
+   */
+  setRampageScreenFlashCallback(callback: () => void): void {
+    this.rampageScreenFlashCallback = callback;
   }
 
   /**

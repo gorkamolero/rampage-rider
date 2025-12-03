@@ -15,6 +15,21 @@ interface SpeedLine {
 }
 
 /**
+ * Energy mote instance data (Phase 2)
+ */
+interface EnergyMote {
+  sprite: THREE.Sprite;
+  position: THREE.Vector3;
+  velocity: THREE.Vector3;
+  life: number;
+  maxLife: number;
+  wobblePhase: number;
+  wobbleSpeed: number;
+  baseY: number;
+  size: number;
+}
+
+/**
  * RampageDimension
  *
  * Visual effect that triggers when combo >= 10 (RAMPAGE mode).
@@ -22,6 +37,7 @@ interface SpeedLine {
  * - White void (environment hidden)
  * - Blood red radial rays pulsing from center
  * - Speed lines radiating outward
+ * - Energy motes floating in the void (Phase 2)
  *
  * Inspired by Mob Psycho 100 ???% mode.
  */
@@ -42,6 +58,11 @@ export class RampageDimension {
   private rayMaterial: THREE.MeshBasicMaterial;
   private speedLines: SpeedLine[] = [];
 
+  // Phase 2: Energy motes
+  private energyMotes: EnergyMote[] = [];
+  private moteTexture: THREE.Texture | null = null;
+  private moteMaterial: THREE.SpriteMaterial | null = null;
+
   // Shared geometry for speed lines
   private speedLineGeometry: THREE.PlaneGeometry;
   private speedLineMaterial: THREE.MeshBasicMaterial;
@@ -49,6 +70,14 @@ export class RampageDimension {
   // Animation state
   private rayRotation = 0;
   private rayPulsePhase = 0;
+
+  // Phase 2: Enhanced ray dynamics
+  private rayFlashIndex = -1;
+  private rayFlashTimer = 0;
+  private rayOpacities: number[] = []; // Per-ray opacity for phased pulsing
+
+  // Player position for centered effects
+  private playerPosition: THREE.Vector3 = new THREE.Vector3();
 
   // Pre-allocated vectors and colors (avoid per-frame allocations)
   private readonly _tempVec = new THREE.Vector3();
@@ -58,11 +87,16 @@ export class RampageDimension {
     this.scene = scene;
     this.normalBackground = normalBackground.clone();
 
-    // Create radial rays
+    // Create radial rays with per-ray opacity support
     const { mesh, material } = this.createRadialRays();
     this.radialRays = mesh;
     this.rayMaterial = material;
     this.scene.add(this.radialRays);
+
+    // Initialize per-ray opacity array
+    for (let i = 0; i < RAMPAGE_DIMENSION.RAY_COUNT; i++) {
+      this.rayOpacities.push(1.0);
+    }
 
     // Create speed line pool (thicker for visibility)
     this.speedLineGeometry = new THREE.PlaneGeometry(0.15, 1);
@@ -75,6 +109,10 @@ export class RampageDimension {
     });
 
     this.createSpeedLinePool();
+
+    // Phase 2: Create energy motes
+    this.createMoteTexture();
+    this.createEnergyMotes();
   }
 
   /**
@@ -167,6 +205,131 @@ export class RampageDimension {
     }
   }
 
+  /**
+   * Phase 2: Create soft circle texture for energy motes
+   */
+  private createMoteTexture(): void {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Soft radial gradient - bright center, transparent edge
+    const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.3, 'rgba(255, 200, 150, 0.8)');
+    gradient.addColorStop(1, 'rgba(255, 100, 50, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 64, 64);
+
+    this.moteTexture = new THREE.CanvasTexture(canvas);
+    this.moteMaterial = new THREE.SpriteMaterial({
+      map: this.moteTexture,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+  }
+
+  /**
+   * Phase 2: Create pool of energy motes
+   */
+  private createEnergyMotes(): void {
+    const config = RAMPAGE_DIMENSION.ENERGY_MOTES;
+
+    for (let i = 0; i < config.COUNT; i++) {
+      const sprite = new THREE.Sprite(this.moteMaterial!.clone());
+      sprite.visible = false;
+      sprite.renderOrder = 998;
+      this.scene.add(sprite);
+
+      const mote = this.createMoteData(sprite);
+      this.energyMotes.push(mote);
+    }
+  }
+
+  /**
+   * Create or reset mote data
+   */
+  private createMoteData(sprite: THREE.Sprite): EnergyMote {
+    const config = RAMPAGE_DIMENSION.ENERGY_MOTES;
+
+    // Random spawn position in ring around player
+    const angle = Math.random() * Math.PI * 2;
+    const radius = config.SPAWN_RADIUS_MIN + Math.random() * (config.SPAWN_RADIUS_MAX - config.SPAWN_RADIUS_MIN);
+    const height = config.SPAWN_HEIGHT_MIN + Math.random() * (config.SPAWN_HEIGHT_MAX - config.SPAWN_HEIGHT_MIN);
+
+    // Random drift direction (some toward player for "pass through" feeling)
+    const driftAngle = Math.random() * Math.PI * 2;
+    const driftSpeed = config.DRIFT_SPEED_MIN + Math.random() * (config.DRIFT_SPEED_MAX - config.DRIFT_SPEED_MIN);
+    const towardPlayer = Math.random() < 0.3; // 30% chance to drift toward player
+
+    const velocity = new THREE.Vector3(
+      Math.cos(towardPlayer ? angle + Math.PI : driftAngle) * driftSpeed,
+      0,
+      Math.sin(towardPlayer ? angle + Math.PI : driftAngle) * driftSpeed
+    );
+
+    const size = config.SIZE_MIN + Math.random() * (config.SIZE_MAX - config.SIZE_MIN);
+    sprite.scale.setScalar(size);
+
+    // Set color (lerp between inner and outer)
+    const colorLerp = Math.random();
+    const mat = sprite.material as THREE.SpriteMaterial;
+    mat.color.setHex(colorLerp < 0.5 ? config.COLOR_INNER : config.COLOR_OUTER);
+
+    return {
+      sprite,
+      position: new THREE.Vector3(
+        this.playerPosition.x + Math.cos(angle) * radius,
+        height,
+        this.playerPosition.z + Math.sin(angle) * radius
+      ),
+      velocity,
+      life: Math.random() * config.LIFE_MAX, // Stagger initial spawn
+      maxLife: config.LIFE_MIN + Math.random() * (config.LIFE_MAX - config.LIFE_MIN),
+      wobblePhase: Math.random() * Math.PI * 2,
+      wobbleSpeed: config.WOBBLE_SPEED_MIN + Math.random() * (config.WOBBLE_SPEED_MAX - config.WOBBLE_SPEED_MIN),
+      baseY: height,
+      size,
+    };
+  }
+
+  /**
+   * Respawn a mote at a new position
+   */
+  private respawnMote(mote: EnergyMote): void {
+    const config = RAMPAGE_DIMENSION.ENERGY_MOTES;
+
+    const angle = Math.random() * Math.PI * 2;
+    const radius = config.SPAWN_RADIUS_MIN + Math.random() * (config.SPAWN_RADIUS_MAX - config.SPAWN_RADIUS_MIN);
+    const height = config.SPAWN_HEIGHT_MIN + Math.random() * (config.SPAWN_HEIGHT_MAX - config.SPAWN_HEIGHT_MIN);
+
+    mote.position.set(
+      this.playerPosition.x + Math.cos(angle) * radius,
+      height,
+      this.playerPosition.z + Math.sin(angle) * radius
+    );
+
+    const driftAngle = Math.random() * Math.PI * 2;
+    const driftSpeed = config.DRIFT_SPEED_MIN + Math.random() * (config.DRIFT_SPEED_MAX - config.DRIFT_SPEED_MIN);
+    const towardPlayer = Math.random() < 0.3;
+
+    mote.velocity.set(
+      Math.cos(towardPlayer ? angle + Math.PI : driftAngle) * driftSpeed,
+      0,
+      Math.sin(towardPlayer ? angle + Math.PI : driftAngle) * driftSpeed
+    );
+
+    mote.life = 0;
+    mote.maxLife = config.LIFE_MIN + Math.random() * (config.LIFE_MAX - config.LIFE_MIN);
+    mote.baseY = height;
+    mote.wobblePhase = Math.random() * Math.PI * 2;
+    mote.size = config.SIZE_MIN + Math.random() * (config.SIZE_MAX - config.SIZE_MIN);
+    mote.sprite.scale.setScalar(mote.size);
+  }
+
   private randomSpeed(): number {
     const { SPEED_LINE_MIN_SPEED, SPEED_LINE_MAX_SPEED } = RAMPAGE_DIMENSION;
     return SPEED_LINE_MIN_SPEED + Math.random() * (SPEED_LINE_MAX_SPEED - SPEED_LINE_MIN_SPEED);
@@ -197,6 +360,11 @@ export class RampageDimension {
     for (const line of this.speedLines) {
       line.mesh.visible = true;
     }
+
+    // Show energy motes
+    for (const mote of this.energyMotes) {
+      mote.sprite.visible = true;
+    }
   }
 
   /**
@@ -216,9 +384,21 @@ export class RampageDimension {
   }
 
   /**
+   * Set player position for centered effects
+   */
+  setPlayerPosition(position: THREE.Vector3): void {
+    this.playerPosition.copy(position);
+  }
+
+  /**
    * Update effects - call every frame
    */
-  update(dt: number, camera: THREE.OrthographicCamera): void {
+  update(dt: number, camera: THREE.OrthographicCamera, playerPosition?: THREE.Vector3): void {
+    // Update player position if provided
+    if (playerPosition) {
+      this.playerPosition.copy(playerPosition);
+    }
+
     // Update transition
     this.updateTransition(dt);
 
@@ -226,14 +406,17 @@ export class RampageDimension {
       return;
     }
 
-    // Update ray animation
+    // Update ray animation (Phase 2: enhanced dynamics)
     this.updateRays(dt);
 
     // Update speed lines
     this.updateSpeedLines(dt, camera);
 
-    // Position rays in front of camera
-    this.positionRaysForCamera(camera);
+    // Phase 2: Update energy motes
+    this.updateEnergyMotes(dt);
+
+    // Position rays centered on player (Phase 2: not camera)
+    this.positionRaysOnPlayer(camera);
   }
 
   /**
@@ -262,6 +445,9 @@ export class RampageDimension {
         for (const line of this.speedLines) {
           line.mesh.visible = false;
         }
+        for (const mote of this.energyMotes) {
+          mote.sprite.visible = false;
+        }
       }
     }
 
@@ -276,27 +462,58 @@ export class RampageDimension {
   }
 
   /**
-   * Update radial ray animation (rotation + pulse)
+   * Phase 2: Update radial ray animation with enhanced dynamics
+   * - Faster rotation (5x)
+   * - Per-ray pulse phasing (breathing effect)
+   * - Random burst flashes
    */
   private updateRays(dt: number): void {
     const {
-      RAY_ROTATION_SPEED,
+      RAY_COUNT,
       RAY_PULSE_FREQUENCY,
       RAY_OPACITY_MIN,
       RAY_OPACITY_MAX,
+      RAY_ROTATION_SPEED_ENHANCED,
+      RAY_FLASH_CHANCE,
+      RAY_FLASH_DURATION,
+      RAY_FLASH_INTENSITY,
     } = RAMPAGE_DIMENSION;
 
-    // Slow rotation
-    this.rayRotation += dt * RAY_ROTATION_SPEED;
+    // Phase 2: Faster rotation (5x)
+    this.rayRotation += dt * RAY_ROTATION_SPEED_ENHANCED;
     this.radialRays.rotation.z = this.rayRotation;
 
-    // Pulse opacity
+    // Pulse phase advances
     this.rayPulsePhase += dt * RAY_PULSE_FREQUENCY * Math.PI * 2;
-    const pulseNorm = (Math.sin(this.rayPulsePhase) + 1) / 2; // 0 to 1
-    const baseOpacity = RAY_OPACITY_MIN + pulseNorm * (RAY_OPACITY_MAX - RAY_OPACITY_MIN);
 
-    // Fade with transition
-    this.rayMaterial.opacity = baseOpacity * this.transitionProgress;
+    // Phase 2: Random burst flashes
+    if (this.rayFlashTimer > 0) {
+      this.rayFlashTimer -= dt;
+    } else if (Math.random() < RAY_FLASH_CHANCE) {
+      this.rayFlashIndex = Math.floor(Math.random() * RAY_COUNT);
+      this.rayFlashTimer = RAY_FLASH_DURATION;
+    }
+
+    // Calculate per-ray opacity with phased pulsing
+    let totalOpacity = 0;
+    for (let i = 0; i < RAY_COUNT; i++) {
+      const phaseOffset = (i / RAY_COUNT) * Math.PI * 2;
+      const rayPulse = (Math.sin(this.rayPulsePhase + phaseOffset) + 1) / 2;
+      let opacity = RAY_OPACITY_MIN + rayPulse * (RAY_OPACITY_MAX - RAY_OPACITY_MIN);
+
+      // Apply flash intensity if this ray is flashing
+      if (i === this.rayFlashIndex && this.rayFlashTimer > 0) {
+        opacity *= RAY_FLASH_INTENSITY;
+      }
+
+      this.rayOpacities[i] = opacity;
+      totalOpacity += opacity;
+    }
+
+    // Use average opacity for the single material (per-ray requires shader)
+    // For now, use a simple approach with the average + flash boost
+    const avgOpacity = totalOpacity / RAY_COUNT;
+    this.rayMaterial.opacity = avgOpacity * this.transitionProgress;
   }
 
   /**
@@ -353,18 +570,54 @@ export class RampageDimension {
   }
 
   /**
-   * Position radial rays in front of camera (screen-space effect)
+   * Phase 2: Update energy motes (drift, wobble, fade)
    */
-  private positionRaysForCamera(camera: THREE.OrthographicCamera): void {
-    // Position at camera location, offset toward look direction
-    const cameraDir = this._tempVec;
-    camera.getWorldDirection(cameraDir);
+  private updateEnergyMotes(dt: number): void {
+    const config = RAMPAGE_DIMENSION.ENERGY_MOTES;
 
-    this.radialRays.position.copy(camera.position);
-    this.radialRays.position.addScaledVector(cameraDir, 40);
+    for (const mote of this.energyMotes) {
+      mote.life += dt;
 
-    // Face the camera
-    this.radialRays.lookAt(camera.position);
+      // Respawn when life exceeds max
+      if (mote.life >= mote.maxLife) {
+        this.respawnMote(mote);
+      }
+
+      // Drift in current direction
+      mote.position.x += mote.velocity.x * dt;
+      mote.position.z += mote.velocity.z * dt;
+
+      // Vertical wobble
+      mote.wobblePhase += mote.wobbleSpeed * dt;
+      mote.position.y = mote.baseY + Math.sin(mote.wobblePhase) * config.WOBBLE_AMPLITUDE;
+
+      // Update sprite position
+      mote.sprite.position.copy(mote.position);
+
+      // Calculate opacity (fade in at start, fade out at end)
+      const lifeRatio = mote.life / mote.maxLife;
+      const fadeIn = Math.min(1, lifeRatio / 0.15); // Fade in over first 15%
+      const fadeOut = lifeRatio > 0.75 ? 1 - (lifeRatio - 0.75) / 0.25 : 1; // Fade out last 25%
+      const opacity = fadeIn * fadeOut * this.transitionProgress;
+
+      const mat = mote.sprite.material as THREE.SpriteMaterial;
+      mat.opacity = opacity;
+    }
+  }
+
+  /**
+   * Phase 2: Position radial rays centered on player (ground plane)
+   */
+  private positionRaysOnPlayer(camera: THREE.OrthographicCamera): void {
+    // Position at player location, just above ground
+    this.radialRays.position.set(
+      this.playerPosition.x,
+      0.1, // Just above ground
+      this.playerPosition.z
+    );
+
+    // Rays lie flat on ground plane, spreading outward
+    this.radialRays.rotation.x = -Math.PI / 2; // Face up
   }
 
   /**
@@ -381,7 +634,15 @@ export class RampageDimension {
     }
     this.speedLines = [];
 
+    for (const mote of this.energyMotes) {
+      this.scene.remove(mote.sprite);
+      (mote.sprite.material as THREE.Material).dispose();
+    }
+    this.energyMotes = [];
+
     this.speedLineGeometry.dispose();
     this.speedLineMaterial.dispose();
+    this.moteTexture?.dispose();
+    this.moteMaterial?.dispose();
   }
 }

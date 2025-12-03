@@ -650,4 +650,37 @@ export const RAMPAGE_DIMENSION = {
 
   // Void background
   VOID_COLOR: 0xf0f0f0, // Light gray for contrast with red rays
+
+  // Phase 2: Slow motion
+  SLOW_MO_SCALE: 0.3, // 30% speed for enemies during rampage
+
+  // Phase 2: Energy motes (ambient floating particles)
+  ENERGY_MOTES: {
+    COUNT: 45,
+    SPAWN_RADIUS_MIN: 10,
+    SPAWN_RADIUS_MAX: 20,
+    SPAWN_HEIGHT_MIN: 0.5,
+    SPAWN_HEIGHT_MAX: 3.0,
+    DRIFT_SPEED_MIN: 2,
+    DRIFT_SPEED_MAX: 4,
+    WOBBLE_AMPLITUDE: 0.3,
+    WOBBLE_SPEED_MIN: 1.5,
+    WOBBLE_SPEED_MAX: 3.0,
+    LIFE_MIN: 2.0,
+    LIFE_MAX: 4.0,
+    SIZE_MIN: 0.15,
+    SIZE_MAX: 0.35,
+    COLOR_INNER: 0xff4444,
+    COLOR_OUTER: 0xff6600,
+  },
+
+  // Phase 2: Hit-stop on entry
+  HIT_STOP_DURATION: 0.05, // 50ms freeze
+  SCREEN_FLASH_DURATION: 0.1, // 100ms white flash
+
+  // Phase 2: Enhanced ray dynamics
+  RAY_ROTATION_SPEED_ENHANCED: 0.5, // 5x faster than base (was 0.1)
+  RAY_FLASH_CHANCE: 0.015, // 1.5% per frame
+  RAY_FLASH_DURATION: 0.12, // 120ms flash
+  RAY_FLASH_INTENSITY: 2.0, // 2x brightness during flash
 } as const;
