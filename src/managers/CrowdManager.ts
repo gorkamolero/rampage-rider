@@ -1130,4 +1130,13 @@ export class CrowdManager {
   isTablePedestrian(pedestrian: Pedestrian): boolean {
     return this.tablePedestrians.has(pedestrian);
   }
+
+  /**
+   * Set visibility of all tables (for Rampage Dimension effect)
+   */
+  setTablesVisible(visible: boolean): void {
+    for (const table of this.tableInstances) {
+      table.mesh.visible = visible;
+    }
+  }
 }

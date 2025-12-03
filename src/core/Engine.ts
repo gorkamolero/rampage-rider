@@ -28,9 +28,11 @@ import {
   DEBUG_PERFORMANCE_PANEL,
 } from '../constants';
 import { BloodDecalSystem } from '../rendering/BloodDecalSystem';
+import { RampageDimension } from '../rendering/RampageDimension';
 import { GameState, Tier, InputState, GameStats, KillNotification } from '../types';
 import { ActionController, ActionType } from './ActionController';
 import { CircularBuffer } from '../utils/CircularBuffer';
+import { RAMPAGE_DIMENSION } from '../constants';
 
 export class Engine {
   private scene: THREE.Scene;
@@ -50,6 +52,11 @@ export class Engine {
   public christmasTrees: ChristmasTreeManager | null = null;
   public particles: ParticleEmitter;
   public bloodDecals: BloodDecalSystem;
+
+  // Rampage Dimension visual effect
+  private rampageDimension: RampageDimension | null = null;
+  private inRampageDimension = false;
+  private readonly normalBackground = new THREE.Color(0x1a1a1a);
 
   private state: GameState = GameState.MENU;
   private isDying: boolean = false;
@@ -368,6 +375,9 @@ export class Engine {
       this.lampPosts = new LampPostManager(this.scene);
       this.christmasTrees = new ChristmasTreeManager(this.scene);
     }
+
+    // Initialize Rampage Dimension effect
+    this.rampageDimension = new RampageDimension(this.scene, this.normalBackground);
   }
 
   private async createTestGround(): Promise<void> {
@@ -2094,6 +2104,10 @@ export class Engine {
     if (this.christmasTrees) {
       this.christmasTrees.update(currentPos);
     }
+    // Update Rampage Dimension effect
+    if (this.rampageDimension) {
+      this.rampageDimension.update(dt, this.camera);
+    }
     if (DEBUG_PERFORMANCE_PANEL) this.performanceStats.world = performance.now() - worldStart;
 
     // Pedestrians
@@ -2742,10 +2756,69 @@ export class Engine {
       this.shakeCamera(2.0 + highestMilestone * 0.05); // Bigger shake for bigger milestones
     }
 
-    // Reset milestone tracker when combo resets
+    // Rampage Dimension: Enter when combo >= threshold
+    if (this.stats.combo >= RAMPAGE_DIMENSION.COMBO_THRESHOLD && !this.inRampageDimension) {
+      this.enterRampageDimension();
+    }
+
+    // Reset milestone tracker and exit dimension when combo resets
     if (this.stats.combo === 0) {
       this.lastAnnouncedComboMilestone = 0;
+      if (this.inRampageDimension) {
+        this.exitRampageDimension();
+      }
     }
+  }
+
+  /**
+   * Enter the Rampage Dimension - reality breaks
+   */
+  private enterRampageDimension(): void {
+    if (!this.rampageDimension || this.inRampageDimension) return;
+
+    this.inRampageDimension = true;
+
+    // Hide environment
+    this.setEnvironmentVisible(false);
+
+    // Activate dimension effects
+    this.rampageDimension.enter();
+
+    // Extra camera shake for impact
+    this.shakeCamera(2.5);
+  }
+
+  /**
+   * Exit the Rampage Dimension - reality returns
+   */
+  private exitRampageDimension(): void {
+    if (!this.rampageDimension || !this.inRampageDimension) return;
+
+    this.inRampageDimension = false;
+
+    // Show environment
+    this.setEnvironmentVisible(true);
+
+    // Deactivate dimension effects
+    this.rampageDimension.exit();
+  }
+
+  /**
+   * Toggle visibility of all environment objects (for Rampage Dimension)
+   */
+  private setEnvironmentVisible(visible: boolean): void {
+    // Ground
+    if (this.groundMesh) {
+      this.groundMesh.visible = visible;
+    }
+
+    // Buildings (market stalls), lamp posts, trees
+    this.buildings?.setAllVisible(visible);
+    this.lampPosts?.setAllVisible(visible);
+    this.christmasTrees?.setAllVisible(visible);
+
+    // Tables (biergarten tables in the market)
+    this.crowd?.setTablesVisible(visible);
   }
 
   /**
