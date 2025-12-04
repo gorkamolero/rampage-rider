@@ -26,10 +26,12 @@ import {
   RENDERING_CONFIG,
   COLLISION_GROUPS,
   DEBUG_PERFORMANCE_PANEL,
+  DEBUG_START_IN_RAMPAGE,
 } from '../constants';
 import { BloodDecalSystem } from '../rendering/BloodDecalSystem';
 import { RampageDimension } from '../rendering/RampageDimension';
 import { SpeedLinesEffect } from '../rendering/SpeedLinesShader';
+import { AncestorCouncil } from '../rendering/AncestorCouncil';
 import { GameState, Tier, InputState, GameStats, KillNotification } from '../types';
 import { ActionController, ActionType } from './ActionController';
 import { CircularBuffer } from '../utils/CircularBuffer';
@@ -57,6 +59,7 @@ export class Engine {
   // Rampage Dimension visual effect
   private rampageDimension: RampageDimension | null = null;
   private speedLinesEffect: SpeedLinesEffect | null = null;
+  private ancestorCouncil: AncestorCouncil | null = null;
   private inRampageDimension = false;
   private readonly normalBackground = new THREE.Color(0x1a1a1a);
 
@@ -393,6 +396,10 @@ export class Engine {
     // Initialize Rampage Dimension effect
     this.rampageDimension = new RampageDimension(this.scene, this.normalBackground);
     this.speedLinesEffect = new SpeedLinesEffect();
+
+    // Initialize Ancestor Council (ghost figures around player during rampage)
+    this.ancestorCouncil = new AncestorCouncil(this.scene);
+    await this.ancestorCouncil.preload();
   }
 
   private async createTestGround(): Promise<void> {
@@ -630,14 +637,14 @@ export class Engine {
       copKills: 0,
       score: 0,
       tier: Tier.FOOT,
-      combo: 0,
-      comboTimer: 0,
+      combo: DEBUG_START_IN_RAMPAGE ? 10 : 0,
+      comboTimer: DEBUG_START_IN_RAMPAGE ? 999 : 0,
       gameTime: 0,
       health: 100,
       heat: 0,
       wantedStars: 0,
       inPursuit: false,
-      inRampageMode: false,
+      inRampageMode: DEBUG_START_IN_RAMPAGE,
       killHistory: [],
       copHealthBars: [],
       isTased: false,
@@ -648,6 +655,11 @@ export class Engine {
 
     if (this.crowd && this.player) {
       this.crowd.spawnInitialCrowd(this.player.getPosition());
+    }
+
+    // Debug: Start in rampage mode
+    if (DEBUG_START_IN_RAMPAGE) {
+      this.enterRampageDimension();
     }
   }
 
@@ -2165,6 +2177,11 @@ export class Engine {
       }
       this.speedLinesEffect.update(dt);
     }
+    // Update Ancestor Council (ghost figures around player during rampage)
+    if (this.ancestorCouncil) {
+      const isMoving = this.input ? (this.input.up || this.input.down || this.input.left || this.input.right) : false;
+      this.ancestorCouncil.update(dt, currentPos, isMoving);
+    }
     if (DEBUG_PERFORMANCE_PANEL) this.performanceStats.world = performance.now() - worldStart;
 
     // Pedestrians (use entityDt for slow-mo during rampage)
@@ -2876,6 +2893,7 @@ export class Engine {
     // Activate dimension effects
     this.rampageDimension.enter();
     this.speedLinesEffect?.enter();
+    this.ancestorCouncil?.enter();
 
     // Player glow - they're a god in this void
     this.player?.setRampageGlow(true);
@@ -2908,6 +2926,7 @@ export class Engine {
     // Deactivate dimension effects
     this.rampageDimension.exit();
     this.speedLinesEffect?.exit();
+    this.ancestorCouncil?.exit();
 
     // Remove player glow
     this.player?.setRampageGlow(false);
@@ -3040,6 +3059,7 @@ export class Engine {
     this.bloodDecals.dispose();
     this.rampageDimension?.dispose();
     this.speedLinesEffect?.dispose();
+    this.ancestorCouncil?.dispose();
     this.renderer.dispose();
 
     // Clear scene

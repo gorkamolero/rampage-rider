@@ -3,6 +3,9 @@ import { Tier, TierConfig } from "./types";
 // Debug flag for performance panel - set to true to show performance metrics
 export const DEBUG_PERFORMANCE_PANEL = false;
 
+// Debug flag to start game in rampage mode - set to true for testing rampage effects
+export const DEBUG_START_IN_RAMPAGE = true;
+
 export const WORLD_WIDTH = 40;
 export const WORLD_DEPTH = 60; // Visible depth
 export const CHUNK_SIZE = 40;
