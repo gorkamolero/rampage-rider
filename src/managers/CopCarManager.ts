@@ -96,7 +96,6 @@ export class CopCarManager {
   private spawnCar(playerPosition: THREE.Vector3, playerVelocity: THREE.Vector3): void {
     // Spawn behind player based on velocity direction
     const velLen = playerVelocity.length();
-    let spawnDir: THREE.Vector3;
 
     if (velLen > 0.1) {
       // Spawn behind the direction player is moving
@@ -106,16 +105,15 @@ export class CopCarManager {
       const angle = Math.random() * Math.PI * 2;
       this._tempSpawnDir.set(Math.cos(angle), 0, Math.sin(angle));
     }
-    spawnDir = this._tempSpawnDir;
 
     // Add some randomness to spawn position
     const lateralOffset = (Math.random() - 0.5) * 20;
-    this._tempPerpDir.set(-spawnDir.z, 0, spawnDir.x);
+    this._tempPerpDir.set(-this._tempSpawnDir.z, 0, this._tempSpawnDir.x);
 
     this._tempSpawnPos.set(
-      playerPosition.x + spawnDir.x * COP_CAR_CONFIG.SPAWN_BEHIND_DISTANCE + this._tempPerpDir.x * lateralOffset,
+      playerPosition.x + this._tempSpawnDir.x * COP_CAR_CONFIG.SPAWN_BEHIND_DISTANCE + this._tempPerpDir.x * lateralOffset,
       0,
-      playerPosition.z + spawnDir.z * COP_CAR_CONFIG.SPAWN_BEHIND_DISTANCE + this._tempPerpDir.z * lateralOffset
+      playerPosition.z + this._tempSpawnDir.z * COP_CAR_CONFIG.SPAWN_BEHIND_DISTANCE + this._tempPerpDir.z * lateralOffset
     );
 
     const car = new CopCar(this._tempSpawnPos, this.world, this.aiManager.getEntityManager());

@@ -418,8 +418,6 @@ export class MotorbikeCop extends THREE.Group {
       return;
     }
 
-    const config = MOTORBIKE_COP_CONFIG;
-
     if (distanceToTargetSq > MotorbikeCop.PATROL_DISTANCE_SQ) {
       this.state = MotorbikeCopState.PATROL;
     } else if (distanceToTargetSq > MotorbikeCop.RAM_DISTANCE_SQ) {

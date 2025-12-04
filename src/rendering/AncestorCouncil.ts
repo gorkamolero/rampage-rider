@@ -11,7 +11,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 // Spiral configuration
 const SPIRAL_CONFIG = {
-  COUNT: 36,                    // Total number of ancestors (fewer = more spread out)
+  COUNT: 24,                    // Total number of ancestors (fewer = more spread out)
   INNER_RADIUS: 4,              // Closest to player (meters)
   OUTER_RADIUS: 12,             // Farthest from player (meters)
   ROTATION_SPEED: 0.4,          // Radians per second
@@ -20,11 +20,20 @@ const SPIRAL_CONFIG = {
   GHOST_COLOR: new THREE.Color(0.9, 0.9, 1.0),    // Pale white-blue
 };
 
-// 3 distinct ancestor models - cycled through the spiral
+/**
+ * 8 distinct ancestor models - cycled through the spiral (1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8...)
+ * Custom princess/royalty ghost models with optimized meshes and 256x256 textures.
+ * The ghostly material is applied automatically (pale white-blue + red emissive glow)
+ */
 const ANCESTOR_MODELS = [
-  '/assets/pedestrians/Ninja_Male.gltf',
-  '/assets/pedestrians/Ninja_Male.gltf',
-  '/assets/pedestrians/Ninja_Male.gltf',
+  '/assets/ancestors/ancestor_1.glb',  // Sunlit Smile - golden dress
+  '/assets/ancestors/ancestor_2.glb',  // Emerald Elegance
+  '/assets/ancestors/ancestor_3.glb',  // Emerald Elegance variant
+  '/assets/ancestors/ancestor_4.glb',  // Princess Serenity
+  '/assets/ancestors/ancestor_5.glb',  // Princess in Red
+  '/assets/ancestors/ancestor_6.glb',  // Regal Relaxation
+  '/assets/ancestors/ancestor_7.glb',  // Princess of the Polygon
+  '/assets/ancestors/ancestor_8.glb',  // Golden Serenity
 ];
 
 // Spiral configuration
@@ -61,6 +70,10 @@ interface Ancestor {
   mesh: THREE.Group;
   spiralIndex: number; // Position in spiral (0 to COUNT-1)
   originalMaterials: THREE.Material[]; // Store originals for disposal
+  ghostMaterials: THREE.MeshStandardMaterial[]; // Cache for fast opacity updates
+  // Random flicker state
+  flickerPhase: number; // Unique phase offset for each ancestor
+  flickerSpeed: number; // Unique speed for each ancestor
 }
 
 export class AncestorCouncil {
@@ -85,6 +98,9 @@ export class AncestorCouncil {
   private debugLine: THREE.Line | null = null;
   private debugLineGeometry: THREE.BufferGeometry | null = null;
 
+  // Animation time for flickering
+  private animTime = 0;
+
   constructor(scene: THREE.Scene) {
     this.scene = scene;
   }
@@ -103,9 +119,11 @@ export class AncestorCouncil {
       }
     }
 
-    // Create COUNT ancestors, cycling through the models
+    // Create COUNT ancestors, cycling through the models in interleaved order
+    // Pattern: 1,3,5,7,2,4,6,8 (odds first, then evens) for more variety
+    const interleaveOrder = [0, 2, 4, 6, 1, 3, 5, 7]; // ancestor indices
     for (let i = 0; i < SPIRAL_CONFIG.COUNT; i++) {
-      const modelIndex = i % ANCESTOR_MODELS.length;
+      const modelIndex = interleaveOrder[i % interleaveOrder.length];
       const path = ANCESTOR_MODELS[modelIndex];
       const gltf = uniqueModels.get(path);
 
@@ -116,9 +134,15 @@ export class AncestorCouncil {
 
       // Clone the model
       const mesh = SkeletonUtils.clone(gltf.scene) as THREE.Group;
-      const originalMaterials: THREE.Material[] = [];
 
-      // Apply ghostly material
+      // Scale ancestors - they're ~1 unit, pedestrians are ~3.3 units
+      // Ancestors stay lying down as ghostly reclining figures
+      mesh.scale.setScalar(1.8);
+
+      const originalMaterials: THREE.Material[] = [];
+      const ghostMaterials: THREE.MeshStandardMaterial[] = [];
+
+      // Apply semi-ghostly material (50% original color + 50% ghost effect)
       mesh.traverse((child) => {
         if (child instanceof THREE.Mesh && child.material) {
           const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -126,21 +150,27 @@ export class AncestorCouncil {
           materials.forEach((mat, idx) => {
             originalMaterials.push(mat);
 
-            // Create ghostly version
-            const ghostMat = new THREE.MeshStandardMaterial({
-              color: SPIRAL_CONFIG.GHOST_COLOR,
-              emissive: SPIRAL_CONFIG.GHOST_EMISSIVE,
-              emissiveIntensity: 0.5,
-              transparent: true,
-              opacity: 0,
-              side: THREE.DoubleSide,
-              depthWrite: false,
-            });
+            // Clone original material and add ghost effect
+            if (mat instanceof THREE.MeshStandardMaterial) {
+              const ghostMat = mat.clone();
+              // Blend original color with ghost color (50/50)
+              ghostMat.color.lerp(SPIRAL_CONFIG.GHOST_COLOR, 0.5);
+              // Add subtle red emissive glow
+              ghostMat.emissive = SPIRAL_CONFIG.GHOST_EMISSIVE.clone();
+              ghostMat.emissiveIntensity = 0.25;
+              ghostMat.transparent = true;
+              ghostMat.opacity = 0;
+              ghostMat.side = THREE.DoubleSide;
+              ghostMat.depthWrite = false;
 
-            if (Array.isArray(child.material)) {
-              child.material[idx] = ghostMat;
-            } else {
-              child.material = ghostMat;
+              // Cache for fast updates
+              ghostMaterials.push(ghostMat);
+
+              if (Array.isArray(child.material)) {
+                child.material[idx] = ghostMat;
+              } else {
+                child.material = ghostMat;
+              }
             }
           });
         }
@@ -157,6 +187,10 @@ export class AncestorCouncil {
         mesh,
         spiralIndex: i,
         originalMaterials,
+        ghostMaterials,
+        // Random flicker parameters for each ancestor
+        flickerPhase: Math.random() * Math.PI * 2,
+        flickerSpeed: 0.5 + Math.random() * 1.5, // 0.5 to 2.0 Hz
       });
     }
 
@@ -270,17 +304,10 @@ export class AncestorCouncil {
 
     for (const ancestor of this.ancestors) {
       ancestor.mesh.visible = true;
-      // Set opacity immediately on all materials
-      ancestor.mesh.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material) {
-          const materials = Array.isArray(child.material) ? child.material : [child.material];
-          materials.forEach((mat) => {
-            if (mat instanceof THREE.MeshStandardMaterial) {
-              mat.opacity = SPIRAL_CONFIG.GHOST_OPACITY;
-            }
-          });
-        }
-      });
+      // Use cached materials for fast opacity update
+      for (const mat of ancestor.ghostMaterials) {
+        mat.opacity = SPIRAL_CONFIG.GHOST_OPACITY;
+      }
     }
 
     // Show debug line
@@ -307,6 +334,8 @@ export class AncestorCouncil {
    * Update ancestor positions and opacity
    */
   update(dt: number, playerPosition: THREE.Vector3, isMoving: boolean): void {
+    // Update animation time for flickering
+    this.animTime += dt;
     this.playerPosition.copy(playerPosition);
 
     // Target based on input state: moving = expanded, stopped = contracted
@@ -361,20 +390,14 @@ export class AncestorCouncil {
         this.playerPosition.z + pos.z
       );
 
-      // Face the player (look inward)
-      ancestor.mesh.rotation.y = pos.angle;
+      // Calculate flicker: oscillates between 0.5 and 1.0 of base opacity
+      const flicker = 0.5 + 0.5 * Math.sin(this.animTime * ancestor.flickerSpeed * Math.PI * 2 + ancestor.flickerPhase);
+      const finalOpacity = this.currentOpacity * (0.5 + flicker * 0.5);
 
-      // Update opacity on all materials
-      ancestor.mesh.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material) {
-          const materials = Array.isArray(child.material) ? child.material : [child.material];
-          materials.forEach((mat) => {
-            if (mat instanceof THREE.MeshStandardMaterial) {
-              mat.opacity = this.currentOpacity;
-            }
-          });
-        }
-      });
+      // Use cached materials for fast opacity update (no traverse needed)
+      for (const mat of ancestor.ghostMaterials) {
+        mat.opacity = finalOpacity;
+      }
     }
 
     // Update debug line positions
@@ -417,16 +440,22 @@ export class AncestorCouncil {
     for (const ancestor of this.ancestors) {
       this.scene.remove(ancestor.mesh);
 
-      // Dispose ghost materials
-      ancestor.mesh.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material) {
-          const materials = Array.isArray(child.material) ? child.material : [child.material];
-          materials.forEach((mat) => mat.dispose());
-        }
-      });
+      // Dispose cached ghost materials (faster than traversing)
+      for (const mat of ancestor.ghostMaterials) {
+        mat.dispose();
+      }
 
       // Dispose original materials
-      ancestor.originalMaterials.forEach((mat) => mat.dispose());
+      for (const mat of ancestor.originalMaterials) {
+        mat.dispose();
+      }
+
+      // Dispose any geometries in the mesh
+      ancestor.mesh.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.geometry) {
+          child.geometry.dispose();
+        }
+      });
     }
 
     // Dispose debug line
@@ -436,6 +465,12 @@ export class AncestorCouncil {
       (this.debugLine.material as THREE.Material).dispose();
       this.debugLine = null;
       this.debugLineGeometry = null;
+    }
+
+    // Dispose spiral material
+    if (this.spiralMaterial) {
+      this.spiralMaterial.dispose();
+      this.spiralMaterial = null;
     }
 
     this.ancestors = [];

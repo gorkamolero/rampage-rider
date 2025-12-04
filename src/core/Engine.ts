@@ -1149,9 +1149,6 @@ export class Engine {
   private exitVehicle(): void {
     if (!this.vehicle || !this.player) return;
 
-    // Store the tier we're leaving so we can despawn its cops
-    const previousTier = this.currentVehicleTier;
-
     const vehiclePos = this.vehicle.getPosition();
     const safePos = this.findSafeExitPosition(vehiclePos);
 

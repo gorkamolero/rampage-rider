@@ -10,6 +10,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2024-12-04]
+
+### Custom Ancestor Models for Rampage Mode
+
+**Added:**
+- **8 custom princess/royalty ancestor models** replacing placeholder pedestrian models in the Ancestor Council spiral
+- Models optimized from ~173MB total to ~2.4MB total (~70x compression)
+- Original colors preserved with 50% ghost effect blend
+
+**Optimization Pipeline:**
+- `gltf-transform simplify --ratio 0.005 --error 0.1` (0.5% of original triangles)
+- `gltf-transform resize --width 256 --height 256` (texture downscale)
+- `gltf-transform optimize --compress meshopt` (final compression)
+
+**Ancestor Models:**
+| Model | Description | Original | Optimized |
+|-------|-------------|----------|-----------|
+| ancestor_1 | Sunlit Smile - golden dress | 18MB | 221KB |
+| ancestor_2 | Emerald Elegance | 22MB | 276KB |
+| ancestor_3 | Emerald Elegance variant | 28MB | 402KB |
+| ancestor_4 | Princess Serenity | 19MB | 248KB |
+| ancestor_5 | Princess in Red | 19MB | 245KB |
+| ancestor_6 | Regal Relaxation | 26MB | 420KB |
+| ancestor_7 | Princess of the Polygon | 24MB | 385KB |
+| ancestor_8 | Golden Serenity | 17MB | 200KB |
+
+**Configuration Changes:**
+- Reduced ancestor count from 36 to 24 for better spacing
+- Scale set to 1.8 for appropriate size
+- Removed per-ancestor rotation (fixed orientation)
+- Interleaved model order (1,3,5,7,2,4,6,8) for visual variety
+- 50% original color + 50% ghost effect blend (reduced emissive from 0.5 to 0.25)
+
+**Files Added:**
+- `public/assets/ancestors/ancestor_1.glb` through `ancestor_8.glb`
+- `public/assets/ancestors/original/` (backup of unoptimized models)
+
+**Files Modified:**
+- `src/rendering/AncestorCouncil.ts` - Updated model paths, scale, rotation, material blending, count, interleave order
+- `src/core/AssetLoader.ts` - Added ancestor models to preload list
+
+---
+
 ## [2024-12-03]
 
 ### Vehicle Switch Notification

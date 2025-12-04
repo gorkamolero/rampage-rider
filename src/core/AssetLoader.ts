@@ -129,6 +129,16 @@ export class AssetLoader {
 
       // Props
       '/assets/props/christmas-market.glb',
+
+      // Ancestor models (ghostly council in rampage mode)
+      '/assets/ancestors/ancestor_1.glb',
+      '/assets/ancestors/ancestor_2.glb',
+      '/assets/ancestors/ancestor_3.glb',
+      '/assets/ancestors/ancestor_4.glb',
+      '/assets/ancestors/ancestor_5.glb',
+      '/assets/ancestors/ancestor_6.glb',
+      '/assets/ancestors/ancestor_7.glb',
+      '/assets/ancestors/ancestor_8.glb',
     ];
 
     let loaded = 0;

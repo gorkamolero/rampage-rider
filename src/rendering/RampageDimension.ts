@@ -408,7 +408,7 @@ export class RampageDimension {
     this.updateEnergyMotes(dt);
 
     // Position rays centered on player (Phase 2: not camera)
-    this.positionRaysOnPlayer(camera);
+    this.positionRaysOnPlayer();
   }
 
   /**
@@ -638,7 +638,7 @@ export class RampageDimension {
   /**
    * Phase 2: Position radial rays centered on player (ground plane)
    */
-  private positionRaysOnPlayer(camera: THREE.OrthographicCamera): void {
+  private positionRaysOnPlayer(): void {
     // Position at player location, just above ground
     this.radialRays.position.set(
       this.playerPosition.x,
