@@ -9,3 +9,4 @@ sketchbook-ref/
 
 # Large model files (use Git LFS or CDN instead)
 public/assets/models/sketchfab/*.glb
+.claude/worktrees/
