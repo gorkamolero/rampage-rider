@@ -1,0 +1,1252 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "project": "Rampage Rider",
+    "totalSounds": 94,
+    "outputDir": "public/audio",
+    "estimatedCredits": 28000,
+    "notes": "Use ElevenLabs Text-to-Sound Effects API. Starter plan ($5/mo) covers it."
+  },
+  "sounds": [
+    {
+      "id": "footstep_run",
+      "path": "sfx/player/footstep_run.mp3",
+      "prompt": "Single footstep on concrete, sneaker, quick impact, video game",
+      "duration": 0.2,
+      "loop": false,
+      "category": "player"
+    },
+    {
+      "id": "footstep_walk",
+      "path": "sfx/player/footstep_walk.mp3",
+      "prompt": "Single footstep on concrete, casual pace, soft sneaker step",
+      "duration": 0.3,
+      "loop": false,
+      "category": "player"
+    },
+    {
+      "id": "jump",
+      "path": "sfx/player/jump.mp3",
+      "prompt": "Jump launch, fabric rustle, quick effort grunt, arcade style",
+      "duration": 0.3,
+      "loop": false,
+      "category": "player"
+    },
+    {
+      "id": "land",
+      "path": "sfx/player/land.mp3",
+      "prompt": "Feet landing on pavement, soft thud, sneakers",
+      "duration": 0.2,
+      "loop": false,
+      "category": "player"
+    },
+    {
+      "id": "land_hard",
+      "path": "sfx/player/land_hard.mp3",
+      "prompt": "Heavy landing impact, hard thud on concrete, impactful",
+      "duration": 0.3,
+      "loop": false,
+      "category": "player"
+    },
+    {
+      "id": "knife_whoosh",
+      "path": "sfx/attacks/knife_whoosh.mp3",
+      "prompt": "Knife slash whoosh, sharp blade cutting air, quick swipe",
+      "duration": 0.3,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "knife_hit",
+      "path": "sfx/attacks/knife_hit.mp3",
+      "prompt": "Wet squelchy stab into flesh, soft tissue puncture, gory meaty sound effect, no metal",
+      "duration": 0.2,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "knife_stab_1",
+      "path": "sfx/attacks/knife_stab_1.mp3",
+      "prompt": "Quick knife stab into flesh, sharp tchack sound, violent puncture, video game",
+      "duration": 0.25,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "knife_stab_2",
+      "path": "sfx/attacks/knife_stab_2.mp3",
+      "prompt": "Blade piercing flesh, wet thud, quick violent stab, subtle",
+      "duration": 0.25,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "knife_stab_3",
+      "path": "sfx/attacks/knife_stab_3.mp3",
+      "prompt": "Sharp stab into body, meaty impact, quick tchack, game sound",
+      "duration": 0.25,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "knife_stab_4",
+      "path": "sfx/attacks/knife_stab_4.mp3",
+      "prompt": "Knife entering flesh, soft tissue puncture, violent quick stab",
+      "duration": 0.25,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "knife_stab_5",
+      "path": "sfx/attacks/knife_stab_5.mp3",
+      "prompt": "Fast blade stab, flesh impact, subtle wet tchack sound",
+      "duration": 0.25,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "knife_stab_6",
+      "path": "sfx/attacks/knife_stab_6.mp3",
+      "prompt": "Deep knife thrust into body, meaty puncture, violent quick",
+      "duration": 0.25,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "knife_stab_7",
+      "path": "sfx/attacks/knife_stab_7.mp3",
+      "prompt": "Violent stab sound, blade into flesh, sharp tchack impact",
+      "duration": 0.25,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "knife_stab_8",
+      "path": "sfx/attacks/knife_stab_8.mp3",
+      "prompt": "Quick violent knife stab, wet flesh puncture, subtle game sfx",
+      "duration": 0.25,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "punch_whoosh",
+      "path": "sfx/attacks/punch_whoosh.mp3",
+      "prompt": "Fist swing whoosh, air punch, quick",
+      "duration": 0.2,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "punch_hit",
+      "path": "sfx/attacks/punch_hit.mp3",
+      "prompt": "Punch connecting with face, fleshy impact, boxing style",
+      "duration": 0.2,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "bicycle_pedal",
+      "path": "sfx/vehicles/bicycle_pedal.mp3",
+      "prompt": "Bicycle chain clicking and whirring, steady pedaling, mechanical",
+      "duration": 4,
+      "loop": true,
+      "category": "vehicles"
+    },
+    {
+      "id": "bicycle_bell",
+      "path": "sfx/vehicles/bicycle_bell.mp3",
+      "prompt": "Classic bicycle bell ding, bright metallic ring",
+      "duration": 0.5,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "bicycle_slash",
+      "path": "sfx/attacks/bicycle_slash.mp3",
+      "prompt": "Slashing attack from bicycle, blade whoosh with chain rattle",
+      "duration": 0.3,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "bicycle_hit",
+      "path": "sfx/attacks/bicycle_hit.mp3",
+      "prompt": "Bicycle slash connecting, metal and flesh, brutal impact",
+      "duration": 0.3,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "motorbike_engine",
+      "path": "sfx/vehicles/motorbike_engine.mp3",
+      "prompt": "Motorcycle engine steady throttle, two-stroke, aggressive buzzy rumble",
+      "duration": 5,
+      "loop": true,
+      "category": "vehicles"
+    },
+    {
+      "id": "motorbike_rev",
+      "path": "sfx/vehicles/motorbike_rev.mp3",
+      "prompt": "Motorcycle engine revving up hard, acceleration, aggressive",
+      "duration": 1.5,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "motorbike_shoot",
+      "path": "sfx/attacks/motorbike_shoot.mp3",
+      "prompt": "Drive-by pistol gunshot, sharp crack, from moving vehicle",
+      "duration": 0.4,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "motorbike_blast",
+      "path": "sfx/attacks/motorbike_blast.mp3",
+      "prompt": "Explosive blast attack, fiery detonation, action game style",
+      "duration": 1,
+      "loop": false,
+      "category": "attacks"
+    },
+    {
+      "id": "sedan_engine",
+      "path": "sfx/vehicles/sedan_engine.mp3",
+      "prompt": "Car engine rumble, V6 muscle car, steady aggressive idle",
+      "duration": 5,
+      "loop": true,
+      "category": "vehicles"
+    },
+    {
+      "id": "sedan_horn",
+      "path": "sfx/vehicles/sedan_horn.mp3",
+      "prompt": "Car horn honk, aggressive, american sedan",
+      "duration": 0.8,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "sedan_skid",
+      "path": "sfx/vehicles/sedan_skid.mp3",
+      "prompt": "Tire screech skid on asphalt, rubber burning, aggressive braking",
+      "duration": 1.5,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "sedan_impact",
+      "path": "sfx/vehicles/sedan_impact.mp3",
+      "prompt": "Car collision impact, metal crunch, glass shatter, violent",
+      "duration": 1,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "truck_engine",
+      "path": "sfx/vehicles/truck_engine.mp3",
+      "prompt": "Heavy diesel truck engine, deep rumble, powerful idle",
+      "duration": 5,
+      "loop": true,
+      "category": "vehicles"
+    },
+    {
+      "id": "truck_horn",
+      "path": "sfx/vehicles/truck_horn.mp3",
+      "prompt": "Semi truck air horn blast, deep powerful, intimidating",
+      "duration": 1.5,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "truck_impact",
+      "path": "sfx/vehicles/truck_impact.mp3",
+      "prompt": "Heavy truck collision, massive metal crunch, devastating impact",
+      "duration": 1.5,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "building_destroy",
+      "path": "sfx/vehicles/building_destroy.mp3",
+      "prompt": "Building destruction, concrete crumbling, debris collapse, massive",
+      "duration": 3,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "vehicle_enter",
+      "path": "sfx/vehicles/vehicle_enter.mp3",
+      "prompt": "Getting into vehicle, door open, body shifting into seat",
+      "duration": 0.7,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "vehicle_exit",
+      "path": "sfx/vehicles/vehicle_exit.mp3",
+      "prompt": "Exiting vehicle quickly, door slam, feet hitting ground",
+      "duration": 0.6,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "vehicle_damage",
+      "path": "sfx/vehicles/vehicle_damage.mp3",
+      "prompt": "Vehicle taking damage, metal dent, impact crunch",
+      "duration": 0.4,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "vehicle_destroy",
+      "path": "sfx/vehicles/vehicle_destroy.mp3",
+      "prompt": "Vehicle explosion, fiery blast, metal debris flying",
+      "duration": 2,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "tier_unlock",
+      "path": "sfx/vehicles/tier_unlock.mp3",
+      "prompt": "Power-up unlock chime, digital ascending tone, rewarding, 8-bit inspired",
+      "duration": 0.8,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "tier_unlock_fanfare",
+      "path": "sfx/vehicles/tier_unlock_fanfare.mp3",
+      "prompt": "Victory fanfare stinger, triumphant synth, arcade achievement unlocked",
+      "duration": 2,
+      "loop": false,
+      "category": "vehicles"
+    },
+    {
+      "id": "kill_splat",
+      "path": "sfx/kills/kill_splat.mp3",
+      "prompt": "Wet splat sound, body crushed, gory impact",
+      "duration": 0.3,
+      "loop": false,
+      "category": "kills"
+    },
+    {
+      "id": "kill_crunch",
+      "path": "sfx/kills/kill_crunch.mp3",
+      "prompt": "Bone crunch snap, brutal crushing sound, violent",
+      "duration": 0.3,
+      "loop": false,
+      "category": "kills"
+    },
+    {
+      "id": "kill_squish",
+      "path": "sfx/kills/kill_squish.mp3",
+      "prompt": "Soft body squish, wet compression, gruesome",
+      "duration": 0.3,
+      "loop": false,
+      "category": "kills"
+    },
+    {
+      "id": "roadkill",
+      "path": "sfx/kills/roadkill.mp3",
+      "prompt": "Vehicle hitting body at speed, thud with wet crunch, roadkill",
+      "duration": 0.4,
+      "loop": false,
+      "category": "kills"
+    },
+    {
+      "id": "multi_kill",
+      "path": "sfx/kills/multi_kill.mp3",
+      "prompt": "Multi-kill bonus sound, arcade double chime, satisfying combo",
+      "duration": 0.6,
+      "loop": false,
+      "category": "kills"
+    },
+    {
+      "id": "body_thud",
+      "path": "sfx/kills/body_thud.mp3",
+      "prompt": "Dead body hitting pavement, heavy thud, lifeless",
+      "duration": 0.4,
+      "loop": false,
+      "category": "kills"
+    },
+    {
+      "id": "blood_splatter",
+      "path": "sfx/kills/blood_splatter.mp3",
+      "prompt": "Blood spray splatter, wet burst, liquid spray on surface",
+      "duration": 0.3,
+      "loop": false,
+      "category": "kills"
+    },
+    {
+      "id": "cop_spawn",
+      "path": "sfx/cops/cop_spawn.mp3",
+      "prompt": "Police radio crackle with alert tone, cop appearing",
+      "duration": 0.8,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "cop_alert",
+      "path": "sfx/cops/cop_alert.mp3",
+      "prompt": "Police shout freeze, aggressive male voice, authoritative",
+      "duration": 0.6,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "cop_punch",
+      "path": "sfx/cops/cop_punch.mp3",
+      "prompt": "Heavy punch thrown, law enforcement combat, brutal swing",
+      "duration": 0.3,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "cop_death",
+      "path": "sfx/cops/cop_death.mp3",
+      "prompt": "Male death cry, pained grunt and collapse, police officer",
+      "duration": 0.6,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "taser_fire",
+      "path": "sfx/cops/taser_fire.mp3",
+      "prompt": "Taser gun firing, electric discharge, crackling prongs launch",
+      "duration": 0.4,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "taser_hit",
+      "path": "sfx/cops/taser_hit.mp3",
+      "prompt": "Taser connecting with body, electric shock impact, painful",
+      "duration": 0.5,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "taser_loop",
+      "path": "sfx/cops/taser_loop.mp3",
+      "prompt": "Electrical shock buzzing loop, being tased, crackling current",
+      "duration": 3,
+      "loop": true,
+      "category": "cops"
+    },
+    {
+      "id": "taser_escape",
+      "path": "sfx/cops/taser_escape.mp3",
+      "prompt": "Breaking free from restraint, electric snap ending, release",
+      "duration": 0.5,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "gunshot",
+      "path": "sfx/cops/gunshot.mp3",
+      "prompt": "Pistol gunshot, 9mm single shot, sharp crack",
+      "duration": 0.3,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "bullet_whiz",
+      "path": "sfx/cops/bullet_whiz.mp3",
+      "prompt": "Bullet whizzing past, near miss, air snap",
+      "duration": 0.3,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "siren_loop",
+      "path": "sfx/cops/siren_loop.mp3",
+      "prompt": "American police siren wailing, steady loop, urgent",
+      "duration": 5,
+      "loop": true,
+      "category": "cops"
+    },
+    {
+      "id": "siren_wail",
+      "path": "sfx/cops/siren_wail.mp3",
+      "prompt": "Short police siren burst, single wail, attention",
+      "duration": 1,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "cop_car_engine",
+      "path": "sfx/cops/cop_car_engine.mp3",
+      "prompt": "Police cruiser engine, V8 pursuit vehicle, powerful rumble",
+      "duration": 5,
+      "loop": true,
+      "category": "cops"
+    },
+    {
+      "id": "cop_car_ram",
+      "path": "sfx/cops/cop_car_ram.mp3",
+      "prompt": "Police car ramming impact, aggressive collision, metal crunch",
+      "duration": 1,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "cop_car_destroy",
+      "path": "sfx/cops/cop_car_destroy.mp3",
+      "prompt": "Police car explosion, cruiser destroyed, fiery blast with siren dying",
+      "duration": 2,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "motorbike_cop_engine",
+      "path": "sfx/cops/motorbike_cop_engine.mp3",
+      "prompt": "Police motorcycle engine, high performance, aggressive pursuit",
+      "duration": 4,
+      "loop": true,
+      "category": "cops"
+    },
+    {
+      "id": "motorbike_cop_ram",
+      "path": "sfx/cops/motorbike_cop_ram.mp3",
+      "prompt": "Motorcycle ram attack impact, bike collision, metal crash",
+      "duration": 0.8,
+      "loop": false,
+      "category": "cops"
+    },
+    {
+      "id": "bike_cop_pedal",
+      "path": "sfx/cops/bike_cop_pedal.mp3",
+      "prompt": "Bicycle cop pedaling fast, aggressive chain clicking, pursuit",
+      "duration": 4,
+      "loop": true,
+      "category": "cops"
+    },
+    {
+      "id": "scream_1",
+      "path": "sfx/screams/scream_1.mp3",
+      "prompt": "Male death scream, sudden terror, violent end, short",
+      "duration": 0.5,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_2",
+      "path": "sfx/screams/scream_2.mp3",
+      "prompt": "Female death shriek, high pitched terror, quick",
+      "duration": 0.5,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_3",
+      "path": "sfx/screams/scream_3.mp3",
+      "prompt": "Male pain yell, shocked cry, violent impact reaction",
+      "duration": 0.5,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_4",
+      "path": "sfx/screams/scream_4.mp3",
+      "prompt": "Female panic scream, sudden fear, short sharp",
+      "duration": 0.4,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_5",
+      "path": "sfx/screams/scream_5.mp3",
+      "prompt": "Male grunt death, pained exhale, violent end",
+      "duration": 0.4,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_6",
+      "path": "sfx/screams/scream_6.mp3",
+      "prompt": "Female yelp of pain, shocked gasp, quick",
+      "duration": 0.4,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_7",
+      "path": "sfx/screams/scream_7.mp3",
+      "prompt": "Male terror scream, horrified yell, death cry",
+      "duration": 0.5,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_8",
+      "path": "sfx/screams/scream_8.mp3",
+      "prompt": "Female death cry, sharp shriek, violent sudden",
+      "duration": 0.5,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_9",
+      "path": "sfx/screams/scream_9.mp3",
+      "prompt": "Male pained grunt, impact reaction, death sound",
+      "duration": 0.4,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_10",
+      "path": "sfx/screams/scream_10.mp3",
+      "prompt": "Female panic yelp, fear gasp, shocked",
+      "duration": 0.4,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_11",
+      "path": "sfx/screams/scream_11.mp3",
+      "prompt": "Male death yell, violent end scream, quick",
+      "duration": 0.5,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_12",
+      "path": "sfx/screams/scream_12.mp3",
+      "prompt": "Female terror shriek, high pitched death cry",
+      "duration": 0.5,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_13",
+      "path": "sfx/screams/scream_13.mp3",
+      "prompt": "Male shocked gasp, sudden pain, death grunt",
+      "duration": 0.4,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_14",
+      "path": "sfx/screams/scream_14.mp3",
+      "prompt": "Female scream of fear, panic yell, short",
+      "duration": 0.4,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_15",
+      "path": "sfx/screams/scream_15.mp3",
+      "prompt": "Male final breath, death exhale, violent end",
+      "duration": 0.5,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_16",
+      "path": "sfx/screams/scream_16.mp3",
+      "prompt": "Female sharp cry, pain reaction, shocked yelp",
+      "duration": 0.4,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_17",
+      "path": "sfx/screams/scream_17.mp3",
+      "prompt": "Male terror yell, horrified scream, death",
+      "duration": 0.5,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_18",
+      "path": "sfx/screams/scream_18.mp3",
+      "prompt": "Female death gasp, sudden end, shocked",
+      "duration": 0.4,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_19",
+      "path": "sfx/screams/scream_19.mp3",
+      "prompt": "Male violent death cry, pained scream, quick",
+      "duration": 0.5,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "scream_20",
+      "path": "sfx/screams/scream_20.mp3",
+      "prompt": "Female panic shriek, terror scream, death",
+      "duration": 0.5,
+      "loop": false,
+      "category": "screams"
+    },
+    {
+      "id": "crowd_ambient",
+      "path": "sfx/pedestrians/crowd_ambient.mp3",
+      "prompt": "Urban crowd ambient chatter, city pedestrians, background murmur",
+      "duration": 8,
+      "loop": true,
+      "category": "pedestrians"
+    },
+    {
+      "id": "combo_increment",
+      "path": "sfx/combo/combo_increment.mp3",
+      "prompt": "Combo hit tick, quick arcade blip, satisfying click",
+      "duration": 0.15,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "combo_milestone_5",
+      "path": "sfx/combo/combo_milestone_5.mp3",
+      "prompt": "Killing spree announcement, dark synth stinger, intense",
+      "duration": 1,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "combo_milestone_10",
+      "path": "sfx/combo/combo_milestone_10.mp3",
+      "prompt": "Rampage announcement, heavier synth hit, escalating",
+      "duration": 1.2,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "combo_milestone_15",
+      "path": "sfx/combo/combo_milestone_15.mp3",
+      "prompt": "Unstoppable announcement, powerful synth fanfare, aggressive",
+      "duration": 1.3,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "combo_milestone_20",
+      "path": "sfx/combo/combo_milestone_20.mp3",
+      "prompt": "Godlike announcement, epic synth blast, overwhelming",
+      "duration": 1.5,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "combo_milestone_30",
+      "path": "sfx/combo/combo_milestone_30.mp3",
+      "prompt": "Massacre announcement, dark triumphant synth, apocalyptic",
+      "duration": 1.8,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "combo_milestone_50",
+      "path": "sfx/combo/combo_milestone_50.mp3",
+      "prompt": "Legendary announcement, ultimate synth fanfare, transcendent",
+      "duration": 2,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "combo_lost",
+      "path": "sfx/combo/combo_lost.mp3",
+      "prompt": "Combo break, descending tone, failure buzz, disappointing",
+      "duration": 0.8,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "score_tick",
+      "path": "sfx/combo/score_tick.mp3",
+      "prompt": "Score increment tick, retro coin sound, quick",
+      "duration": 0.1,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "points_popup",
+      "path": "sfx/combo/points_popup.mp3",
+      "prompt": "Points appearing, soft arcade chime, notification",
+      "duration": 0.2,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "rampage_enter",
+      "path": "sfx/rampage/rampage_enter.mp3",
+      "prompt": "Reality warping activation, time dilation whoosh, supernatural bass drop, entering another dimension",
+      "duration": 2.5,
+      "loop": false,
+      "category": "rampage"
+    },
+    {
+      "id": "rampage_loop",
+      "path": "sfx/rampage/rampage_loop.mp3",
+      "prompt": "Otherworldly ambient drone, ethereal chaos, slow motion dimension, ghostly atmosphere",
+      "duration": 10,
+      "loop": true,
+      "category": "rampage"
+    },
+    {
+      "id": "rampage_exit",
+      "path": "sfx/rampage/rampage_exit.mp3",
+      "prompt": "Reality snapping back, reverse time dilation, dimension exit whoosh",
+      "duration": 2,
+      "loop": false,
+      "category": "rampage"
+    },
+    {
+      "id": "rampage_heartbeat",
+      "path": "sfx/rampage/rampage_heartbeat.mp3",
+      "prompt": "Heavy heartbeat pulse, slow and intense, supernatural rhythm",
+      "duration": 4,
+      "loop": true,
+      "category": "rampage"
+    },
+    {
+      "id": "ancestor_whisper",
+      "path": "sfx/rampage/ancestor_whisper.mp3",
+      "prompt": "Ghostly whisper, ethereal ancestor voice, otherworldly murmur",
+      "duration": 1,
+      "loop": false,
+      "category": "rampage"
+    },
+    {
+      "id": "heat_increase",
+      "path": "sfx/combo/heat_increase.mp3",
+      "prompt": "Tension rising tone, heat building, warning escalation",
+      "duration": 0.6,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "wanted_star_up",
+      "path": "sfx/combo/wanted_star_up.mp3",
+      "prompt": "Wanted level up, aggressive alert chime, danger increase",
+      "duration": 0.8,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "wanted_star_down",
+      "path": "sfx/combo/wanted_star_down.mp3",
+      "prompt": "Wanted level down, relief tone, tension release",
+      "duration": 0.6,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "pursuit_start",
+      "path": "sfx/combo/pursuit_start.mp3",
+      "prompt": "Pursuit initiated, urgent alert, cops incoming",
+      "duration": 1,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "pursuit_end",
+      "path": "sfx/combo/pursuit_end.mp3",
+      "prompt": "Pursuit ended, tension resolve, escaped safely",
+      "duration": 1,
+      "loop": false,
+      "category": "combo"
+    },
+    {
+      "id": "player_hit",
+      "path": "sfx/damage/player_hit.mp3",
+      "prompt": "Taking damage impact, body hit, painful thud",
+      "duration": 0.3,
+      "loop": false,
+      "category": "damage"
+    },
+    {
+      "id": "player_hurt",
+      "path": "sfx/damage/player_hurt.mp3",
+      "prompt": "Male pain grunt, hurt reaction, injury",
+      "duration": 0.4,
+      "loop": false,
+      "category": "damage"
+    },
+    {
+      "id": "player_death",
+      "path": "sfx/damage/player_death.mp3",
+      "prompt": "Player death cry, final collapse, game over moment",
+      "duration": 1,
+      "loop": false,
+      "category": "damage"
+    },
+    {
+      "id": "game_over",
+      "path": "sfx/damage/game_over.mp3",
+      "prompt": "Game over sting, dark descending tones, defeat, 8-bit style",
+      "duration": 2.5,
+      "loop": false,
+      "category": "damage"
+    },
+    {
+      "id": "ui_click",
+      "path": "sfx/ui/ui_click.mp3",
+      "prompt": "Retro arcade button click, tactile press, 8-bit style",
+      "duration": 0.1,
+      "loop": false,
+      "category": "ui"
+    },
+    {
+      "id": "ui_hover",
+      "path": "sfx/ui/ui_hover.mp3",
+      "prompt": "Soft digital hover blip, subtle menu sound",
+      "duration": 0.08,
+      "loop": false,
+      "category": "ui"
+    },
+    {
+      "id": "ui_confirm",
+      "path": "sfx/ui/ui_confirm.mp3",
+      "prompt": "Confirm selection, positive chime, arcade accept",
+      "duration": 0.3,
+      "loop": false,
+      "category": "ui"
+    },
+    {
+      "id": "ui_cancel",
+      "path": "sfx/ui/ui_cancel.mp3",
+      "prompt": "Cancel action, back sound, soft reject tone",
+      "duration": 0.2,
+      "loop": false,
+      "category": "ui"
+    },
+    {
+      "id": "ui_notification",
+      "path": "sfx/ui/ui_notification.mp3",
+      "prompt": "Notification pop, alert chime, attention",
+      "duration": 0.3,
+      "loop": false,
+      "category": "ui"
+    },
+    {
+      "id": "ui_alert",
+      "path": "sfx/ui/ui_alert.mp3",
+      "prompt": "Warning alert sound, urgent beep, danger",
+      "duration": 0.4,
+      "loop": false,
+      "category": "ui"
+    },
+    {
+      "id": "menu_open",
+      "path": "sfx/ui/menu_open.mp3",
+      "prompt": "Menu opening, interface slide, digital transition",
+      "duration": 0.3,
+      "loop": false,
+      "category": "ui"
+    },
+    {
+      "id": "menu_close",
+      "path": "sfx/ui/menu_close.mp3",
+      "prompt": "Menu closing, interface dismiss, digital close",
+      "duration": 0.25,
+      "loop": false,
+      "category": "ui"
+    },
+    {
+      "id": "ambient_city",
+      "path": "ambient/ambient_city.mp3",
+      "prompt": "Urban city night ambience, distant traffic, muffled sirens, atmospheric",
+      "duration": 15,
+      "loop": true,
+      "category": "ambient"
+    },
+    {
+      "id": "wind_loop",
+      "path": "ambient/wind_loop.mp3",
+      "prompt": "Wind rushing past at speed, air movement, velocity",
+      "duration": 6,
+      "loop": true,
+      "category": "ambient"
+    },
+    {
+      "id": "christmas_market",
+      "path": "ambient/christmas_market.mp3",
+      "prompt": "22 seconds of continuous Christmas market ambient noise, busy crowd murmur, distant cheerful music, glasses clinking, festive winter atmosphere, loopable background soundscape",
+      "duration": 22,
+      "loop": true,
+      "category": "ambient"
+    },
+    {
+      "id": "voice_splat",
+      "path": "sfx/voice/voice_splat.mp3",
+      "prompt": "Deep sinister male voice saying \"SPLAT!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_crushed",
+      "path": "sfx/voice/voice_crushed.mp3",
+      "prompt": "Deep sinister male voice saying \"CRUSHED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_demolished",
+      "path": "sfx/voice/voice_demolished.mp3",
+      "prompt": "Deep sinister male voice saying \"DEMOLISHED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_obliterated",
+      "path": "sfx/voice/voice_obliterated.mp3",
+      "prompt": "Deep sinister male voice saying \"OBLITERATED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_terminated",
+      "path": "sfx/voice/voice_terminated.mp3",
+      "prompt": "Deep sinister male voice saying \"TERMINATED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_coward",
+      "path": "sfx/voice/voice_coward.mp3",
+      "prompt": "Deep sinister male voice saying \"COWARD!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_no_escape",
+      "path": "sfx/voice/voice_no_escape.mp3",
+      "prompt": "Deep sinister male voice saying \"NO ESCAPE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_run_faster",
+      "path": "sfx/voice/voice_run_faster.mp3",
+      "prompt": "Deep sinister male voice saying \"RUN FASTER!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_backstab",
+      "path": "sfx/voice/voice_backstab.mp3",
+      "prompt": "Deep sinister male voice saying \"BACKSTAB!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_easy_prey",
+      "path": "sfx/voice/voice_easy_prey.mp3",
+      "prompt": "Deep sinister male voice saying \"EASY PREY!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_roadkill",
+      "path": "sfx/voice/voice_roadkill.mp3",
+      "prompt": "Deep sinister male voice saying \"ROADKILL!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_pancaked",
+      "path": "sfx/voice/voice_pancaked.mp3",
+      "prompt": "Deep sinister male voice saying \"PANCAKED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_flattened",
+      "path": "sfx/voice/voice_flattened.mp3",
+      "prompt": "Deep sinister male voice saying \"FLATTENED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_splatter",
+      "path": "sfx/voice/voice_splatter.mp3",
+      "prompt": "Deep sinister male voice saying \"SPLATTER!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_speed_bump",
+      "path": "sfx/voice/voice_speed_bump.mp3",
+      "prompt": "Deep sinister male voice saying \"SPEED BUMP!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_badge_down",
+      "path": "sfx/voice/voice_badge_down.mp3",
+      "prompt": "Deep sinister male voice saying \"BADGE DOWN!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_officer_down",
+      "path": "sfx/voice/voice_officer_down.mp3",
+      "prompt": "Deep sinister male voice saying \"OFFICER DOWN!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_cop_dropped",
+      "path": "sfx/voice/voice_cop_dropped.mp3",
+      "prompt": "Deep sinister male voice saying \"COP DROPPED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_blue_down",
+      "path": "sfx/voice/voice_blue_down.mp3",
+      "prompt": "Deep sinister male voice saying \"BLUE DOWN!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_killing_spree",
+      "path": "sfx/voice/voice_killing_spree.mp3",
+      "prompt": "Deep sinister male voice saying \"KILLING SPREE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_rampage",
+      "path": "sfx/voice/voice_rampage.mp3",
+      "prompt": "Deep sinister male voice saying \"RAMPAGE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_unstoppable",
+      "path": "sfx/voice/voice_unstoppable.mp3",
+      "prompt": "Deep sinister male voice saying \"UNSTOPPABLE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_godlike",
+      "path": "sfx/voice/voice_godlike.mp3",
+      "prompt": "Deep sinister male voice saying \"GODLIKE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_massacre",
+      "path": "sfx/voice/voice_massacre.mp3",
+      "prompt": "Deep sinister male voice saying \"MASSACRE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_legendary",
+      "path": "sfx/voice/voice_legendary.mp3",
+      "prompt": "Deep sinister male voice saying \"LEGENDARY!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_heat_kill",
+      "path": "sfx/voice/voice_heat_kill.mp3",
+      "prompt": "Deep sinister male voice saying \"HEAT KILL!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_wanted_bonus",
+      "path": "sfx/voice/voice_wanted_bonus.mp3",
+      "prompt": "Deep sinister male voice saying \"WANTED BONUS!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_pursuit_frenzy",
+      "path": "sfx/voice/voice_pursuit_frenzy.mp3",
+      "prompt": "Deep sinister male voice saying \"PURSUIT FRENZY!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_hot_streak",
+      "path": "sfx/voice/voice_hot_streak.mp3",
+      "prompt": "Deep sinister male voice saying \"HOT STREAK!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_blast_kill",
+      "path": "sfx/voice/voice_blast_kill.mp3",
+      "prompt": "Deep sinister male voice saying \"BLAST KILL!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_cop_killer",
+      "path": "sfx/voice/voice_cop_killer.mp3",
+      "prompt": "Deep sinister male voice saying \"COP KILLER!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_biker_down",
+      "path": "sfx/voice/voice_biker_down.mp3",
+      "prompt": "Deep sinister male voice saying \"BIKER DOWN!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_wrecked",
+      "path": "sfx/voice/voice_wrecked.mp3",
+      "prompt": "Deep sinister male voice saying \"WRECKED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_leveled",
+      "path": "sfx/voice/voice_leveled.mp3",
+      "prompt": "Deep sinister male voice saying \"LEVELED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_rampage_mode",
+      "path": "sfx/voice/voice_rampage_mode.mp3",
+      "prompt": "Deep sinister male voice saying \"RAMPAGE MODE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import { GameState, GameStats, Tier, KillNotification } from './types';
 import { VehicleType } from './constants';
 import ErrorBoundary from './components/ErrorBoundary';
 import { preloader } from './core/Preloader';
+import { gameAudio } from './audio';
 
 interface EngineControls {
   spawnVehicle: (type: VehicleType | null) => void;
@@ -101,6 +102,8 @@ function App() {
   }, []);
 
   const startGame = () => {
+    // Resume audio context (requires user interaction)
+    gameAudio.resume();
     setGameState(GameState.PLAYING);
   };
 

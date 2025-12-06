@@ -1,0 +1,675 @@
+/**
+ * GameAudio - High-level game audio API for Rampage Rider
+ *
+ * Provides semantic methods for triggering game audio events.
+ * Wraps AudioManager with game-specific logic like:
+ * - Random sound selection from pools
+ * - Pitch variation based on game state
+ * - Combo-scaled volume
+ * - Automatic music transitions
+ *
+ * Usage: Import and call methods directly from game code
+ * Example: gameAudio.playKill('pedestrian', 3); // 3 combo
+ */
+
+import { audioManager } from './AudioManager';
+import { SoundId, SOUND_PATHS, MESSAGE_TO_VOICE } from './sounds';
+import { Tier } from '../types';
+
+// Random sound pools for variety
+const KILL_SOUNDS = [SoundId.KILL_SPLAT, SoundId.KILL_CRUNCH, SoundId.KILL_SQUISH];
+const COP_KILL_SOUNDS = [SoundId.COP_DEATH, SoundId.KILL_CRUNCH];
+
+// Knife stab pool (8 variations for fleshy cop kills)
+const KNIFE_STAB_SOUNDS = [
+  SoundId.KNIFE_STAB_1,
+  SoundId.KNIFE_STAB_2,
+  SoundId.KNIFE_STAB_3,
+  SoundId.KNIFE_STAB_4,
+  SoundId.KNIFE_STAB_5,
+  SoundId.KNIFE_STAB_6,
+  SoundId.KNIFE_STAB_7,
+  SoundId.KNIFE_STAB_8,
+];
+
+// Scream pool (20 variations for pedestrians and cops)
+const SCREAM_SOUNDS = [
+  SoundId.SCREAM_1,
+  SoundId.SCREAM_2,
+  SoundId.SCREAM_3,
+  SoundId.SCREAM_4,
+  SoundId.SCREAM_5,
+  SoundId.SCREAM_6,
+  SoundId.SCREAM_7,
+  SoundId.SCREAM_8,
+  SoundId.SCREAM_9,
+  SoundId.SCREAM_10,
+  SoundId.SCREAM_11,
+  SoundId.SCREAM_12,
+  SoundId.SCREAM_13,
+  SoundId.SCREAM_14,
+  SoundId.SCREAM_15,
+  SoundId.SCREAM_16,
+  SoundId.SCREAM_17,
+  SoundId.SCREAM_18,
+  SoundId.SCREAM_19,
+  SoundId.SCREAM_20,
+];
+
+// Helper to pick random from array
+function randomFrom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Helper to add pitch variation
+function variedPitch(base: number, variation: number): number {
+  return base + (Math.random() - 0.5) * 2 * variation;
+}
+
+// Helper to scale volume by combo
+function comboVolume(base: number, combo: number, maxCombo = 50): number {
+  const scale = 1 + Math.min(combo / maxCombo, 1) * 0.5; // Up to 1.5x at max combo
+  return Math.min(base * scale, 1.0);
+}
+
+export const gameAudio = {
+  // ============================================
+  // INITIALIZATION
+  // ============================================
+
+  async init(): Promise<void> {
+    await audioManager.init();
+    // Load all sounds in parallel
+    await this.loadAllSounds();
+  },
+
+  async loadAllSounds(): Promise<void> {
+    const loadPromises: Promise<void>[] = [];
+    for (const [id, path] of Object.entries(SOUND_PATHS)) {
+      if (path) {
+        loadPromises.push(audioManager.loadSound(id as SoundId, path));
+      }
+    }
+    await Promise.all(loadPromises);
+    // Sounds loaded
+  },
+
+  resume(): Promise<void> {
+    return audioManager.resume();
+  },
+
+  // ============================================
+  // PLAYER MOVEMENT
+  // ============================================
+
+  playFootstep(isRunning: boolean): void {
+    const id = isRunning ? SoundId.FOOTSTEP_RUN : SoundId.FOOTSTEP_WALK;
+    audioManager.play(id, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  playJump(): void {
+    audioManager.play(SoundId.JUMP);
+  },
+
+  playLand(isHard = false): void {
+    audioManager.play(isHard ? SoundId.LAND_HARD : SoundId.LAND);
+  },
+
+  // ============================================
+  // PLAYER ATTACKS
+  // ============================================
+
+  playKnifeAttack(): void {
+    audioManager.play(SoundId.KNIFE_WHOOSH, { pitch: variedPitch(1.0, 0.15) });
+  },
+
+  playKnifeHit(_isCop: boolean, combo = 0): void {
+    // All stab hits use the same flesh stab pool
+    audioManager.play(randomFrom(KNIFE_STAB_SOUNDS), {
+      volume: comboVolume(0.7, combo),
+      pitch: variedPitch(1.0, 0.1),
+    });
+  },
+
+  playBicycleSlash(): void {
+    // Use the same flesh stab pool as all other melee attacks
+    audioManager.play(randomFrom(KNIFE_STAB_SOUNDS), {
+      volume: 0.7,
+      pitch: variedPitch(1.0, 0.1),
+    });
+  },
+
+  playBicycleHit(combo = 0): void {
+    // Use knife stab pool for fleshy impact
+    audioManager.play(randomFrom(KNIFE_STAB_SOUNDS), {
+      volume: comboVolume(0.7, combo),
+      pitch: variedPitch(1.0, 0.1),
+    });
+  },
+
+  playMotorbikeShoot(): void {
+    // Use the same flesh stab pool as all other melee attacks
+    audioManager.play(randomFrom(KNIFE_STAB_SOUNDS), {
+      volume: 0.75,
+      pitch: variedPitch(1.0, 0.1),
+    });
+  },
+
+  playMotorbikeBlast(): void {
+    audioManager.play(SoundId.MOTORBIKE_BLAST);
+    audioManager.duck(0.3, 0.5); // Duck music for impact
+  },
+
+  // ============================================
+  // KILLS
+  // ============================================
+
+  playKill(type: 'pedestrian' | 'cop' | 'copCar' | 'bikeCop' | 'motorbikeCop', combo = 0): void {
+    const isCop = type !== 'pedestrian';
+    const sounds = isCop ? COP_KILL_SOUNDS : KILL_SOUNDS;
+    const id = randomFrom(sounds);
+
+    audioManager.play(id, {
+      volume: comboVolume(0.7, combo),
+      pitch: variedPitch(1.0, 0.15),
+    });
+
+    // Scream from pool (for both pedestrians and cops)
+    audioManager.play(randomFrom(SCREAM_SOUNDS), {
+      volume: 0.55,
+      pitch: variedPitch(1.0, 0.15),
+    });
+
+    // Blood splatter
+    audioManager.play(SoundId.BLOOD_SPLATTER, {
+      volume: 0.4,
+      pitch: variedPitch(1.0, 0.2),
+    });
+  },
+
+  playRoadkill(combo = 0): void {
+    audioManager.play(SoundId.ROADKILL, {
+      volume: comboVolume(0.8, combo),
+      pitch: variedPitch(1.0, 0.1),
+    });
+  },
+
+  playMultiKill(killCount: number): void {
+    if (killCount >= 3) {
+      audioManager.play(SoundId.MULTI_KILL, {
+        volume: Math.min(0.9 + killCount * 0.02, 1.0),
+      });
+    }
+  },
+
+  playBodyThud(): void {
+    audioManager.play(SoundId.BODY_THUD, { pitch: variedPitch(1.0, 0.2) });
+  },
+
+  // ============================================
+  // PEDESTRIANS & SCREAMS
+  // ============================================
+
+  playPedestrianScream(): void {
+    // Use the 20-variation scream pool
+    audioManager.play(randomFrom(SCREAM_SOUNDS), {
+      volume: 0.55,
+      pitch: variedPitch(1.0, 0.15),
+    });
+  },
+
+  playPedestrianPanic(): void {
+    // Also use scream pool for panic
+    audioManager.play(randomFrom(SCREAM_SOUNDS), {
+      volume: 0.4,
+      pitch: variedPitch(1.0, 0.2),
+    });
+  },
+
+  // Generic scream (used for both pedestrians and cops)
+  playScream(): void {
+    audioManager.play(randomFrom(SCREAM_SOUNDS), {
+      volume: 0.55,
+      pitch: variedPitch(1.0, 0.15),
+    });
+  },
+
+  // ============================================
+  // VEHICLES
+  // ============================================
+
+  playVehicleEnter(): void {
+    audioManager.play(SoundId.VEHICLE_ENTER);
+  },
+
+  playVehicleExit(): void {
+    audioManager.play(SoundId.VEHICLE_EXIT);
+  },
+
+  playVehicleDamage(): void {
+    audioManager.play(SoundId.VEHICLE_DAMAGE, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  playVehicleDestroy(): void {
+    audioManager.play(SoundId.VEHICLE_DESTROY);
+    audioManager.duck(0.2, 0.8); // Heavy duck for explosion
+  },
+
+  startVehicleEngine(entityId: string, tier: Tier): void {
+    let soundId: SoundId;
+    switch (tier) {
+      case Tier.BIKE:
+        soundId = SoundId.BICYCLE_PEDAL;
+        break;
+      case Tier.MOTO:
+        soundId = SoundId.MOTORBIKE_ENGINE;
+        break;
+      case Tier.SEDAN:
+        soundId = SoundId.SEDAN_ENGINE;
+        break;
+      case Tier.TRUCK:
+        soundId = SoundId.TRUCK_ENGINE;
+        break;
+      default:
+        return;
+    }
+    audioManager.startEngineLoop(entityId, soundId);
+  },
+
+  updateVehicleEngine(entityId: string, speed: number, maxSpeed: number): void {
+    audioManager.updateEngineLoop(entityId, speed, maxSpeed);
+  },
+
+  stopVehicleEngine(entityId: string): void {
+    audioManager.stopEngineLoop(entityId);
+  },
+
+  playVehicleImpact(tier: Tier): void {
+    const soundId =
+      tier === Tier.TRUCK
+        ? SoundId.TRUCK_IMPACT
+        : tier === Tier.SEDAN
+          ? SoundId.SEDAN_IMPACT
+          : SoundId.BICYCLE_HIT;
+    audioManager.play(soundId, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  playBuildingDestroy(): void {
+    audioManager.play(SoundId.BUILDING_DESTROY);
+    audioManager.duck(0.2, 1.0); // Heavy duck for building destruction
+  },
+
+  playHorn(tier: Tier): void {
+    const soundId = tier === Tier.TRUCK ? SoundId.TRUCK_HORN : SoundId.SEDAN_HORN;
+    audioManager.play(soundId);
+  },
+
+  // ============================================
+  // TIER UNLOCKS
+  // ============================================
+
+  playTierUnlock(): void {
+    audioManager.play(SoundId.TIER_UNLOCK);
+    audioManager.play(SoundId.TIER_UNLOCK_FANFARE);
+    audioManager.duck(0.3, 1.0); // Duck for fanfare
+  },
+
+  // ============================================
+  // COPS
+  // ============================================
+
+  playCopSpawn(): void {
+    audioManager.play(SoundId.COP_SPAWN);
+  },
+
+  playCopAlert(): void {
+    audioManager.play(SoundId.COP_ALERT, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  playCopPunch(): void {
+    audioManager.play(SoundId.COP_PUNCH, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  playCopDeath(): void {
+    audioManager.play(SoundId.COP_DEATH, { pitch: variedPitch(1.0, 0.15) });
+    // Also play a scream from the pool
+    audioManager.play(randomFrom(SCREAM_SOUNDS), {
+      volume: 0.5,
+      pitch: variedPitch(1.0, 0.15),
+    });
+  },
+
+  // ============================================
+  // TASER
+  // ============================================
+
+  playTaserFire(): void {
+    audioManager.play(SoundId.TASER_FIRE);
+  },
+
+  playTaserHit(): void {
+    audioManager.play(SoundId.TASER_HIT);
+  },
+
+  startTaserLoop(): string | null {
+    return audioManager.play(SoundId.TASER_LOOP, { loop: true, instanceId: 'taser_loop' });
+  },
+
+  stopTaserLoop(): void {
+    audioManager.stop('taser_loop', 0.2);
+  },
+
+  playTaserEscapePress(): void {
+    // Rising pitch based on escape progress would be nice
+    audioManager.play(SoundId.COMBO_INCREMENT, { pitch: variedPitch(1.2, 0.1) });
+  },
+
+  playTaserEscape(): void {
+    audioManager.play(SoundId.TASER_ESCAPE);
+    audioManager.duck(0.3, 0.5);
+  },
+
+  // ============================================
+  // GUNFIRE
+  // ============================================
+
+  playGunshot(): void {
+    audioManager.play(SoundId.GUNSHOT, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  playBulletWhiz(): void {
+    audioManager.play(SoundId.BULLET_WHIZ, { pitch: variedPitch(1.0, 0.2) });
+  },
+
+  // ============================================
+  // COP VEHICLES
+  // ============================================
+
+  startSiren(entityId: string): void {
+    audioManager.startEngineLoop(`siren_${entityId}`, SoundId.SIREN_LOOP, 0.6);
+  },
+
+  stopSiren(entityId: string): void {
+    audioManager.stopEngineLoop(`siren_${entityId}`);
+  },
+
+  playSirenWail(): void {
+    audioManager.play(SoundId.SIREN_WAIL);
+  },
+
+  startCopCarEngine(entityId: string): void {
+    audioManager.startEngineLoop(entityId, SoundId.COP_CAR_ENGINE);
+  },
+
+  stopCopCarEngine(entityId: string): void {
+    audioManager.stopEngineLoop(entityId);
+  },
+
+  playCopCarRam(): void {
+    audioManager.play(SoundId.COP_CAR_RAM, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  playCopCarDestroy(): void {
+    audioManager.play(SoundId.COP_CAR_DESTROY);
+    audioManager.duck(0.3, 0.6);
+  },
+
+  startMotorbikeCopEngine(entityId: string): void {
+    audioManager.startEngineLoop(entityId, SoundId.MOTORBIKE_COP_ENGINE);
+  },
+
+  stopMotorbikeCopEngine(entityId: string): void {
+    audioManager.stopEngineLoop(entityId);
+  },
+
+  playMotorbikeCopRam(): void {
+    audioManager.play(SoundId.MOTORBIKE_COP_RAM, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  startBikeCopPedal(entityId: string): void {
+    audioManager.startEngineLoop(entityId, SoundId.BIKE_COP_PEDAL, 0.3);
+  },
+
+  stopBikeCopPedal(entityId: string): void {
+    audioManager.stopEngineLoop(entityId);
+  },
+
+  // ============================================
+  // COMBO & SCORING
+  // ============================================
+
+  playComboIncrement(combo: number): void {
+    // Pitch rises with combo
+    const pitch = 1.0 + Math.min(combo / 50, 1) * 0.5;
+    audioManager.play(SoundId.COMBO_INCREMENT, { pitch, volume: 0.4 });
+  },
+
+  playComboMilestone(combo: number): void {
+    let soundId: SoundId;
+    switch (combo) {
+      case 5:
+        soundId = SoundId.COMBO_MILESTONE_5;
+        break;
+      case 10:
+        soundId = SoundId.COMBO_MILESTONE_10;
+        break;
+      case 15:
+        soundId = SoundId.COMBO_MILESTONE_15;
+        break;
+      case 20:
+        soundId = SoundId.COMBO_MILESTONE_20;
+        break;
+      case 30:
+        soundId = SoundId.COMBO_MILESTONE_30;
+        break;
+      case 50:
+        soundId = SoundId.COMBO_MILESTONE_50;
+        break;
+      default:
+        return;
+    }
+    audioManager.play(soundId);
+    audioManager.duck(0.4, 0.8);
+  },
+
+  playComboLost(): void {
+    audioManager.play(SoundId.COMBO_LOST);
+  },
+
+  playScoreTick(): void {
+    audioManager.play(SoundId.SCORE_TICK, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  playPointsPopup(): void {
+    audioManager.play(SoundId.POINTS_POPUP, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  // ============================================
+  // RAMPAGE MODE
+  // ============================================
+
+  playRampageEnter(): void {
+    audioManager.play(SoundId.RAMPAGE_ENTER);
+    audioManager.duck(0.2, 0.8);
+  },
+
+  startRampageLoop(): void {
+    audioManager.play(SoundId.RAMPAGE_LOOP, { loop: true, instanceId: 'rampage_loop' });
+    audioManager.play(SoundId.RAMPAGE_HEARTBEAT, { loop: true, instanceId: 'rampage_heartbeat' });
+  },
+
+  stopRampageLoop(): void {
+    audioManager.stop('rampage_loop', 0.5);
+    audioManager.stop('rampage_heartbeat', 0.5);
+  },
+
+  playRampageExit(): void {
+    audioManager.play(SoundId.RAMPAGE_EXIT);
+  },
+
+  playAncestorWhisper(): void {
+    audioManager.play(SoundId.ANCESTOR_WHISPER, { pitch: variedPitch(1.0, 0.2) });
+  },
+
+  // ============================================
+  // HEAT & WANTED
+  // ============================================
+
+  playHeatIncrease(): void {
+    audioManager.play(SoundId.HEAT_INCREASE);
+  },
+
+  playWantedStarUp(): void {
+    audioManager.play(SoundId.WANTED_STAR_UP);
+  },
+
+  playWantedStarDown(): void {
+    audioManager.play(SoundId.WANTED_STAR_DOWN);
+  },
+
+  playPursuitStart(): void {
+    audioManager.play(SoundId.PURSUIT_START);
+  },
+
+  playPursuitEnd(): void {
+    audioManager.play(SoundId.PURSUIT_END);
+  },
+
+  // ============================================
+  // PLAYER DAMAGE & DEATH
+  // ============================================
+
+  playPlayerHit(): void {
+    audioManager.play(SoundId.PLAYER_HIT, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  playPlayerHurt(): void {
+    audioManager.play(SoundId.PLAYER_HURT, { pitch: variedPitch(1.0, 0.1) });
+  },
+
+  playPlayerDeath(): void {
+    audioManager.play(SoundId.PLAYER_DEATH);
+    audioManager.duck(0.1, 1.5);
+  },
+
+  playGameOver(): void {
+    audioManager.play(SoundId.GAME_OVER);
+  },
+
+  // ============================================
+  // UI SOUNDS
+  // ============================================
+
+  playUIClick(): void {
+    audioManager.play(SoundId.UI_CLICK);
+  },
+
+  playUIHover(): void {
+    audioManager.play(SoundId.UI_HOVER);
+  },
+
+  playUIConfirm(): void {
+    audioManager.play(SoundId.UI_CONFIRM);
+  },
+
+  playUICancel(): void {
+    audioManager.play(SoundId.UI_CANCEL);
+  },
+
+  playUINotification(): void {
+    audioManager.play(SoundId.UI_NOTIFICATION);
+  },
+
+  playUIAlert(): void {
+    audioManager.play(SoundId.UI_ALERT);
+  },
+
+  // Play voice announcer for a notification message
+  playVoiceForMessage(message: string): void {
+    const voiceId = MESSAGE_TO_VOICE[message];
+    if (voiceId) {
+      audioManager.play(voiceId, { maxDuration: 1.2 });
+    }
+  },
+
+  playMenuOpen(): void {
+    audioManager.play(SoundId.MENU_OPEN);
+  },
+
+  playMenuClose(): void {
+    audioManager.play(SoundId.MENU_CLOSE);
+  },
+
+  // ============================================
+  // MUSIC
+  // ============================================
+
+  playMenuMusic(): void {
+    audioManager.playMusic(SoundId.MUSIC_MENU);
+  },
+
+  playGameplayMusic(): void {
+    audioManager.playMusic(SoundId.MUSIC_GAMEPLAY);
+  },
+
+  playRampageMusic(): void {
+    audioManager.playMusic(SoundId.MUSIC_RAMPAGE);
+  },
+
+  playGameOverMusic(): void {
+    audioManager.playMusic(SoundId.MUSIC_GAME_OVER);
+  },
+
+  stopMusic(fadeTime = 1.0): void {
+    audioManager.stopMusic(fadeTime);
+  },
+
+  // ============================================
+  // AMBIENT
+  // ============================================
+
+  startAmbient(): void {
+    // Christmas market ambience as main background
+    audioManager.play(SoundId.CHRISTMAS_MARKET, { loop: true, instanceId: 'christmas_market' });
+  },
+
+  stopAmbient(): void {
+    audioManager.stop('christmas_market', 1.0);
+  },
+
+  // ============================================
+  // VOLUME CONTROLS
+  // ============================================
+
+  setMasterVolume(volume: number): void {
+    audioManager.setMasterVolume(volume);
+  },
+
+  setSfxVolume(volume: number): void {
+    audioManager.setSfxVolume(volume);
+  },
+
+  setMusicVolume(volume: number): void {
+    audioManager.setMusicVolume(volume);
+  },
+
+  toggleMute(): boolean {
+    return audioManager.toggleMute();
+  },
+
+  // ============================================
+  // UPDATE
+  // ============================================
+
+  update(dt: number): void {
+    audioManager.update(dt);
+  },
+
+  // ============================================
+  // CLEANUP
+  // ============================================
+
+  dispose(): void {
+    audioManager.dispose();
+  },
+};

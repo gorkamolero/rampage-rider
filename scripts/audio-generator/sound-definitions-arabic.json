@@ -1,0 +1,291 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "project": "Rampage Rider - Arabic Accent Voices",
+    "totalSounds": 35,
+    "outputDir": "public/audio",
+    "notes": "Arabic accent variant of voice announcer"
+  },
+  "sounds": [
+    {
+      "id": "voice_splat",
+      "path": "sfx/voice_arabic/voice_splat.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"SPLAT!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_crushed",
+      "path": "sfx/voice_arabic/voice_crushed.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"CRUSHED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_demolished",
+      "path": "sfx/voice_arabic/voice_demolished.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"DEMOLISHED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_obliterated",
+      "path": "sfx/voice_arabic/voice_obliterated.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"OBLITERATED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_terminated",
+      "path": "sfx/voice_arabic/voice_terminated.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"TERMINATED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_coward",
+      "path": "sfx/voice_arabic/voice_coward.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"COWARD!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_no_escape",
+      "path": "sfx/voice_arabic/voice_no_escape.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"NO ESCAPE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_run_faster",
+      "path": "sfx/voice_arabic/voice_run_faster.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"RUN FASTER!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_backstab",
+      "path": "sfx/voice_arabic/voice_backstab.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"BACKSTAB!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_easy_prey",
+      "path": "sfx/voice_arabic/voice_easy_prey.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"EASY PREY!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_roadkill",
+      "path": "sfx/voice_arabic/voice_roadkill.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"ROADKILL!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_pancaked",
+      "path": "sfx/voice_arabic/voice_pancaked.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"PANCAKED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_flattened",
+      "path": "sfx/voice_arabic/voice_flattened.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"FLATTENED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_splatter",
+      "path": "sfx/voice_arabic/voice_splatter.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"SPLATTER!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_speed_bump",
+      "path": "sfx/voice_arabic/voice_speed_bump.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"SPEED BUMP!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_badge_down",
+      "path": "sfx/voice_arabic/voice_badge_down.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"BADGE DOWN!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_officer_down",
+      "path": "sfx/voice_arabic/voice_officer_down.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"OFFICER DOWN!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_cop_dropped",
+      "path": "sfx/voice_arabic/voice_cop_dropped.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"COP DROPPED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_blue_down",
+      "path": "sfx/voice_arabic/voice_blue_down.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"BLUE DOWN!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_killing_spree",
+      "path": "sfx/voice_arabic/voice_killing_spree.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"KILLING SPREE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_rampage",
+      "path": "sfx/voice_arabic/voice_rampage.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"RAMPAGE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_unstoppable",
+      "path": "sfx/voice_arabic/voice_unstoppable.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"UNSTOPPABLE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_godlike",
+      "path": "sfx/voice_arabic/voice_godlike.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"GODLIKE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_massacre",
+      "path": "sfx/voice_arabic/voice_massacre.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"MASSACRE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_legendary",
+      "path": "sfx/voice_arabic/voice_legendary.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"LEGENDARY!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_heat_kill",
+      "path": "sfx/voice_arabic/voice_heat_kill.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"HEAT KILL!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_wanted_bonus",
+      "path": "sfx/voice_arabic/voice_wanted_bonus.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"WANTED BONUS!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_pursuit_frenzy",
+      "path": "sfx/voice_arabic/voice_pursuit_frenzy.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"PURSUIT FRENZY!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_hot_streak",
+      "path": "sfx/voice_arabic/voice_hot_streak.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"HOT STREAK!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_blast_kill",
+      "path": "sfx/voice_arabic/voice_blast_kill.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"BLAST KILL!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_cop_killer",
+      "path": "sfx/voice_arabic/voice_cop_killer.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"COP KILLER!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_biker_down",
+      "path": "sfx/voice_arabic/voice_biker_down.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"BIKER DOWN!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_wrecked",
+      "path": "sfx/voice_arabic/voice_wrecked.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"WRECKED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_leveled",
+      "path": "sfx/voice_arabic/voice_leveled.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"LEVELED!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    },
+    {
+      "id": "voice_rampage_mode",
+      "path": "sfx/voice_arabic/voice_rampage_mode.mp3",
+      "prompt": "Deep sinister male voice with Arabian accent saying \"RAMPAGE MODE!\" with evil glee, demonic announcer",
+      "duration": 2,
+      "loop": false,
+      "category": "voice"
+    }
+  ]
+}

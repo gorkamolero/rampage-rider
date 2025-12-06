@@ -36,6 +36,15 @@ import { GameState, Tier, InputState, GameStats, KillNotification } from '../typ
 import { ActionController, ActionType } from './ActionController';
 import { CircularBuffer } from '../utils/CircularBuffer';
 import { RAMPAGE_DIMENSION } from '../constants';
+import { gameAudio } from '../audio';
+import {
+  KILL_MESSAGES,
+  PANIC_KILL_MESSAGES,
+  ROADKILL_MESSAGES,
+  COP_KILL_MESSAGES,
+  PURSUIT_KILL_MESSAGES,
+  COMBO_MILESTONES,
+} from '../audio/sounds';
 
 export class Engine {
   private scene: THREE.Scene;
@@ -179,16 +188,6 @@ export class Engine {
   private heatFloorActive: boolean = false; // True once heat has hit 50%, enables floor at 25%
   private lastAnnouncedComboMilestone: number = 0; // Track combo callouts
 
-  // Combo milestone announcer messages
-  private static readonly COMBO_MILESTONES: Array<{ threshold: number; message: string }> = [
-    { threshold: 5, message: 'KILLING SPREE!' },
-    { threshold: 10, message: 'RAMPAGE!' },
-    { threshold: 15, message: 'UNSTOPPABLE!' },
-    { threshold: 20, message: 'GODLIKE!' },
-    { threshold: 30, message: 'MASSACRE!' },
-    { threshold: 50, message: 'LEGENDARY!' },
-  ];
-
   // Slow-mo effect for tier unlocks (Burnout-style impact frame)
   private slowmoTimer: number = 0;
   private sedanChipCooldown: number = 0; // Cooldown for sedan vs cop car chip damage
@@ -313,11 +312,6 @@ export class Engine {
   private awaitingVehicleNotificationShown: boolean = false; // Track if proximity notification was shown
 
   private actionController: ActionController = new ActionController();
-  private static readonly KILL_MESSAGES = ['SPLAT!', 'CRUSHED!', 'DEMOLISHED!', 'OBLITERATED!', 'TERMINATED!'];
-  private static readonly PANIC_KILL_MESSAGES = ['COWARD!', 'NO ESCAPE!', 'RUN FASTER!', 'BACKSTAB!', 'EASY PREY!'];
-  private static readonly PURSUIT_KILL_MESSAGES = ['HEAT KILL!', 'WANTED BONUS!', 'PURSUIT FRENZY!', 'HOT STREAK!', 'RAMPAGE!'];
-  private static readonly ROADKILL_MESSAGES = ['ROADKILL!', 'PANCAKED!', 'FLATTENED!', 'SPLATTER!', 'SPEED BUMP!'];
-  private static readonly COP_KILL_MESSAGES = ['BADGE DOWN!', 'OFFICER DOWN!', 'COP DROPPED!', 'BLUE DOWN!'];
 
   constructor(canvas: HTMLCanvasElement, width: number, height: number) {
     this.scene = new THREE.Scene();
@@ -375,6 +369,11 @@ export class Engine {
   async init(): Promise<void> {
     const { preloader } = await import('./Preloader');
     await preloader.preloadAll();
+
+    // Initialize audio system (requires user interaction first, handled by resume())
+    await gameAudio.init();
+    // Start Christmas market ambience
+    gameAudio.startAmbient();
 
     await this.physics.init();
     this.ai.init();
@@ -544,8 +543,14 @@ export class Engine {
             this.stats.health = 0;
             this.isDying = true;
 
+            // Player death audio
+            gameAudio.playPlayerDeath();
+            gameAudio.stopMusic(0.5);
+
             this.player.die(() => {
               this.state = GameState.GAME_OVER;
+              gameAudio.playGameOver();
+              gameAudio.playGameOverMusic();
               if (this.callbacks.onGameOver) {
                 this.callbacks.onGameOver({ ...this.stats });
               }
@@ -597,8 +602,14 @@ export class Engine {
             this.stats.health = 0;
             this.isDying = true;
 
+            // Player death audio
+            gameAudio.playPlayerDeath();
+            gameAudio.stopMusic(0.5);
+
             this.player.die(() => {
               this.state = GameState.GAME_OVER;
+              gameAudio.playGameOver();
+              gameAudio.playGameOverMusic();
               if (this.callbacks.onGameOver) {
                 this.callbacks.onGameOver({ ...this.stats });
               }
@@ -707,6 +718,9 @@ export class Engine {
 
     const tierConfig = TIER_CONFIGS[tier];
     this.triggerKillNotification(`${tierConfig.name.toUpperCase()} UNLOCKED!`, true, 0);
+
+    // Tier unlock audio fanfare
+    gameAudio.playTierUnlock();
 
     // Burnout-style slow-mo impact frame on tier unlock
     this.triggerSlowmo();
@@ -911,6 +925,9 @@ export class Engine {
 
     if (this.currentVehicleTier) {
       this.stats.tier = this.currentVehicleTier;
+      // Start vehicle engine sound
+      gameAudio.playVehicleEnter();
+      gameAudio.startVehicleEngine('player_vehicle', this.currentVehicleTier);
     }
 
     this.shakeCamera(1.0);
@@ -1024,6 +1041,9 @@ export class Engine {
 
     const tierConfig = TIER_CONFIGS[tier];
     this.triggerKillNotification(`${tierConfig.name.toUpperCase()} UNLOCKED!`, true, 0);
+
+    // Tier unlock audio fanfare
+    gameAudio.playTierUnlock();
 
     // Burnout-style slow-mo impact frame on tier unlock
     this.triggerSlowmo();
@@ -1148,6 +1168,10 @@ export class Engine {
 
   private exitVehicle(): void {
     if (!this.vehicle || !this.player) return;
+
+    // Stop vehicle engine audio
+    gameAudio.stopVehicleEngine('player_vehicle');
+    gameAudio.playVehicleDestroy();
 
     const vehiclePos = this.vehicle.getPosition();
     const safePos = this.findSafeExitPosition(vehiclePos);
@@ -1304,6 +1328,9 @@ export class Engine {
     const attackStart = performance.now();
     const cfg = PLAYER_ATTACK_CONFIG.KNIFE;
 
+    // Attack whoosh sound
+    gameAudio.playKnifeAttack();
+
     const pedAttackRadius = cfg.pedRadius;
     const copAttackRadius = cfg.copRadius;
     const damage = cfg.damage;
@@ -1351,13 +1378,13 @@ export class Engine {
 
         for (let i = 0; i < regularKills; i++) {
           const message = this.stats.inPursuit
-            ? Engine.randomFrom(Engine.PURSUIT_KILL_MESSAGES)
-            : Engine.randomFrom(Engine.KILL_MESSAGES);
+            ? Engine.randomFrom(PURSUIT_KILL_MESSAGES)
+            : Engine.randomFrom(KILL_MESSAGES);
           const points = this.stats.inPursuit ? basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER : basePoints;
           this.triggerKillNotification(message, this.stats.inPursuit, points);
         }
         for (let i = 0; i < panicKills; i++) {
-          const message = Engine.randomFrom(Engine.PANIC_KILL_MESSAGES);
+          const message = Engine.randomFrom(PANIC_KILL_MESSAGES);
           const points = this.stats.inPursuit ? basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER * SCORING_CONFIG.PANIC_MULTIPLIER : basePoints * SCORING_CONFIG.PANIC_MULTIPLIER;
           this.triggerKillNotification(message, true, points);
         }
@@ -1405,7 +1432,7 @@ export class Engine {
         allKillPositions.push(...copResult.positions);
 
         for (let i = 0; i < copResult.kills; i++) {
-          this.triggerKillNotification(Engine.randomFrom(Engine.COP_KILL_MESSAGES), true, Math.floor(pointsPerKill * comboMultiplier));
+          this.triggerKillNotification(Engine.randomFrom(COP_KILL_MESSAGES), true, Math.floor(pointsPerKill * comboMultiplier));
         }
       }
     }
@@ -1444,7 +1471,7 @@ export class Engine {
         allKillPositions.push(...bikeResult.positions);
 
         for (let i = 0; i < bikeResult.kills; i++) {
-          this.triggerKillNotification(Engine.randomFrom(Engine.COP_KILL_MESSAGES), true, Math.floor(pointsPerKill * comboMultiplier));
+          this.triggerKillNotification(Engine.randomFrom(COP_KILL_MESSAGES), true, Math.floor(pointsPerKill * comboMultiplier));
         }
       }
     }
@@ -1455,6 +1482,15 @@ export class Engine {
     if (totalKills > 0) {
       this.emitBloodEffects(allKillPositions, this.player!.getPosition(), cfg.particleCount, cfg.decalCount);
       this.shakeCamera(cfg.cameraShakeMultiplier * totalKills);
+
+      // Kill sounds
+      for (let i = 0; i < totalKills; i++) {
+        const isCop = i >= _pedKills;
+        gameAudio.playKill(isCop ? 'cop' : 'pedestrian', this.stats.combo);
+      }
+      if (totalKills >= 3) {
+        gameAudio.playMultiKill(totalKills);
+      }
     }
     const _particlesTime = performance.now() - particlesStart;
 
@@ -1465,6 +1501,9 @@ export class Engine {
   private handleBicycleAttack(): void {
     if (!this.vehicle || !this.player) return;
     const cfg = PLAYER_ATTACK_CONFIG.BICYCLE;
+
+    // Bicycle slash sound
+    gameAudio.playBicycleSlash();
 
     const attackPosition = this.vehicle.getPosition();
     // Reuse pre-allocated vectors instead of new THREE.Vector3()
@@ -1510,7 +1549,7 @@ export class Engine {
 
         for (let i = 0; i < regularKills; i++) {
           const message = this.stats.inPursuit
-            ? Engine.randomFrom(Engine.PURSUIT_KILL_MESSAGES)
+            ? Engine.randomFrom(PURSUIT_KILL_MESSAGES)
             : 'BIKE SLASH!';
           const points = this.stats.inPursuit ? basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER : basePoints;
           this.triggerKillNotification(message, this.stats.inPursuit, Math.floor(points * comboMultiplier));
@@ -1603,6 +1642,9 @@ export class Engine {
   private handleMotorbikeBlast(): void {
     if (!this.vehicle || !this.player) return;
     const cfg = PLAYER_ATTACK_CONFIG.MOTORBIKE;
+
+    // Motorbike blast sound
+    gameAudio.playMotorbikeBlast();
 
     const attackPosition = this.vehicle.getPosition();
     // Reuse pre-allocated vectors instead of new THREE.Vector3()
@@ -1833,11 +1875,11 @@ export class Engine {
 
     let message: string;
     if (wasPanicking) {
-      message = Engine.randomFrom(Engine.PANIC_KILL_MESSAGES);
+      message = Engine.randomFrom(PANIC_KILL_MESSAGES);
     } else if (this.stats.inPursuit) {
-      message = Engine.randomFrom(Engine.PURSUIT_KILL_MESSAGES);
+      message = Engine.randomFrom(PURSUIT_KILL_MESSAGES);
     } else {
-      message = Engine.randomFrom(Engine.ROADKILL_MESSAGES);
+      message = Engine.randomFrom(ROADKILL_MESSAGES);
     }
     this.triggerKillNotification(message, wasPanicking || this.stats.inPursuit, Math.floor(points * comboMultiplier));
 
@@ -2010,6 +2052,9 @@ export class Engine {
   };
 
   private update(dt: number): void {
+    // Update audio system (music crossfades, ducking, etc.)
+    gameAudio.update(dt);
+
     // Phase 2: Rampage hit-stop - freeze everything for dramatic entry
     if (this.rampageHitStopTimer > 0) {
       this.rampageHitStopTimer -= dt;
@@ -2798,6 +2843,10 @@ export class Engine {
     if (this.callbacks.onKillNotification) {
       this.callbacks.onKillNotification({ message, isPursuit, points, combo: this.stats.combo, type });
     }
+    // Play voice announcer for this message (if voice exists for it)
+    if (type !== 'prompt') {
+      gameAudio.playVoiceForMessage(message);
+    }
   }
 
   /**
@@ -2831,13 +2880,14 @@ export class Engine {
     if (!wasInRampageMode && this.stats.inRampageMode) {
       this.triggerKillNotification('RAMPAGE MODE!', true, 0, 'alert');
       this.shakeCamera(3.0);
+      gameAudio.playRampageEnter();
     }
 
     // Find the highest milestone we've crossed
     let highestMilestone = 0;
     let milestoneMessage = '';
 
-    for (const milestone of Engine.COMBO_MILESTONES) {
+    for (const milestone of COMBO_MILESTONES) {
       if (this.stats.combo >= milestone.threshold && milestone.threshold > this.lastAnnouncedComboMilestone) {
         highestMilestone = milestone.threshold;
         milestoneMessage = milestone.message;
@@ -2849,6 +2899,9 @@ export class Engine {
       this.lastAnnouncedComboMilestone = highestMilestone;
       this.triggerKillNotification(milestoneMessage, true, 0);
       this.shakeCamera(2.0 + highestMilestone * 0.05); // Bigger shake for bigger milestones
+
+      // Play combo milestone audio
+      gameAudio.playComboMilestone(highestMilestone);
     }
 
     // Rampage Dimension: Enter when combo >= threshold
@@ -2858,6 +2911,10 @@ export class Engine {
 
     // Reset milestone tracker and exit dimension when combo resets
     if (this.stats.combo === 0) {
+      // Play combo lost sound if we had a combo
+      if (this.lastAnnouncedComboMilestone > 0) {
+        gameAudio.playComboLost();
+      }
       this.lastAnnouncedComboMilestone = 0;
       if (this.inRampageDimension) {
         this.exitRampageDimension();
@@ -2872,6 +2929,11 @@ export class Engine {
     if (!this.rampageDimension || this.inRampageDimension) return;
 
     this.inRampageDimension = true;
+
+    // Rampage audio - dramatic entry sound and ambient loop
+    gameAudio.playRampageEnter();
+    gameAudio.startRampageLoop();
+    gameAudio.playRampageMusic();
 
     // Phase 2: Enable slow motion for enemies
     this.rampageTimeScale = RAMPAGE_DIMENSION.SLOW_MO_SCALE;
@@ -2913,6 +2975,11 @@ export class Engine {
     if (!this.rampageDimension || !this.inRampageDimension) return;
 
     this.inRampageDimension = false;
+
+    // Rampage audio - exit sound and stop loops
+    gameAudio.playRampageExit();
+    gameAudio.stopRampageLoop();
+    gameAudio.playGameplayMusic(); // Return to normal gameplay music
 
     // Phase 2: Restore normal time
     this.rampageTimeScale = 1.0;

@@ -1,0 +1,18 @@
+{
+  "name": "rampage-audio-generator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ElevenLabs SFX generator for Rampage Rider",
+  "scripts": {
+    "test": "node generate-sounds.js --test",
+    "stats": "node generate-sounds.js --stats",
+    "dry-run": "node generate-sounds.js --dry-run",
+    "generate": "node generate-sounds.js",
+    "generate:fast": "node generate-sounds.js --parallel=3",
+    "generate:category": "node generate-sounds.js --category"
+  },
+  "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.26.0",
+    "dotenv": "^16.0.0"
+  }
+}

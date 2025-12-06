@@ -10,6 +10,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2024-12-06]
+
+### Voice Announcer System with Arabic Accent
+
+**Added:**
+- **35 voice announcer sounds** with sinister Arabian accent character
+- Voices announce kills, combos, cop kills, and special events
+- ElevenLabs Sound Effects API integration for voice generation
+- `--definitions` flag to generate-sounds.js for custom definitions files
+
+**Voice Categories:**
+- Kill announcements: SPLAT, CRUSHED, DEMOLISHED, OBLITERATED, etc.
+- Combo milestones: KILLING SPREE, RAMPAGE, UNSTOPPABLE, GODLIKE, MASSACRE, LEGENDARY
+- Cop kills: BADGE DOWN, OFFICER DOWN, COP DROPPED, BLUE DOWN, COP KILLER
+- Vehicle kills: ROADKILL, PANCAKED, FLATTENED, SPEED BUMP
+- Special: COWARD, NO ESCAPE, RUN FASTER, BACKSTAB, EASY PREY
+
+**Technical:**
+- Voices use 2.0s duration with `maxDuration: 1.2` playback limit
+- Deep sinister male voice with Arabian accent character
+- Both Arabic and original voice sets available (voice_arabic/, voice/)
+
+---
+
 ## [2024-12-04]
 
 ### Custom Ancestor Models for Rampage Mode
