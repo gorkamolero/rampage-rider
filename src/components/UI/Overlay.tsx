@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { GameStats, TierConfig, Tier } from '../../types';
 import { TIER_CONFIGS, DEBUG_PERFORMANCE_PANEL } from '../../constants';
-import RampageBar from './RampageBar';
 import RampageVignette from './RampageVignette';
 import { gameAudio } from '../../audio/GameAudio';
 import { audioManager } from '../../audio/AudioManager';
@@ -169,21 +168,13 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
             ════════════════════════════════════════════════════════════════ */}
             {isMobile ? (
               <>
-                {/* TOP - Compact Score & Kills */}
+                {/* TOP - Score left, controls + kills right */}
                 <div className="flex justify-between items-start">
                   <div className="bg-black/90 px-2 py-1 border-l-2" style={{ borderColor: NEON.yellow }}>
                     <span className="text-[9px] retro" style={{ color: '#666' }}>SCORE </span>
                     <span className="text-base retro font-bold tabular-nums" style={{ color: '#fff' }}>{stats.score.toLocaleString()}</span>
                     {multiplier > 1 && <span className="text-[9px] retro ml-1" style={{ color: NEON.yellow }}>×{multiplier.toFixed(1)}</span>}
                   </div>
-
-                  <RampageBar
-                    combo={stats.combo}
-                    comboTimer={stats.comboTimer}
-                    inRampageDimension={stats.inRampageDimension || false}
-                    rampageProgress={stats.rampageProgress || 0}
-                    compact
-                  />
 
                   <div className="flex items-start gap-1">
                     {/* Audio - expandable on mobile too */}
@@ -310,6 +301,21 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
                           <MiniPixelBar value={stats.health} max={currentConfig.maxHealth} color={NEON.red} blocks={5} />
                         )}
                       </div>
+
+                      {/* Rampage/Combo */}
+                      {(stats.combo > 0 || stats.inRampageDimension) && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[8px] retro" style={{ color: stats.inRampageDimension ? NEON.red : NEON.orange }}>
+                            {stats.inRampageDimension ? 'RP' : 'CB'}
+                          </span>
+                          <MiniPixelBar
+                            value={stats.inRampageDimension ? stats.rampageFuel : stats.rampageProgress || 0}
+                            max={100}
+                            color={stats.inRampageDimension ? NEON.red : NEON.orange}
+                            blocks={5}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Right side: Vehicle */}
@@ -438,14 +444,6 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
                     </div>
                   </div>
 
-                  {/* RAMPAGE - Center */}
-                  <RampageBar
-                    combo={stats.combo}
-                    comboTimer={stats.comboTimer}
-                    inRampageDimension={stats.inRampageDimension || false}
-                    rampageProgress={stats.rampageProgress || 0}
-                  />
-
                   {/* TOP RIGHT - Score + Kills */}
                   <div className="flex items-stretch gap-2">
                     {/* SCORE */}
@@ -568,6 +566,26 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
                           </>
                         )}
                       </div>
+
+                      {/* Rampage */}
+                      {(stats.combo > 0 || stats.inRampageDimension) && (
+                        <div className="flex items-center gap-3 pt-1 border-t border-neutral-800 mt-1">
+                          <span className="text-[10px] retro tracking-widest w-16" style={{ color: stats.inRampageDimension ? NEON.red : NEON.orange }}>
+                            {stats.inRampageDimension ? 'RAMPAGE' : 'COMBO'}
+                          </span>
+                          <PixelBar
+                            value={stats.inRampageDimension ? stats.rampageFuel : stats.rampageProgress || 0}
+                            max={100}
+                            color={stats.inRampageDimension ? NEON.red : NEON.orange}
+                            blocks={10}
+                          />
+                          {stats.inRampageDimension && (
+                            <span className="text-[10px] retro tabular-nums" style={{ color: NEON.red }}>
+                              {Math.round(stats.rampageFuel)}%
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2" style={{ borderColor: NEON.cyan }} />
                     <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2" style={{ borderColor: NEON.cyan }} />

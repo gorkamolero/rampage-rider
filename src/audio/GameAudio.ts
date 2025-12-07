@@ -179,10 +179,13 @@ export const gameAudio = {
   },
 
   // Universal stab sound - used for all melee attacks (walking, bike, motorbike)
+  // During rampage: 50% volume + heavy reverb for distant/ethereal effect
   playStab(combo = 0): void {
+    const baseVolume = comboVolume(0.7, combo);
     audioManager.play(randomFrom(KNIFE_STAB_SOUNDS), {
-      volume: comboVolume(0.7, combo),
+      volume: this._inRampage ? baseVolume * 0.5 : baseVolume,
       pitch: variedPitch(1.0, 0.1),
+      useReverb: this._inRampage,
     });
   },
 
@@ -263,25 +266,31 @@ export const gameAudio = {
 
   playPedestrianScream(): void {
     // Use the 20-variation scream pool
+    // During rampage: quiet + heavy reverb for distant/ethereal effect
     audioManager.play(randomFrom(SCREAM_SOUNDS), {
-      volume: 0.55,
+      volume: this._inRampage ? 0.15 : 0.55,
       pitch: variedPitch(1.0, 0.15),
+      useReverb: this._inRampage,
     });
   },
 
   playPedestrianPanic(): void {
     // Also use scream pool for panic
+    // During rampage: quiet + heavy reverb for distant/ethereal effect
     audioManager.play(randomFrom(SCREAM_SOUNDS), {
-      volume: 0.4,
+      volume: this._inRampage ? 0.1 : 0.4,
       pitch: variedPitch(1.0, 0.2),
+      useReverb: this._inRampage,
     });
   },
 
   // Generic scream (used for both pedestrians and cops)
   playScream(): void {
+    // During rampage: quiet + heavy reverb for distant/ethereal effect
     audioManager.play(randomFrom(SCREAM_SOUNDS), {
-      volume: 0.55,
+      volume: this._inRampage ? 0.15 : 0.55,
       pitch: variedPitch(1.0, 0.15),
+      useReverb: this._inRampage,
     });
   },
 
@@ -578,15 +587,23 @@ export const gameAudio = {
       instanceId: "rampage_wind",
       volume: 0.75,
     });
+    // Layer both heartbeats for richer effect
     audioManager.play(SoundId.RAMPAGE_HEARTBEAT, {
       loop: true,
       instanceId: "rampage_heartbeat",
+      volume: 0.6,
+    });
+    audioManager.play(SoundId.HEARTBEAT_SLOW, {
+      loop: true,
+      instanceId: "heartbeat_slow",
+      volume: 0.8,
     });
   },
 
   stopRampageLoop(): void {
     audioManager.stop("rampage_wind", 0.5);
     audioManager.stop("rampage_heartbeat", 0.5);
+    audioManager.stop("heartbeat_slow", 0.5);
   },
 
   /**
@@ -596,6 +613,7 @@ export const gameAudio = {
     audioManager.stop("taser_loop", 0.1);
     audioManager.stop("rampage_wind", 0.1);
     audioManager.stop("rampage_heartbeat", 0.1);
+    audioManager.stop("heartbeat_slow", 0.1);
     audioManager.stop("player_run_loop", 0.1);
     audioManager.stop("bike_pedal_loop", 0.1);
     audioManager.stop("motorbike_engine_loop", 0.1);

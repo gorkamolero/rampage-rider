@@ -2,7 +2,7 @@
   "meta": {
     "version": "1.0.0",
     "project": "Rampage Rider",
-    "totalSounds": 94,
+    "totalSounds": 95,
     "outputDir": "public/audio",
     "estimatedCredits": 28000,
     "notes": "Use ElevenLabs Text-to-Sound Effects API. Starter plan ($5/mo) covers it."
@@ -1279,6 +1279,14 @@
       "duration": 2,
       "loop": false,
       "category": "voice"
+    },
+    {
+      "id": "heartbeat_slow",
+      "path": "sfx/rampage/heartbeat_slow.mp3",
+      "prompt": "Very slow cinematic heartbeat, deep bass thump with reverb, atmospheric tension, movie trailer style, ominous pulsing rhythm, loopable",
+      "duration": 8,
+      "loop": true,
+      "category": "rampage"
     }
   ]
 }

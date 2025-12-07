@@ -61,13 +61,15 @@ export interface GameStats {
   health: number;
   combo: number;
   comboTimer: number;
+  comboCopKills: number; // Cop kills in current combo (resets when combo drops)
+  desperationCopKills: number; // Cop kills while below desperation health threshold
   gameTime: number;
   heat: number; // Controls cop spawning rate
   wantedStars: number; // Controls cop attack type (0=punch, 1=taser, 2+=shoot)
   inPursuit: boolean; // Cops are actively chasing
   inRampageMode: boolean; // Rampage mode active (combo >= 10)
-  rampageKills: number; // Kills during current rampage mode
-  rampageKillLimit: number; // Number of kills needed to exit rampage
+  rampageFuel: number; // Fuel gauge 0-100%, drains over time, refills on cop kills
+  rampageDuration: number; // Seconds spent in current rampage (for drain rate brackets)
   killHistory: { time: number; kills: number }[];
   copHealthBars: Array<{ x: number; y: number; health: number; maxHealth: number }>; // Screen-space positions for cop health bars
   isTased: boolean; // Player is being tased

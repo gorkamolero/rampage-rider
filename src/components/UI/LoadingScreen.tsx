@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LoadingState, LoadingPhase } from '../../core/Preloader';
-import { Button } from '@/components/ui/8bit/button';
 import { gameAudio } from '../../audio/GameAudio';
 
 interface LoadingScreenProps {
@@ -46,6 +45,8 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ state, onStart }) 
     Math.floor(Math.random() * TAGLINES.length)
   );
   const [blinkVisible, setBlinkVisible] = useState(true);
+  const [glitchOffset, setGlitchOffset] = useState(0);
+  const [noiseLineY, setNoiseLineY] = useState<number | null>(null);
 
   // Smooth progress animation
   useEffect(() => {
@@ -84,14 +85,44 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ state, onStart }) 
     return () => clearInterval(interval);
   }, []);
 
+  // Glitch effect - runs continuously like ErrorBoundary
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // 30% chance of glitch, ±4px offset
+      setGlitchOffset(Math.random() > 0.7 ? (Math.random() - 0.5) * 4 : 0);
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Random noise line effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (Math.random() > 0.9) {
+        setNoiseLineY(15 + Math.random() * 70);
+        setTimeout(() => setNoiseLineY(null), 80);
+      }
+    }, 150);
+    return () => clearInterval(interval);
+  }, []);
+
   const progressPercent = Math.round(displayProgress);
   const filledBlocks = Math.floor(displayProgress / 5); // 20 blocks total
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black overflow-hidden">
-      {/* Scanline effect */}
+      {/* Ambient radial glow */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.03]"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 50% 40%, ${NEON.red}08 0%, transparent 50%),
+                       radial-gradient(ellipse at 30% 70%, ${NEON.cyan}05 0%, transparent 40%),
+                       radial-gradient(ellipse at 70% 80%, ${NEON.yellow}05 0%, transparent 40%)`,
+        }}
+      />
+
+      {/* Scanline effect - matches ErrorBoundary */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.05]"
         style={{
           backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 2px, #fff 4px)'
         }}
@@ -99,7 +130,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ state, onStart }) 
 
       {/* Pixel grid background */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.02]"
+        className="absolute inset-0 pointer-events-none opacity-[0.03]"
         style={{
           backgroundImage: `
             linear-gradient(${NEON.cyan}20 1px, transparent 1px),
@@ -109,35 +140,81 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ state, onStart }) 
         }}
       />
 
+      {/* Animated noise line - more visible */}
+      {noiseLineY !== null && (
+        <div
+          className="absolute left-0 right-0 pointer-events-none"
+          style={{
+            top: `${noiseLineY}%`,
+            height: '2px',
+            background: `linear-gradient(90deg, transparent, ${NEON.cyan}60, ${NEON.red}60, transparent)`,
+            opacity: 0.8,
+          }}
+        />
+      )}
+
+      {/* Glitch overlay - matches ErrorBoundary mix-blend-overlay */}
+      {glitchOffset !== 0 && (
+        <div
+          className="absolute inset-0 pointer-events-none mix-blend-overlay"
+          style={{
+            background: `linear-gradient(${90 + glitchOffset * 10}deg,
+              transparent 0%,
+              ${NEON.red}10 ${45 + glitchOffset * 5}%,
+              ${NEON.cyan}05 ${55 + glitchOffset * 5}%,
+              transparent 100%
+            )`,
+            transform: `translateX(${glitchOffset * 2}px)`,
+          }}
+        />
+      )}
+
       <div className="relative w-full max-w-md px-6">
-        {/* Title */}
+        {/* Title - aggressive glitch with sideways movement */}
         <div className="text-center mb-8">
-          <h1
-            className="text-4xl md:text-5xl font-bold retro leading-tight"
+          <div
             style={{
-              color: NEON.red,
-              textShadow: `
-                0 0 20px ${NEON.red}80,
-                0 0 40px ${NEON.red}40,
-                4px 4px 0 #000
-              `,
+              transform: `translateX(${glitchOffset}px)`,
+              display: 'inline-block',
             }}
           >
-            HOLIDAY
-          </h1>
-          <h1
-            className="text-4xl md:text-5xl font-bold retro leading-tight -mt-1"
+            <h1
+              className="text-4xl md:text-5xl font-bold retro leading-tight"
+              style={{
+                color: NEON.red,
+                textShadow: `
+                  0 0 20px ${NEON.red}80,
+                  0 0 40px ${NEON.red}40,
+                  4px 4px 0 #000,
+                  ${glitchOffset * 1.5}px 0 0 ${NEON.cyan}
+                `,
+              }}
+            >
+              HOLIDAY
+            </h1>
+          </div>
+          <div
             style={{
-              color: NEON.yellow,
-              textShadow: `
-                0 0 20px ${NEON.yellow}80,
-                0 0 40px ${NEON.yellow}40,
-                4px 4px 0 #000
-              `,
+              transform: `translateX(${-glitchOffset}px)`,
+              display: 'inline-block',
+              width: '100%',
             }}
           >
-            MAYHEM
-          </h1>
+            <h1
+              className="text-4xl md:text-5xl font-bold retro leading-tight -mt-1"
+              style={{
+                color: NEON.yellow,
+                textShadow: `
+                  0 0 20px ${NEON.yellow}80,
+                  0 0 40px ${NEON.yellow}40,
+                  4px 4px 0 #000,
+                  ${-glitchOffset * 1.5}px 0 0 ${NEON.magenta}
+                `,
+              }}
+            >
+              MAYHEM
+            </h1>
+          </div>
         </div>
 
         {/* Tagline */}
@@ -272,9 +349,17 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ state, onStart }) 
       {/* Footer */}
       <div className="absolute bottom-6 text-center">
         <p className="text-[8px] retro tracking-widest" style={{ color: '#444' }}>
-          2024 RAMPAGE RIDER
+          {showStart ? 'PRESS START TO BEGIN' : 'LOADING ASSETS • PLEASE WAIT'}
         </p>
       </div>
+
+      {/* Vignette effect */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%)',
+        }}
+      />
     </div>
   );
 };

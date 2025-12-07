@@ -15,6 +15,7 @@
 
 import * as THREE from 'three';
 import { SoundId, SOUND_CONFIG, SoundCategory } from './sounds';
+import Reverb from 'soundbank-reverb';
 
 // Pool size for frequently played sounds
 const POOL_SIZE = 8;
@@ -47,10 +48,9 @@ export class AudioManager {
   private uiGain: GainNode | null = null;
   private ambientGain: GainNode | null = null;
 
-  // Reverb effect for voice announcer
-  private voiceConvolver: ConvolverNode | null = null;
-  private voiceReverbGain: GainNode | null = null;
-  private voiceDryGain: GainNode | null = null;
+  // Reverb effect for voice announcer and rampage screams
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private reverbNode: any = null;
 
   // Audio buffers loaded from files
   private buffers: Map<SoundId, AudioBuffer> = new Map();
@@ -127,7 +127,9 @@ export class AudioManager {
       this.ambientGain.connect(this.masterGain);
 
       // Create reverb effect for voice announcer (heavy Arabic echo)
+      console.log('[AudioManager] About to create reverb...');
       await this.createVoiceReverb();
+      console.log('[AudioManager] Reverb node after creation:', this.reverbNode);
 
       // Set initial volumes
       this.updateVolumes();
@@ -171,63 +173,31 @@ export class AudioManager {
   }
 
   /**
-   * Create heavy reverb effect for voice announcer (Arabic arena echo)
-   * Uses algorithmically generated impulse response for performance
+   * Create heavy reverb effect using soundbank-reverb library
    */
   private async createVoiceReverb(): Promise<void> {
     if (!this.context || !this.uiGain) return;
 
     try {
-      // Create convolver node for reverb
-      this.voiceConvolver = this.context.createConvolver();
+      // Create reverb using soundbank-reverb library
+      this.reverbNode = Reverb(this.context);
 
-      // Generate impulse response algorithmically (no file needed)
-      // Long decay time (2.5s) with heavy early reflections for dramatic effect
-      const sampleRate = this.context.sampleRate || 44100;
-      const length = Math.floor(sampleRate * 2.5); // 2.5 second reverb tail
-      const impulse = this.context.createBuffer(2, length, sampleRate);
+      // Configure for massive cathedral/void feel - extremely wet
+      // Set time and decay first (triggers impulse rebuild)
+      this.reverbNode.time = 5;      // 5 second reverb tail
+      this.reverbNode.decay = 4;     // Slow decay
 
-      for (let channel = 0; channel < 2; channel++) {
-        const channelData = impulse.getChannelData(channel);
-        for (let i = 0; i < length; i++) {
-          // Exponential decay with random noise
-          const decay = Math.exp(-i / (sampleRate * 0.8)); // 0.8s decay constant
-          // Add some early reflections (discrete echoes)
-          let earlyReflection = 0;
-          if (i < sampleRate * 0.1) {
-            // First 100ms: strong early reflections
-            const echoTimes = [0.02, 0.04, 0.06, 0.08]; // Echo at 20ms, 40ms, 60ms, 80ms
-            for (const echoTime of echoTimes) {
-              const echoSample = Math.floor(echoTime * sampleRate);
-              if (Math.abs(i - echoSample) < 50) {
-                earlyReflection += 0.6 * Math.exp(-Math.abs(i - echoSample) / 20);
-              }
-            }
-          }
-          // Combine diffuse reverb with early reflections
-          channelData[i] = ((Math.random() * 2 - 1) * decay + earlyReflection) * 0.5;
-        }
-      }
+      // Then set wet/dry mix
+      this.reverbNode.wet.value = 2;     // Boosted wet signal
+      this.reverbNode.dry.value = 0.3;   // Low dry signal
+      this.reverbNode.cutoff.value = 3000; // Low-pass filter for dark reverb
 
-      this.voiceConvolver.buffer = impulse;
-
-      // Wet/dry mix: 60% reverb, 40% dry for heavy effect
-      this.voiceReverbGain = this.context.createGain();
-      this.voiceReverbGain.gain.value = 0.6;
-
-      this.voiceDryGain = this.context.createGain();
-      this.voiceDryGain.gain.value = 0.4;
-
-      // Connect reverb chain -> UI gain
-      this.voiceConvolver.connect(this.voiceReverbGain);
-      this.voiceReverbGain.connect(this.uiGain);
-      this.voiceDryGain.connect(this.uiGain);
+      // Connect reverb output to UI gain
+      this.reverbNode.connect(this.uiGain);
+      console.log('[AudioManager] Reverb created:', this.reverbNode);
     } catch (error) {
-      // Reverb creation failed (some browsers don't support it) - voices will play without reverb
       console.warn('[AudioManager] Voice reverb not available:', error);
-      this.voiceConvolver = null;
-      this.voiceReverbGain = null;
-      this.voiceDryGain = null;
+      this.reverbNode = null;
     }
   }
 
@@ -397,11 +367,11 @@ export class AudioManager {
       source.connect(gainNode);
     }
 
-    // Route through reverb for voice announcer (heavy Arabic echo)
-    if (options.useReverb && this.voiceConvolver && this.voiceDryGain) {
-      // Send to both dry and wet (convolver) paths
-      gainNode.connect(this.voiceConvolver);
-      gainNode.connect(this.voiceDryGain);
+    // Route through reverb for voice announcer and rampage screams
+    if (options.useReverb && this.reverbNode) {
+      // Send to reverb node (handles wet/dry mix internally)
+      console.log('[AudioManager] Playing with reverb:', id);
+      gainNode.connect(this.reverbNode);
     } else {
       // Get the appropriate output gain based on sound category
       const config = SOUND_CONFIG[id];

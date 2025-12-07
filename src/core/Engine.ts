@@ -70,7 +70,6 @@ export class Engine {
   private speedLinesEffect: SpeedLinesEffect | null = null;
   private ancestorCouncil: AncestorCouncil | null = null;
   private inRampageDimension = false;
-  private rampageKillsAtStart = 0; // Total kills when rampage started (to track rampage kills)
   private readonly normalBackground = new THREE.Color(0x1a1a1a);
 
   // Phase 2: Rampage slow motion - enemies move at 30% speed
@@ -275,14 +274,16 @@ export class Engine {
     tier: Tier.FOOT,
     combo: 0,
     comboTimer: 0,
+    comboCopKills: 0,
+    desperationCopKills: 0,
     gameTime: 0,
     health: 100,
     heat: 0,
     wantedStars: 0,
     inPursuit: false,
     inRampageMode: false,
-    rampageKills: 0,
-    rampageKillLimit: RAMPAGE_DIMENSION.KILL_LIMIT,
+    rampageFuel: 0,
+    rampageDuration: 0,
     killHistory: [],
     copHealthBars: [],
     isTased: false,
@@ -548,6 +549,9 @@ export class Engine {
       this.cops.clear();
       // Set damage callback once (not every frame)
       this.cops.setDamageCallback((damage: number) => {
+        // Cops don't deal damage during rampage (they're just fuel targets)
+        if (this.inRampageDimension) return;
+
         if (this.isInVehicle && this.vehicle) {
           this.vehicle.takeDamage(damage);
         } else if (this.player) {
@@ -673,14 +677,16 @@ export class Engine {
       tier: Tier.FOOT,
       combo: DEBUG_START_IN_RAMPAGE ? 10 : 0,
       comboTimer: DEBUG_START_IN_RAMPAGE ? 999 : 0,
+      comboCopKills: DEBUG_START_IN_RAMPAGE ? 2 : 0,
+      desperationCopKills: 0,
       gameTime: 0,
       health: 100,
-      heat: 0,
+      heat: DEBUG_START_IN_RAMPAGE ? 50 : 0,
       wantedStars: 0,
       inPursuit: false,
       inRampageMode: DEBUG_START_IN_RAMPAGE,
-      rampageKills: 0,
-      rampageKillLimit: RAMPAGE_DIMENSION.KILL_LIMIT,
+      rampageFuel: DEBUG_START_IN_RAMPAGE ? 100 : 0,
+      rampageDuration: 0,
       killHistory: [],
       copHealthBars: [],
       isTased: false,
@@ -1436,6 +1442,7 @@ export class Engine {
         this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
         this.lastCombatTime = this.stats.gameTime;
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (pedResult.kills * SCORING_CONFIG.HEAT_PER_PED_KILL));
+        this.refillRampageFuel(pedResult.kills, 'none');
 
         totalKills += pedResult.kills;
         allKillPositions.push(...pedResult.positions);
@@ -1482,6 +1489,7 @@ export class Engine {
         const comboMultiplier = this.getComboMultiplier();
         this.stats.score += Math.floor(copResult.kills * pointsPerKill * comboMultiplier);
         this.stats.copKills += copResult.kills;
+        this.trackCopKillsForRampage(copResult.kills);
         this.stats.combo += copResult.kills;
         // Cop kills extend combo timer by +2s (incentivizes hunting cops)
         this.stats.comboTimer = Math.min(
@@ -1491,6 +1499,7 @@ export class Engine {
         this.lastCombatTime = this.stats.gameTime;
         this.updateWantedStars(true);
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (copResult.kills * SCORING_CONFIG.HEAT_PER_COP_KILL));
+        this.refillRampageFuel(copResult.kills, 'foot');
 
         totalKills += copResult.kills;
         allKillPositions.push(...copResult.positions);
@@ -1521,6 +1530,7 @@ export class Engine {
         const comboMultiplier = this.getComboMultiplier();
         this.stats.score += Math.floor(bikeResult.kills * pointsPerKill * comboMultiplier);
         this.stats.copKills += bikeResult.kills;
+        this.trackCopKillsForRampage(bikeResult.kills);
         this.stats.combo += bikeResult.kills;
         // Cop kills extend combo timer by +2s (incentivizes hunting cops)
         this.stats.comboTimer = Math.min(
@@ -1530,6 +1540,7 @@ export class Engine {
         this.lastCombatTime = this.stats.gameTime;
         this.updateWantedStars(true);
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (bikeResult.kills * SCORING_CONFIG.HEAT_PER_COP_KILL));
+        this.refillRampageFuel(bikeResult.kills, 'bike');
 
         totalKills += bikeResult.kills;
         allKillPositions.push(...bikeResult.positions);
@@ -1607,6 +1618,7 @@ export class Engine {
         this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
         this.lastCombatTime = this.stats.gameTime;
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (pedResult.kills * SCORING_CONFIG.HEAT_PER_PED_KILL));
+        this.refillRampageFuel(pedResult.kills, 'none');
 
         totalKills += pedResult.kills;
         allKillPositions.push(...pedResult.positions);
@@ -1644,6 +1656,7 @@ export class Engine {
         const comboMultiplier = this.getComboMultiplier();
         this.stats.score += Math.floor(copResult.kills * pointsPerKill * comboMultiplier);
         this.stats.copKills += copResult.kills;
+        this.trackCopKillsForRampage(copResult.kills);
         this.stats.combo += copResult.kills;
         // Cop kills extend combo timer by +2s
         this.stats.comboTimer = Math.min(
@@ -1653,6 +1666,7 @@ export class Engine {
         this.lastCombatTime = this.stats.gameTime;
         this.updateWantedStars(true);
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (copResult.kills * SCORING_CONFIG.HEAT_PER_COP_KILL));
+        this.refillRampageFuel(copResult.kills, 'foot');
         totalKills += copResult.kills;
         allKillPositions.push(...copResult.positions);
 
@@ -1679,6 +1693,7 @@ export class Engine {
         const comboMultiplier = this.getComboMultiplier();
         this.stats.score += Math.floor(bikeResult.kills * pointsPerKill * comboMultiplier);
         this.stats.copKills += bikeResult.kills;
+        this.trackCopKillsForRampage(bikeResult.kills);
         this.stats.combo += bikeResult.kills;
         // Cop kills extend combo timer by +2s
         this.stats.comboTimer = Math.min(
@@ -1688,6 +1703,7 @@ export class Engine {
         this.lastCombatTime = this.stats.gameTime;
         this.updateWantedStars(true);
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (bikeResult.kills * SCORING_CONFIG.HEAT_PER_COP_KILL));
+        this.refillRampageFuel(bikeResult.kills, 'bike');
         totalKills += bikeResult.kills;
         allKillPositions.push(...bikeResult.positions);
 
@@ -1746,6 +1762,7 @@ export class Engine {
         this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
         this.lastCombatTime = this.stats.gameTime;
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (pedResult.kills * SCORING_CONFIG.HEAT_PER_MOTORBIKE_PED_KILL));
+        this.refillRampageFuel(pedResult.kills, 'none');
 
         totalKills += pedResult.kills;
         allKillPositions.push(...pedResult.positions);
@@ -1767,6 +1784,7 @@ export class Engine {
         this.stats.combo += copResult.kills;
         this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
         this.lastCombatTime = this.stats.gameTime;
+        this.refillRampageFuel(copResult.kills, 'foot');
 
         totalKills += copResult.kills;
         allKillPositions.push(...copResult.positions);
@@ -1828,6 +1846,7 @@ export class Engine {
         this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
         this.lastCombatTime = this.stats.gameTime;
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (blastResult.kills * SCORING_CONFIG.HEAT_PER_MOTORBIKE_PED_KILL));
+        this.refillRampageFuel(blastResult.kills, 'none');
 
         totalKills += blastResult.kills;
         allKillPositions.push(...blastResult.positions);
@@ -1907,6 +1926,7 @@ export class Engine {
         this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
         this.lastCombatTime = this.stats.gameTime;
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (pedResult.kills * SCORING_CONFIG.HEAT_PER_MOTORBIKE_PED_KILL));
+        this.refillRampageFuel(pedResult.kills, 'none');
 
         totalKills += pedResult.kills;
         allKillPositions.push(...pedResult.positions);
@@ -1935,6 +1955,7 @@ export class Engine {
         const comboMultiplier = this.getComboMultiplier();
         this.stats.score += Math.floor(copResult.kills * pointsPerKill * comboMultiplier);
         this.stats.copKills += copResult.kills;
+        this.trackCopKillsForRampage(copResult.kills);
         this.stats.combo += copResult.kills;
         // Cop kills extend combo timer by +2s
         this.stats.comboTimer = Math.min(
@@ -1944,6 +1965,7 @@ export class Engine {
         this.lastCombatTime = this.stats.gameTime;
         this.updateWantedStars(true);
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (copResult.kills * SCORING_CONFIG.HEAT_PER_MOTORBIKE_COP_KILL));
+        this.refillRampageFuel(copResult.kills, 'foot');
         totalKills += copResult.kills;
         allKillPositions.push(...copResult.positions);
 
@@ -1968,6 +1990,7 @@ export class Engine {
         const comboMultiplier = this.getComboMultiplier();
         this.stats.score += Math.floor((motoResult.kills * pointsPerKill + motoResult.points) * comboMultiplier);
         this.stats.copKills += motoResult.kills;
+        this.trackCopKillsForRampage(motoResult.kills);
         this.stats.combo += motoResult.kills;
         // Cop kills extend combo timer by +2s
         this.stats.comboTimer = Math.min(
@@ -1977,6 +2000,7 @@ export class Engine {
         this.lastCombatTime = this.stats.gameTime;
         this.updateWantedStars(true);
         this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (motoResult.kills * SCORING_CONFIG.HEAT_PER_MOTORBIKE_COP_KILL));
+        this.refillRampageFuel(motoResult.kills, 'moto');
         totalKills += motoResult.kills;
         allKillPositions.push(...motoResult.positions);
 
@@ -2010,6 +2034,7 @@ export class Engine {
     this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
     this.lastCombatTime = this.stats.gameTime;
     this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + SCORING_CONFIG.HEAT_PER_PED_KILL);
+    this.refillRampageFuel(1, 'none');
 
     this.particles.emitBlood(position, cfg.particleCount);
     if (this.crowd) {
@@ -2045,6 +2070,7 @@ export class Engine {
     this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
     this.lastCombatTime = this.stats.gameTime;
     this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + 50); // Big heat boost!
+    this.refillRampageFuel(1, 'none');
 
     // Debris explosion (not blood!)
     this.particles.emitDebris(position, 30);
@@ -2225,6 +2251,46 @@ export class Engine {
       this.stats.comboTimer = Math.max(0, this.stats.comboTimer - dt);
       if (this.stats.comboTimer === 0) {
         this.stats.combo = 0;
+        this.stats.comboCopKills = 0; // Reset cop kills in combo when combo drops
+      }
+    }
+
+    // Track desperation cop kills (reset when health goes above threshold)
+    // Use tier max health for player, or vehicle max health if in vehicle
+    const maxHealth = this.isInVehicle && this.vehicle
+      ? this.vehicle.getMaxHealth()
+      : TIER_CONFIGS[Tier.FOOT].maxHealth;
+    const healthPercent = (this.stats.health / maxHealth) * 100;
+    if (healthPercent > RAMPAGE_DIMENSION.DESPERATION_HEALTH_THRESHOLD) {
+      this.stats.desperationCopKills = 0;
+    }
+
+    // Fuel gauge drains over time during rampage (accelerating drain rate)
+    if (this.inRampageDimension) {
+      this.stats.rampageDuration += dt;
+
+      // Drain rate increases over time
+      let drainRate: number;
+      if (this.stats.rampageDuration < 5) {
+        drainRate = RAMPAGE_DIMENSION.DRAIN_RATE_0_5;
+      } else if (this.stats.rampageDuration < 10) {
+        drainRate = RAMPAGE_DIMENSION.DRAIN_RATE_5_10;
+      } else if (this.stats.rampageDuration < 15) {
+        drainRate = RAMPAGE_DIMENSION.DRAIN_RATE_10_15;
+      } else {
+        drainRate = RAMPAGE_DIMENSION.DRAIN_RATE_15_PLUS;
+      }
+
+      this.stats.rampageFuel -= drainRate * dt;
+      if (this.stats.rampageFuel <= 0) {
+        this.stats.rampageFuel = 0;
+        this.triggerKillNotification('RAMPAGE OVER', true, 0, 'alert');
+        this.shakeCamera(2.0);
+        this.exitRampageDimension();
+        // Reset combo to prevent immediate re-entry
+        this.stats.combo = 0;
+        this.stats.comboTimer = 0;
+        this.stats.comboCopKills = 0;
       }
     }
 
@@ -2510,6 +2576,7 @@ export class Engine {
             const comboMultiplier = this.getComboMultiplier();
             this.stats.score += Math.floor(trampleResult.points * comboMultiplier);
             this.stats.copKills += trampleResult.kills;
+            this.trackCopKillsForRampage(trampleResult.kills);
             this.stats.combo += trampleResult.kills;
             // Cop kills extend combo timer by +2s
             this.stats.comboTimer = Math.min(
@@ -2518,6 +2585,7 @@ export class Engine {
             );
             this.lastCombatTime = this.stats.gameTime;
             this.updateWantedStars(true);
+            this.refillRampageFuel(trampleResult.kills, 'car');
             this.shakeCamera(2.0);
             for (const pos of trampleResult.positions) {
               this.particles.emitBlood(pos, 80);
@@ -2544,6 +2612,7 @@ export class Engine {
                 const comboMultiplier = this.getComboMultiplier();
                 this.stats.score += Math.floor(chipResult.points * comboMultiplier);
                 this.stats.copKills += chipResult.kills;
+                this.trackCopKillsForRampage(chipResult.kills);
                 this.stats.combo += chipResult.kills;
                 // Cop kills extend combo timer by +2s
                 this.stats.comboTimer = Math.min(
@@ -2552,6 +2621,7 @@ export class Engine {
                 );
                 this.lastCombatTime = this.stats.gameTime;
                 this.updateWantedStars(true);
+                this.refillRampageFuel(chipResult.kills, 'car');
                 this.shakeCamera(1.5);
                 for (const pos of chipResult.positions) {
                   this.particles.emitBlood(pos, 60);
@@ -3027,6 +3097,45 @@ export class Engine {
   }
 
   /**
+   * Track cop kills for rampage entry conditions
+   * - comboCopKills: cop kills in current combo (for Domination path)
+   * - desperationCopKills: cop kills while below 25% health (for Desperation path)
+   */
+  private trackCopKillsForRampage(kills: number): void {
+    if (kills <= 0) return;
+
+    // Track cop kills in current combo (for Domination path)
+    this.stats.comboCopKills += kills;
+
+    // Track desperation cop kills (for Desperation path)
+    const maxHealth = this.isInVehicle && this.vehicle
+      ? this.vehicle.getMaxHealth()
+      : TIER_CONFIGS[Tier.FOOT].maxHealth;
+    const healthPercent = (this.stats.health / maxHealth) * 100;
+    if (healthPercent <= RAMPAGE_DIMENSION.DESPERATION_HEALTH_THRESHOLD) {
+      this.stats.desperationCopKills += kills;
+    }
+  }
+
+  /**
+   * Refill rampage fuel on cop kills only (if in rampage mode)
+   * Pedestrian kills don't refuel - you need to hunt cops to survive
+   * Different cop types give different fuel amounts
+   */
+  private refillRampageFuel(kills: number, copType: 'none' | 'foot' | 'bike' | 'moto' | 'car'): void {
+    if (this.inRampageDimension && kills > 0 && copType !== 'none') {
+      let fuelPerKill: number;
+      switch (copType) {
+        case 'foot': fuelPerKill = RAMPAGE_DIMENSION.FUEL_PER_FOOT_COP; break;
+        case 'bike': fuelPerKill = RAMPAGE_DIMENSION.FUEL_PER_BIKE_COP; break;
+        case 'moto': fuelPerKill = RAMPAGE_DIMENSION.FUEL_PER_MOTO_COP; break;
+        case 'car': fuelPerKill = RAMPAGE_DIMENSION.FUEL_PER_CAR_COP; break;
+      }
+      this.stats.rampageFuel = Math.min(100, this.stats.rampageFuel + fuelPerKill * kills);
+    }
+  }
+
+  /**
    * Trigger a kill notification
    */
   private triggerKillNotification(message: string, isPursuit: boolean, points: number, type?: 'kill' | 'pursuit' | 'prompt' | 'alert'): void {
@@ -3094,38 +3203,32 @@ export class Engine {
       gameAudio.playComboMilestone(highestMilestone);
     }
 
-    // Rampage Dimension: Enter when combo >= threshold
-    if (this.stats.combo >= RAMPAGE_DIMENSION.COMBO_THRESHOLD && !this.inRampageDimension) {
-      this.enterRampageDimension();
-    }
+    // Rampage Dimension Entry - Two paths:
+    // DOMINATION: 10+ combo, 2+ cop kills in combo, 40%+ heat
+    // DESPERATION: Below 25% health, 3+ cop kills while desperate
+    if (!this.inRampageDimension) {
+      const dominationPath =
+        this.stats.combo >= RAMPAGE_DIMENSION.COMBO_THRESHOLD &&
+        this.stats.comboCopKills >= RAMPAGE_DIMENSION.COP_KILLS_REQUIRED &&
+        this.stats.heat >= RAMPAGE_DIMENSION.HEAT_THRESHOLD;
 
-    // Track rampage kills and check for exit condition
-    if (this.inRampageDimension) {
-      this.stats.rampageKills = this.stats.kills - this.rampageKillsAtStart;
+      const maxHealth = this.isInVehicle && this.vehicle
+        ? this.vehicle.getMaxHealth()
+        : TIER_CONFIGS[Tier.FOOT].maxHealth;
+      const healthPercent = (this.stats.health / maxHealth) * 100;
+      const desperationPath =
+        healthPercent <= RAMPAGE_DIMENSION.DESPERATION_HEALTH_THRESHOLD &&
+        this.stats.desperationCopKills >= RAMPAGE_DIMENSION.DESPERATION_COP_KILLS;
 
-      // Exit rampage when kill limit reached
-      if (this.stats.rampageKills >= RAMPAGE_DIMENSION.KILL_LIMIT) {
-        this.triggerKillNotification('RAMPAGE COMPLETE!', true, 0, 'alert');
-        this.shakeCamera(3.0);
-        this.exitRampageDimension();
-        // Reset combo to prevent immediate re-entry
-        this.stats.combo = 0;
-        this.stats.comboTimer = 0;
-        this.lastAnnouncedComboMilestone = 0;
-        return;
+      if (dominationPath || desperationPath) {
+        this.enterRampageDimension();
       }
     }
 
-    // Reset milestone tracker and exit dimension when combo resets
-    if (this.stats.combo === 0) {
-      // Play combo lost sound if we had a combo
-      if (this.lastAnnouncedComboMilestone > 0) {
-        gameAudio.playComboLost();
-      }
+    // Reset milestone tracker when combo resets (but don't exit rampage - fuel controls that)
+    if (this.stats.combo === 0 && this.lastAnnouncedComboMilestone > 0) {
+      gameAudio.playComboLost();
       this.lastAnnouncedComboMilestone = 0;
-      if (this.inRampageDimension) {
-        this.exitRampageDimension();
-      }
     }
   }
 
@@ -3137,9 +3240,9 @@ export class Engine {
 
     this.inRampageDimension = true;
 
-    // Track kills at rampage start for exit condition
-    this.rampageKillsAtStart = this.stats.kills;
-    this.stats.rampageKills = 0;
+    // Fuel gauge starts full, reset duration tracker
+    this.stats.rampageFuel = 100;
+    this.stats.rampageDuration = 0;
 
     // Rampage audio - dramatic entry sound and ambient loop
     gameAudio.setRampageMode(true);

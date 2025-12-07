@@ -163,6 +163,7 @@ export enum SoundId {
   RAMPAGE_LOOP = 'rampage_loop', // Ambient rampage sound
   RAMPAGE_EXIT = 'rampage_exit',
   RAMPAGE_HEARTBEAT = 'rampage_heartbeat', // Loop
+  HEARTBEAT_SLOW = 'heartbeat_slow', // Cinematic slow heartbeat loop
   ANCESTOR_WHISPER = 'ancestor_whisper',
 
   // ========== HEAT & WANTED ==========
@@ -807,6 +808,11 @@ export const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
     pitch: 1.0,
     category: 'ambient',
   },
+  [SoundId.HEARTBEAT_SLOW]: {
+    volume: 0.6,
+    pitch: 1.0,
+    category: 'ambient',
+  },
   [SoundId.ANCESTOR_WHISPER]: {
     volume: 0.3,
     pitch: 1.0,
@@ -1292,6 +1298,7 @@ export const SOUND_PATHS: Partial<Record<SoundId, string>> = {
   [SoundId.RAMPAGE_LOOP]: '/audio/sfx/rampage/rampage_loop.mp3',
   [SoundId.RAMPAGE_EXIT]: '/audio/sfx/rampage/rampage_exit.mp3',
   [SoundId.RAMPAGE_HEARTBEAT]: '/audio/sfx/rampage/rampage_heartbeat.mp3',
+  [SoundId.HEARTBEAT_SLOW]: '/audio/sfx/rampage/heartbeat_slow.mp3',
   [SoundId.ANCESTOR_WHISPER]: '/audio/sfx/rampage/ancestor_whisper.mp3',
 
   // ========== HEAT & WANTED ==========

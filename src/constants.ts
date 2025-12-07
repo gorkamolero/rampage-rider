@@ -623,9 +623,28 @@ export function makeCollisionGroups(membership: number, filter: number): number 
 // ============================================================================
 
 export const RAMPAGE_DIMENSION = {
-  // Trigger
-  COMBO_THRESHOLD: 10, // Combo level to enter dimension
-  KILL_LIMIT: 15, // Kills to complete rampage and exit
+  // === ENTRY REQUIREMENTS ===
+  // DOMINATION PATH: 10+ combo, 2+ cop kills in combo, 40%+ heat
+  COMBO_THRESHOLD: 10,
+  COP_KILLS_REQUIRED: 2, // Cop kills needed in current combo
+  HEAT_THRESHOLD: 40, // Minimum heat % for domination entry
+
+  // DESPERATION PATH: Below 25% health + 3 cop kills
+  DESPERATION_HEALTH_THRESHOLD: 25, // Max health % for desperation entry
+  DESPERATION_COP_KILLS: 3, // Cop kills needed for desperation entry
+
+  // === FUEL GAUGE ===
+  // Fuel gain per cop type (pedestrians give 0)
+  FUEL_PER_FOOT_COP: 8,
+  FUEL_PER_BIKE_COP: 10,
+  FUEL_PER_MOTO_COP: 12,
+  FUEL_PER_CAR_COP: 15,
+
+  // Drain rate brackets (accelerates over time)
+  DRAIN_RATE_0_5: 3, // 0-5 sec: 3%/sec
+  DRAIN_RATE_5_10: 5, // 5-10 sec: 5%/sec
+  DRAIN_RATE_10_15: 8, // 10-15 sec: 8%/sec
+  DRAIN_RATE_15_PLUS: 12, // 15+ sec: 12%/sec
 
   // Transition timing
   ENTER_DURATION: 0.3, // 300ms snap-in (punchy)

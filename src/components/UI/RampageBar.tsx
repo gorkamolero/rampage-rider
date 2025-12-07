@@ -8,7 +8,7 @@ const NEON = {
 
 interface RampageBarProps {
   combo: number;
-  comboTimer: number;
+  rampageFuel: number;
   inRampageDimension: boolean;
   rampageProgress: number;
   compact?: boolean;
@@ -16,7 +16,7 @@ interface RampageBarProps {
 
 const RampageBar: React.FC<RampageBarProps> = ({
   combo,
-  comboTimer,
+  rampageFuel,
   inRampageDimension,
   rampageProgress,
   compact = false,
@@ -29,7 +29,8 @@ const RampageBar: React.FC<RampageBarProps> = ({
 
   const isActive = inRampageDimension;
   const blocks = compact ? 8 : 12;
-  const progressValue = isActive ? (comboTimer / 5.0) * 100 : rampageProgress;
+  // During rampage, show fuel gauge (0-100%); otherwise show progress to threshold
+  const progressValue = isActive ? rampageFuel : rampageProgress;
   const filled = Math.round((progressValue / 100) * blocks);
   const color = isActive ? NEON.red : NEON.orange;
 
@@ -60,7 +61,7 @@ const RampageBar: React.FC<RampageBarProps> = ({
             ))}
           </div>
           {isActive && (
-            <span className="text-[9px] retro tabular-nums" style={{ color }}>{comboTimer.toFixed(1)}s</span>
+            <span className="text-[9px] retro tabular-nums" style={{ color }}>{Math.round(rampageFuel)}%</span>
           )}
         </div>
       </div>
@@ -103,7 +104,7 @@ const RampageBar: React.FC<RampageBarProps> = ({
               className="text-xs retro tabular-nums"
               style={{ color, textShadow: `0 0 6px ${color}` }}
             >
-              {comboTimer.toFixed(1)}s
+              {Math.round(rampageFuel)}%
             </span>
           )}
         </div>

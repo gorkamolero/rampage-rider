@@ -11,9 +11,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 // Spiral configuration
 const SPIRAL_CONFIG = {
-  COUNT: 24,                    // Total number of ancestors (fewer = more spread out)
+  COUNT: 120,                   // Total number of ancestors (more = closer together along spiral)
   INNER_RADIUS: 4,              // Closest to player (meters)
-  OUTER_RADIUS: 12,             // Farthest from player (meters)
+  OUTER_RADIUS: 28,             // Farthest from player (meters)
   ROTATION_SPEED: 0.4,          // Radians per second
   GHOST_OPACITY: 0.6,
   GHOST_EMISSIVE: new THREE.Color(0.8, 0.2, 0.2), // Red glow
@@ -37,11 +37,11 @@ const ANCESTOR_MODELS = [
 ];
 
 // Spiral configuration
-const SPIRAL_TURNS = 2.5; // Number of full rotations from center to edge (fewer = wider spacing)
+const ARM_SPACING = 3; // Fixed distance between spiral arms (meters)
 
 /**
  * Calculate spiral position for index i
- * Uses Archimedean spiral for visual spiral arrangement
+ * Uses Fermat spiral for equal radial spacing between arms
  */
 function getSpiralPosition(
   index: number,
@@ -53,11 +53,12 @@ function getSpiralPosition(
   // Normalized position (0 to 1)
   const t = index / (totalCount - 1);
 
-  // Archimedean spiral: radius increases linearly with angle
+  // Linear radius from inner to outer
   const radius = innerRadius + t * (outerRadius - innerRadius);
 
-  // Angle: multiple turns as we go from center to edge
-  const angle = t * SPIRAL_TURNS * Math.PI * 2 + rotationOffset;
+  // Angle based on radius to maintain constant arm spacing
+  // Each full turn adds ARM_SPACING to radius, so angle = (radius - innerRadius) / ARM_SPACING * 2π
+  const angle = ((radius - innerRadius) / ARM_SPACING) * Math.PI * 2 + rotationOffset;
 
   return {
     x: Math.cos(angle) * radius,
@@ -119,11 +120,9 @@ export class AncestorCouncil {
       }
     }
 
-    // Create COUNT ancestors, cycling through the models in interleaved order
-    // Pattern: 1,3,5,7,2,4,6,8 (odds first, then evens) for more variety
-    const interleaveOrder = [0, 2, 4, 6, 1, 3, 5, 7]; // ancestor indices
+    // Create COUNT ancestors, randomly selecting models for variety
     for (let i = 0; i < SPIRAL_CONFIG.COUNT; i++) {
-      const modelIndex = interleaveOrder[i % interleaveOrder.length];
+      const modelIndex = Math.floor(Math.random() * ANCESTOR_MODELS.length);
       const path = ANCESTOR_MODELS[modelIndex];
       const gltf = uniqueModels.get(path);
 
@@ -209,12 +208,13 @@ export class AncestorCouncil {
     // Create initial curve points (more points = smoother curve)
     const points: THREE.Vector3[] = [];
     const numPoints = 300;
-    const totalAngle = SPIRAL_TURNS * Math.PI * 2;
+    const radialRange = SPIRAL_CONFIG.OUTER_RADIUS - SPIRAL_CONFIG.INNER_RADIUS;
 
     for (let i = 0; i < numPoints; i++) {
       const t = i / (numPoints - 1);
-      const angle = t * totalAngle;
-      const radius = SPIRAL_CONFIG.INNER_RADIUS + t * (SPIRAL_CONFIG.OUTER_RADIUS - SPIRAL_CONFIG.INNER_RADIUS);
+      const radius = SPIRAL_CONFIG.INNER_RADIUS + t * radialRange;
+      // Match the ancestor spiral: angle based on radius for constant arm spacing
+      const angle = ((radius - SPIRAL_CONFIG.INNER_RADIUS) / ARM_SPACING) * Math.PI * 2;
       points.push(new THREE.Vector3(
         Math.cos(angle) * radius,
         0.5,
