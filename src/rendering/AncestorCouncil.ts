@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { AssetLoader } from '../core/AssetLoader';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { IS_MOBILE, MOBILE_CONFIG } from '../constants';
 
 /**
  * AncestorCouncil
@@ -11,7 +12,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 // Spiral configuration
 const SPIRAL_CONFIG = {
-  COUNT: 120,                   // Total number of ancestors (more = closer together along spiral)
+  COUNT: IS_MOBILE ? MOBILE_CONFIG.ANCESTOR_COUNT : 120,                   // Total number of ancestors
   INNER_RADIUS: 4,              // Closest to player (meters)
   OUTER_RADIUS: 28,             // Farthest from player (meters)
   ROTATION_SPEED: 0.4,          // Radians per second
@@ -42,14 +43,16 @@ const ARM_SPACING = 3; // Fixed distance between spiral arms (meters)
 /**
  * Calculate spiral position for index i
  * Uses Fermat spiral for equal radial spacing between arms
+ * PERF: Writes to target object to avoid allocation
  */
 function getSpiralPosition(
   index: number,
   totalCount: number,
   innerRadius: number,
   outerRadius: number,
-  rotationOffset: number = 0
-): { x: number; z: number; angle: number } {
+  rotationOffset: number = 0,
+  target: { x: number; z: number; angle: number }
+): void {
   // Normalized position (0 to 1)
   const t = index / (totalCount - 1);
 
@@ -60,11 +63,9 @@ function getSpiralPosition(
   // Each full turn adds ARM_SPACING to radius, so angle = (radius - innerRadius) / ARM_SPACING * 2π
   const angle = ((radius - innerRadius) / ARM_SPACING) * Math.PI * 2 + rotationOffset;
 
-  return {
-    x: Math.cos(angle) * radius,
-    z: Math.sin(angle) * radius,
-    angle: angle + Math.PI, // Face inward
-  };
+  target.x = Math.cos(angle) * radius;
+  target.z = Math.sin(angle) * radius;
+  target.angle = angle + Math.PI; // Face inward
 }
 
 interface Ancestor {
@@ -101,6 +102,9 @@ export class AncestorCouncil {
 
   // Animation time for flickering
   private animTime = 0;
+
+  // Pre-allocated temp object for spiral calculations
+  private readonly _tempSpiralPos = { x: 0, z: 0, angle: 0 };
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -193,8 +197,10 @@ export class AncestorCouncil {
       });
     }
 
-    // Create debug line to visualize spiral path
-    this.createDebugLine();
+    // Create debug line to visualize spiral path (skip on mobile)
+    if (!IS_MOBILE) {
+      this.createDebugLine();
+    }
   }
 
   // Shader uniforms for animated ghost spiral
@@ -375,19 +381,20 @@ export class AncestorCouncil {
 
     // Update each ancestor position using spiral math
     for (const ancestor of this.ancestors) {
-      const pos = getSpiralPosition(
+      getSpiralPosition(
         ancestor.spiralIndex,
         SPIRAL_CONFIG.COUNT,
         innerRadius,
         outerRadius,
-        this.spiralRotation
+        this.spiralRotation,
+        this._tempSpiralPos
       );
 
       // Position in spiral around player
       ancestor.mesh.position.set(
-        this.playerPosition.x + pos.x,
+        this.playerPosition.x + this._tempSpiralPos.x,
         0, // Ground level
-        this.playerPosition.z + pos.z
+        this.playerPosition.z + this._tempSpiralPos.z
       );
 
       // Calculate flicker: oscillates between 0.5 and 1.0 of base opacity

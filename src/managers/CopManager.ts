@@ -3,6 +3,7 @@ import * as RAPIER from '@dimforge/rapier3d-compat';
 import { Cop } from '../entities/Cop';
 import { AIManager } from '../core/AIManager';
 import { gameAudio } from '../audio/GameAudio';
+import { IS_MOBILE, MOBILE_CONFIG } from '../constants';
 
 /**
  * CopManager
@@ -19,7 +20,7 @@ export class CopManager {
   private world: RAPIER.World;
   private aiManager: AIManager;
 
-  private maxCops: number = 3; // Reduced for performance
+  private maxCops: number = IS_MOBILE ? MOBILE_CONFIG.MAX_COPS : 3; // Reduced for performance
   private spawnRadius: number = 15;
   private damageCallback: ((damage: number) => void) | null = null;
 
@@ -33,6 +34,7 @@ export class CopManager {
 
   // Pre-allocated array for getCopData (reused each call, avoids filter/map allocations)
   private _copDataResult: Array<{ position: THREE.Vector3; health: number; maxHealth: number }> = [];
+  private _copDataPool: Array<{ position: THREE.Vector3; health: number; maxHealth: number }> = [];
 
   constructor(scene: THREE.Scene, world: RAPIER.World, aiManager: AIManager) {
     this.scene = scene;
@@ -41,6 +43,11 @@ export class CopManager {
 
     for (let i = 0; i < this.MAX_KILL_POSITIONS; i++) {
       this._killPositionPool.push(new THREE.Vector3());
+    }
+
+    // Pre-populate data pool
+    for (let i = 0; i < 16; i++) {
+      this._copDataPool.push({ position: new THREE.Vector3(), health: 0, maxHealth: 3 });
     }
   }
 
@@ -298,13 +305,21 @@ export class CopManager {
     // Reset length without deallocating (reuse array)
     this._copDataResult.length = 0;
 
+    let poolIndex = 0;
     for (const cop of this.cops) {
       if (!cop.isDeadState()) {
-        this._copDataResult.push({
-          position: (cop as THREE.Group).position, // Return reference, not clone
-          health: cop.getHealth(),
-          maxHealth: 3
-        });
+        // Expand pool if needed
+        if (poolIndex >= this._copDataPool.length) {
+          this._copDataPool.push({ position: new THREE.Vector3(), health: 0, maxHealth: 3 });
+        }
+
+        const data = this._copDataPool[poolIndex++];
+        // Update data object
+        data.position = (cop as THREE.Group).position; // Use reference to cop position
+        data.health = cop.getHealth();
+        data.maxHealth = 3;
+
+        this._copDataResult.push(data);
       }
     }
 

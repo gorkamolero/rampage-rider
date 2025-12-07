@@ -3,7 +3,7 @@ import * as RAPIER from '@dimforge/rapier3d-compat';
 import { Pedestrian } from '../entities/Pedestrian';
 import { InstancedBlobShadows } from '../rendering/InstancedBlobShadows';
 import { AIManager } from '../core/AIManager';
-import { CITY_CONFIG } from '../constants';
+import { CITY_CONFIG, IS_MOBILE, MOBILE_CONFIG } from '../constants';
 
 /**
  * CrowdManager
@@ -29,10 +29,10 @@ export class CrowdManager {
   private readonly DEATH_CLEANUP_DELAY = 3.0; // Seconds before dead pedestrians are removed
 
   // Spawn config
-  private maxPedestrians: number = 60;
-  private baseMaxPedestrians: number = 60;
+  private maxPedestrians: number = IS_MOBILE ? MOBILE_CONFIG.MAX_PEDESTRIANS : 60;
+  private baseMaxPedestrians: number = IS_MOBILE ? MOBILE_CONFIG.MAX_PEDESTRIANS : 60;
   private surgeTimer: number = 0; // Timer for crowd surge effect
-  private readonly SURGE_MAX: number = 100; // Temporary max during surge
+  private readonly SURGE_MAX: number = IS_MOBILE ? MOBILE_CONFIG.SURGE_MAX_PEDESTRIANS : 100; // Temporary max during surge
   private readonly SURGE_DURATION: number = 15; // Seconds of crowd surge
   private spawnRadius: number = 25; // Max spawn distance
   private minSpawnDistance: number = 18; // Spawn off-screen (visible area is ~15 units radius)

@@ -865,8 +865,8 @@ export class Cop extends THREE.Group {
   private createBulletProjectile(targetPos: THREE.Vector3): void {
     if (!this.parentScene) return;
 
-    // Remove existing bullet
-    this.removeBulletProjectile();
+    const copPos = this.getPosition();
+    copPos.y += 0.8; // Chest height
 
     // Lazily initialize shared geometry/material (one instance for all cops)
     if (!Cop.sharedBulletGeometry) {
@@ -878,13 +878,20 @@ export class Cop extends THREE.Group {
       });
     }
 
-    const copPos = this.getPosition();
-    copPos.y += 0.8; // Chest height
+    // Reuse existing mesh if available
+    if (!this.bulletProjectile) {
+      this.bulletProjectile = new THREE.Mesh(Cop.sharedBulletGeometry, Cop.sharedBulletMaterial);
+      this.parentScene.add(this.bulletProjectile);
+    }
 
-    this.bulletProjectile = new THREE.Mesh(Cop.sharedBulletGeometry, Cop.sharedBulletMaterial);
+    this.bulletProjectile.visible = true;
     this.bulletProjectile.position.copy(copPos);
-    this.bulletTarget = targetPos.clone().setY(targetPos.y + 0.5);
-    this.parentScene.add(this.bulletProjectile);
+
+    // Reuse target vector
+    if (!this.bulletTarget) {
+      this.bulletTarget = new THREE.Vector3();
+    }
+    this.bulletTarget.copy(targetPos).setY(targetPos.y + 0.5);
   }
 
   /**
@@ -892,7 +899,7 @@ export class Cop extends THREE.Group {
    * NOTE: Uses pre-allocated _tempDirection vector AND squared distance to avoid GC pressure + sqrt
    */
   private updateBulletProjectile(deltaTime: number): void {
-    if (!this.bulletProjectile || !this.bulletTarget) return;
+    if (!this.bulletProjectile || !this.bulletTarget || !this.bulletProjectile.visible) return;
 
     // Use pre-allocated vector for direction (avoids GC pressure)
     this._tempDirection.subVectors(this.bulletTarget, this.bulletProjectile.position);
@@ -916,12 +923,10 @@ export class Cop extends THREE.Group {
    * Remove bullet projectile (does NOT dispose shared geometry/material)
    */
   private removeBulletProjectile(): void {
-    if (this.bulletProjectile && this.parentScene) {
-      this.parentScene.remove(this.bulletProjectile);
-      // Don't dispose - geometry and material are shared across all cops
-      this.bulletProjectile = null;
+    if (this.bulletProjectile) {
+      this.bulletProjectile.visible = false;
     }
-    this.bulletTarget = null;
+    // Don't null bulletTarget, just keep it stale until next shot
   }
 
   /**

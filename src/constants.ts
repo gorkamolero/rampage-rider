@@ -1,5 +1,19 @@
 import { Tier, TierConfig } from "./types";
 
+// Mobile detection
+export const IS_MOBILE = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+// Mobile performance configuration
+export const MOBILE_CONFIG = {
+  MAX_PEDESTRIANS: 30, // Reduced from 60
+  SURGE_MAX_PEDESTRIANS: 50, // Reduced from 100
+  MAX_COPS: 2, // Reduced from 3
+  ANCESTOR_COUNT: 24, // Reduced from 120
+  PARTICLE_MULTIPLIER: 0.5, // Half particles
+  DISABLE_FESTIVE_DECORATIONS: true,
+  ANIMATION_LOD_DISTANCE_SQ: 225, // 15m (15*15) instead of 25m
+};
+
 // Debug flag for performance panel - set to true to show performance metrics
 export const DEBUG_PERFORMANCE_PANEL = false;
 
