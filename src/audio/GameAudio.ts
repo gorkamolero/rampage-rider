@@ -84,6 +84,8 @@ export const gameAudio = {
 
   setRampageMode(active: boolean): void {
     this._inRampage = active;
+    // Stop all playing SFX on rampage transitions for clean audio break
+    audioManager.stopAllSfx(0.05);
     // Stop/restart ambient and table crowd sounds based on rampage state
     if (active) {
       this.stopAmbient();

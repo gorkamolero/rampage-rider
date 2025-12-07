@@ -457,6 +457,15 @@ export class AudioManager {
     }
   }
 
+  /**
+   * Stop all currently playing SFX (for rampage transitions)
+   */
+  stopAllSfx(fadeTime = 0.1): void {
+    for (const [instanceId] of this.playingSounds) {
+      this.stop(instanceId, fadeTime);
+    }
+  }
+
   // ============================================
   // MUSIC SYSTEM
   // ============================================
