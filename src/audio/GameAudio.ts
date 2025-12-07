@@ -108,7 +108,7 @@ export const gameAudio = {
       // Load all sounds in parallel with timeout
       await this.loadAllSounds();
     } catch (err) {
-      console.warn('[GameAudio] Init failed, continuing without audio:', err);
+      console.warn("[GameAudio] Init failed, continuing without audio:", err);
     }
   },
 
@@ -122,7 +122,7 @@ export const gameAudio = {
         loadPromises.push(
           audioManager.loadSound(id as SoundId, path).catch((err) => {
             console.warn(`[GameAudio] Failed to load ${id}:`, err);
-          })
+          }),
         );
       }
     }
@@ -130,10 +130,14 @@ export const gameAudio = {
     // Race against timeout to prevent hanging forever
     await Promise.race([
       Promise.all(loadPromises),
-      new Promise<void>((resolve) => setTimeout(() => {
-        console.warn('[GameAudio] Sound loading timed out, continuing anyway');
-        resolve();
-      }, LOAD_TIMEOUT))
+      new Promise<void>((resolve) =>
+        setTimeout(() => {
+          console.warn(
+            "[GameAudio] Sound loading timed out, continuing anyway",
+          );
+          resolve();
+        }, LOAD_TIMEOUT),
+      ),
     ]);
   },
 
@@ -146,15 +150,20 @@ export const gameAudio = {
   // ============================================
 
   playPlayerSpawn(): void {
-    audioManager.play(SoundId.PLAYER_SPAWN);
+    setTimeout(() => {
+      audioManager.play(SoundId.PLAYER_SPAWN);
+    }, 600);
   },
 
   startPlayerRunLoop(): string | null {
-    return audioManager.play(SoundId.PLAYER_RUN_LOOP, { loop: true, instanceId: 'player_run_loop' });
+    return audioManager.play(SoundId.PLAYER_RUN_LOOP, {
+      loop: true,
+      instanceId: "player_run_loop",
+    });
   },
 
   stopPlayerRunLoop(): void {
-    audioManager.stop('player_run_loop', 0.15);
+    audioManager.stop("player_run_loop", 0.15);
   },
 
   playFootstep(isRunning: boolean): void {
@@ -228,10 +237,12 @@ export const gameAudio = {
       pitch: variedPitch(1.0, 0.15),
     });
 
-    // Scream from pool (for both pedestrians and cops)
+    // Scream on kill
+    // During rampage: quiet + heavy reverb for distant/ethereal effect
     audioManager.play(randomFrom(SCREAM_SOUNDS), {
-      volume: 0.55,
+      volume: this._inRampage ? 0.15 : 0.55,
       pitch: variedPitch(1.0, 0.15),
+      useReverb: this._inRampage,
     });
 
     // Blood splatter
@@ -267,6 +278,10 @@ export const gameAudio = {
   playPedestrianScream(): void {
     // Use the 20-variation scream pool
     // During rampage: quiet + heavy reverb for distant/ethereal effect
+    console.log(
+      "[GameAudio] playPedestrianScream, _inRampage:",
+      this._inRampage,
+    );
     audioManager.play(randomFrom(SCREAM_SOUNDS), {
       volume: this._inRampage ? 0.15 : 0.55,
       pitch: variedPitch(1.0, 0.15),
@@ -383,7 +398,9 @@ export const gameAudio = {
   playCopSpawn(isFemale: boolean = false): void {
     if (this._inRampage) return; // Mute during rampage
     audioManager.play(SoundId.COP_SPAWN);
-    const freezeSound = isFemale ? SoundId.COP_FREEZE_FEMALE : SoundId.COP_FREEZE_MALE;
+    const freezeSound = isFemale
+      ? SoundId.COP_FREEZE_FEMALE
+      : SoundId.COP_FREEZE_MALE;
     audioManager.play(freezeSound, { pitch: variedPitch(1.0, 0.1) });
   },
 
@@ -402,15 +419,19 @@ export const gameAudio = {
       SoundId.COP_PUNCH_4,
       SoundId.COP_PUNCH_5,
     ];
-    audioManager.play(randomFrom(punchSounds), { pitch: variedPitch(1.0, 0.1) });
+    audioManager.play(randomFrom(punchSounds), {
+      pitch: variedPitch(1.0, 0.1),
+    });
   },
 
   playCopDeath(): void {
     audioManager.play(SoundId.COP_DEATH, { pitch: variedPitch(1.0, 0.15) });
     // Also play a scream from the pool
+    // During rampage: quiet + heavy reverb for distant/ethereal effect
     audioManager.play(randomFrom(SCREAM_SOUNDS), {
-      volume: 0.5,
+      volume: this._inRampage ? 0.15 : 0.5,
       pitch: variedPitch(1.0, 0.15),
+      useReverb: this._inRampage,
     });
   },
 
@@ -711,12 +732,12 @@ export const gameAudio = {
     audioManager.play(SoundId.GAME_START);
   },
 
-  // Play voice announcer for a notification message (with heavy reverb)
+  // Play voice announcer for a notification message
   playVoiceForMessage(message: string): void {
     if (this._inRampage) return; // Silent during rampage
     const voiceId = MESSAGE_TO_VOICE[message];
     if (voiceId) {
-      audioManager.play(voiceId, { maxDuration: 1.2, useReverb: true });
+      audioManager.play(voiceId, { maxDuration: 1.2 });
     }
   },
 
@@ -734,13 +755,13 @@ export const gameAudio = {
 
   // Menu tracks pool (for loading screen)
   _menuTracks: [
-    SoundId.MUSIC_MENU,   // Fireside
+    SoundId.MUSIC_MENU, // Fireside
     SoundId.MUSIC_MENU_2, // December Evening
   ] as const,
 
   // Gameplay tracks pool
   _gameplayTracks: [
-    SoundId.MUSIC_GAMEPLAY,   // Christmas dubstep
+    SoundId.MUSIC_GAMEPLAY, // Christmas dubstep
     SoundId.MUSIC_GAMEPLAY_2, // Outrun Christmas Mayhem
     SoundId.MUSIC_GAMEPLAY_3, // Outrun Christmas Mayhem 2
     SoundId.MUSIC_GAMEPLAY_4, // Berghain Christmas Mayhem
@@ -761,7 +782,7 @@ export const gameAudio = {
    */
   playMenuMusic(): void {
     if (this._gameStarted) {
-      console.warn('[GameAudio] Blocked menu music - game already started');
+      console.warn("[GameAudio] Blocked menu music - game already started");
       return;
     }
     const track = randomFrom([...this._menuTracks]);

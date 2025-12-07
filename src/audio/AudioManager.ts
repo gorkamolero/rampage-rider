@@ -184,17 +184,17 @@ export class AudioManager {
 
       // Configure for massive cathedral/void feel - extremely wet
       // Set time and decay first (triggers impulse rebuild)
-      this.reverbNode.time = 5;      // 5 second reverb tail
-      this.reverbNode.decay = 4;     // Slow decay
+      this.reverbNode.time = 4;      // 4 second reverb tail
+      this.reverbNode.decay = 3;     // Slow decay
 
-      // Then set wet/dry mix
-      this.reverbNode.wet.value = 2;     // Boosted wet signal
-      this.reverbNode.dry.value = 0.3;   // Low dry signal
-      this.reverbNode.cutoff.value = 3000; // Low-pass filter for dark reverb
+      // Then set wet/dry mix - keep dry audible so we hear something
+      this.reverbNode.wet.value = 3;     // Heavy wet signal
+      this.reverbNode.dry.value = 0.8;   // Keep some dry for clarity
+      this.reverbNode.cutoff.value = 4000; // Low-pass filter for dark reverb
 
-      // Connect reverb output to UI gain
-      this.reverbNode.connect(this.uiGain);
-      console.log('[AudioManager] Reverb created:', this.reverbNode);
+      // Connect reverb output to SFX gain (not UI gain, for proper volume control)
+      this.reverbNode.connect(this.sfxGain);
+      console.log('[AudioManager] Reverb created and connected to sfxGain');
     } catch (error) {
       console.warn('[AudioManager] Voice reverb not available:', error);
       this.reverbNode = null;
@@ -275,12 +275,12 @@ export class AudioManager {
     const volume = (options.volume ?? 1.0) * (config?.volume ?? 1.0);
     const pitch = (options.pitch ?? 1.0) * (config?.pitch ?? 1.0);
 
-    // Use pool for pooled sounds
-    if (config?.pooled && this.soundPools.has(id)) {
+    // Use pool for pooled sounds (but not if reverb is needed - reverb requires direct playback)
+    if (config?.pooled && this.soundPools.has(id) && !options.useReverb) {
       return this.playPooled(id, volume, pitch);
     }
 
-    // Regular sound playback
+    // Regular sound playback (also used for reverb sounds)
     return this.playDirect(id, buffer, { ...options, volume, pitch });
   }
 
