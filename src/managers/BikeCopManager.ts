@@ -222,6 +222,13 @@ export class BikeCopManager {
     return this._copDataResult;
   }
 
+  /**
+   * Get all cop objects (for visibility toggling during rampage)
+   */
+  getCops(): BikeCop[] {
+    return this.cops;
+  }
+
   clear(): void {
     for (const cop of this.cops) {
       this.scene.remove(cop);

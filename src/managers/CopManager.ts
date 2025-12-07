@@ -312,6 +312,13 @@ export class CopManager {
   }
 
   /**
+   * Get all cop objects (for visibility toggling during rampage)
+   */
+  getCops(): Cop[] {
+    return this.cops;
+  }
+
+  /**
    * Remove all active taser beams (called when player escapes taser)
    */
   clearTaserBeams(): void {

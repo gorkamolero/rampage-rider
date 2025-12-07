@@ -3351,6 +3351,32 @@ export class Engine {
       }
     }
 
+    // Cops (all types) - need to be visible during rampage as fuel targets
+    if (this.cops) {
+      for (const cop of this.cops.getCops()) {
+        cop.traverse((child) => keepVisible.add(child));
+        keepVisible.add(cop.getBlobShadow());
+      }
+    }
+    if (this.bikeCops) {
+      for (const cop of this.bikeCops.getCops()) {
+        cop.traverse((child) => keepVisible.add(child));
+        keepVisible.add(cop.getBlobShadow());
+      }
+    }
+    if (this.motorbikeCops) {
+      for (const cop of this.motorbikeCops.getCops()) {
+        cop.traverse((child) => keepVisible.add(child));
+        keepVisible.add(cop.getBlobShadow());
+      }
+    }
+    if (this.copCars) {
+      for (const car of this.copCars.getCars()) {
+        car.traverse((child) => keepVisible.add(child));
+        keepVisible.add(car.getBlobShadow());
+      }
+    }
+
     // Blood decals
     if (this.bloodDecals) {
       this.bloodDecals.getMeshes().forEach((mesh) => keepVisible.add(mesh));

@@ -250,6 +250,13 @@ export class CopCarManager {
     return this._copDataResult;
   }
 
+  /**
+   * Get all cop car objects (for visibility toggling during rampage)
+   */
+  getCars(): CopCar[] {
+    return this.cars;
+  }
+
   clear(): void {
     for (const car of this.cars) {
       this.scene.remove(car);

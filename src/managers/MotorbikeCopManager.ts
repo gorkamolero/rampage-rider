@@ -485,6 +485,13 @@ export class MotorbikeCopManager {
   }
 
   /**
+   * Get all cop objects (for visibility toggling during rampage)
+   */
+  getCops(): MotorbikeCop[] {
+    return this.cops;
+  }
+
+  /**
    * Clear all cops
    */
   clear(): void {
