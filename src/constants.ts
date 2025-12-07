@@ -277,9 +277,9 @@ export const VEHICLE_CONFIGS: Record<VehicleType, VehicleConfig> = {
     modelRotationX: 0,
     modelOffsetY: -0.01, // Wheels at Y=0, slight adjustment to touch ground
     riderOffsetY: 1.0, // Height for motorbike seat (bike is ~2m tall)
-    riderOffsetZ: 0, // Centered on seat
+    riderOffsetZ: -0.3, // Move back to sit on seat, not on handlebars
     hideRider: false, // Show rider on motorbike
-    killRadius: 2.0,
+    killRadius: 0, // Motorbike doesn't trample - use stab/blast attacks
     causesRagdoll: false, // Too light to send bodies flying
   },
   [VehicleType.SEDAN]: {

@@ -93,11 +93,13 @@ function App() {
     notificationControllerRef.current = controller;
   }, []);
 
-  const startGame = async () => {
-    // Resume audio context (requires user interaction)
-    await gameAudio.resume();
-    gameAudio.playGameStart();
+  const startGame = () => {
+    // Stop menu music immediately before starting game
+    gameAudio.stopMenuMusic();
+    // Start game immediately - audio resume happens in the background
     setGameState(GameState.PLAYING);
+    // Resume audio context asynchronously (already unlocked by user click)
+    gameAudio.resume().catch(() => {});
   };
 
   const togglePause = useCallback(() => {

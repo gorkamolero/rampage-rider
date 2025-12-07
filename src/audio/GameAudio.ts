@@ -551,9 +551,11 @@ export const gameAudio = {
   },
 
   startRampageLoop(): void {
-    audioManager.play(SoundId.RAMPAGE_LOOP, {
+    // Use wind sound for rampage atmosphere
+    audioManager.play(SoundId.WIND_LOOP, {
       loop: true,
-      instanceId: "rampage_loop",
+      instanceId: "rampage_wind",
+      volume: 0.75,
     });
     audioManager.play(SoundId.RAMPAGE_HEARTBEAT, {
       loop: true,
@@ -562,7 +564,7 @@ export const gameAudio = {
   },
 
   stopRampageLoop(): void {
-    audioManager.stop("rampage_loop", 0.5);
+    audioManager.stop("rampage_wind", 0.5);
     audioManager.stop("rampage_heartbeat", 0.5);
   },
 
@@ -571,7 +573,7 @@ export const gameAudio = {
    */
   stopAllLoops(): void {
     audioManager.stop("taser_loop", 0.1);
-    audioManager.stop("rampage_loop", 0.1);
+    audioManager.stop("rampage_wind", 0.1);
     audioManager.stop("rampage_heartbeat", 0.1);
     audioManager.stop("player_run_loop", 0.1);
     audioManager.stop("bike_pedal_loop", 0.1);
@@ -717,6 +719,13 @@ export const gameAudio = {
   playMenuMusic(): void {
     const track = randomFrom([...this._menuTracks]);
     audioManager.playMusic(track);
+  },
+
+  /**
+   * Stop menu music immediately (no crossfade)
+   */
+  stopMenuMusic(): void {
+    audioManager.stopMusicImmediate();
   },
 
   /**

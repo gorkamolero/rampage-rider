@@ -145,7 +145,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         </div>
       )}
 
-      {/* Persistent: Tased Alert - MASSIVE full-screen takeover */}
+      {/* Persistent: Tased Alert */}
       {showTasedAlert && (
         <>
           {/* Dark vignette overlay */}
@@ -157,111 +157,80 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
             }}
           />
 
-          {/* Center text */}
-          <div
-            className="absolute inset-x-0 top-1/3 flex justify-center -translate-y-1/2"
-            style={{ animation: 'notif-shake 0.08s infinite' }}
-          >
-            <div className="text-center">
+          {/* Centered content container */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
+            {/* Title */}
+            <div
+              className="text-center mb-4 md:mb-6"
+              style={{ animation: 'notif-shake 0.08s infinite' }}
+            >
               <div
-                className="font-black retro text-6xl md:text-8xl text-yellow-300"
+                className="font-black retro text-3xl md:text-6xl text-yellow-300"
                 style={{
-                  textShadow: '0 0 20px #fde047, 0 0 40px #facc15, 0 0 60px #eab308, 4px 4px 0 #000',
+                  textShadow: '0 0 15px #fde047, 0 0 30px #facc15, 3px 3px 0 #000',
                   animation: 'notif-flash 0.2s infinite',
                 }}
               >
                 ⚡ TASED! ⚡
               </div>
               <div
-                className="font-bold retro text-2xl md:text-4xl text-white mt-4"
+                className="font-bold retro text-sm md:text-2xl text-white mt-2"
                 style={{
-                  textShadow: '3px 3px 0 #000',
+                  textShadow: '2px 2px 0 #000',
                   animation: 'taser-text-shake 0.1s infinite',
                 }}
               >
-                {isMobile ? 'TAP RAPIDLY TO ESCAPE!' : 'MASH SPACE TO ESCAPE!'}
+                {isMobile ? 'TAP TO ESCAPE!' : 'MASH SPACE TO ESCAPE!'}
               </div>
             </div>
-          </div>
 
-          {/* MASSIVE progress bar at bottom */}
-          <div className="absolute bottom-8 left-4 right-4 md:left-8 md:right-8">
-            {/* Progress bar container */}
-            <div
-              className="relative w-full h-16 md:h-24 border-8 border-white rounded-2xl overflow-hidden"
-              style={{
-                boxShadow: '0 8px 0 #333, 0 0 40px rgba(255,255,0,0.5), inset 0 -8px 0 rgba(0,0,0,0.4)',
-                background: 'linear-gradient(to bottom, #1a1a1a 0%, #0a0a0a 100%)',
-              }}
-            >
-              {/* Background grid pattern for visual interest */}
+            {/* Progress bar */}
+            <div className="w-full max-w-xs md:max-w-md">
               <div
-                className="absolute inset-0 opacity-20"
+                className="relative w-full h-10 md:h-16 border-4 md:border-6 border-white rounded-lg overflow-hidden"
                 style={{
-                  backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 10%, rgba(255,255,255,0.1) 10%, rgba(255,255,255,0.1) 10.5%)',
-                }}
-              />
-
-              {/* Progress fill with electric effect */}
-              <div
-                className="absolute left-0 top-0 h-full transition-all duration-100"
-                style={{
-                  width: `${taseEscapeProgress}%`,
-                  background: taseEscapeProgress > 80
-                    ? 'linear-gradient(to right, #22c55e 0%, #4ade80 50%, #86efac 100%)'
-                    : taseEscapeProgress > 50
-                      ? 'linear-gradient(to right, #eab308 0%, #facc15 50%, #fde047 100%)'
-                      : 'linear-gradient(to right, #dc2626 0%, #ef4444 50%, #f87171 100%)',
-                  boxShadow: taseEscapeProgress > 80
-                    ? '0 0 30px #4ade80, 0 0 60px #22c55e, inset 0 0 20px rgba(255,255,255,0.4)'
-                    : taseEscapeProgress > 50
-                      ? '0 0 30px #facc15, 0 0 60px #eab308, inset 0 0 20px rgba(255,255,255,0.4)'
-                      : '0 0 30px #ef4444, 0 0 60px #dc2626, inset 0 0 20px rgba(255,255,255,0.4)',
-                  animation: 'taser-bar-pulse 0.1s infinite alternate',
+                  boxShadow: '0 4px 0 #333, 0 0 20px rgba(255,255,0,0.4)',
+                  background: '#0a0a0a',
                 }}
               >
-                {/* Electric sparks effect on the leading edge */}
+                {/* Progress fill */}
                 <div
-                  className="absolute right-0 top-0 bottom-0 w-4"
+                  className="absolute left-0 top-0 h-full transition-all duration-75"
                   style={{
-                    background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.8))',
-                    animation: 'taser-spark 0.05s infinite',
+                    width: `${taseEscapeProgress}%`,
+                    background: taseEscapeProgress > 80
+                      ? 'linear-gradient(to right, #22c55e, #4ade80)'
+                      : taseEscapeProgress > 50
+                        ? 'linear-gradient(to right, #eab308, #facc15)'
+                        : 'linear-gradient(to right, #dc2626, #ef4444)',
+                    boxShadow: taseEscapeProgress > 80
+                      ? '0 0 20px #4ade80'
+                      : taseEscapeProgress > 50
+                        ? '0 0 20px #facc15'
+                        : '0 0 20px #ef4444',
                   }}
                 />
+
+                {/* Percentage text */}
+                <div
+                  className="absolute inset-0 flex items-center justify-center font-black retro text-white text-xl md:text-3xl"
+                  style={{ textShadow: '2px 2px 0 #000' }}
+                >
+                  {Math.floor(taseEscapeProgress)}%
+                </div>
               </div>
 
-              {/* Percentage text */}
-              <div
-                className="absolute inset-0 flex items-center justify-center font-black retro text-white text-3xl md:text-5xl"
-                style={{
-                  textShadow: '3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000',
-                }}
-              >
-                {Math.floor(taseEscapeProgress)}%
-              </div>
-
-              {/* Tick marks */}
-              <div className="absolute inset-0 flex justify-between px-2 items-center pointer-events-none">
-                {[25, 50, 75].map((tick) => (
-                  <div
-                    key={tick}
-                    className="absolute h-full w-1 bg-white/30"
-                    style={{ left: `${tick}%` }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* SPACE/TAP key indicator below bar */}
-            <div className="flex justify-center mt-4">
-              <div
-                className="px-8 py-3 bg-neutral-800 border-4 border-white rounded-xl font-black retro text-xl md:text-2xl text-white"
-                style={{
-                  boxShadow: '0 6px 0 #444, inset 0 -4px 0 rgba(0,0,0,0.3)',
-                  animation: 'taser-key-bounce 0.15s infinite',
-                }}
-              >
-                {isMobile ? '👆 TAP 👆' : '␣ SPACE ␣'}
+              {/* Key indicator */}
+              <div className="flex justify-center mt-3">
+                <div
+                  className="px-4 py-1.5 md:px-6 md:py-2 bg-neutral-800 border-2 md:border-4 border-white rounded-lg font-black retro text-sm md:text-xl text-white"
+                  style={{
+                    boxShadow: '0 3px 0 #444',
+                    animation: 'taser-key-bounce 0.15s infinite',
+                  }}
+                >
+                  {isMobile ? '👆 TAP' : 'SPACE'}
+                </div>
               </div>
             </div>
           </div>
@@ -280,20 +249,13 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
           50% { opacity: 0.8; transform: translateY(-50%) scale(1.02); }
         }
         @keyframes notif-shake {
-          0%, 100% { transform: translateY(-50%); }
-          10% { transform: translate(-4px, calc(-50% + 4px)); }
-          20% { transform: translate(4px, calc(-50% - 4px)); }
-          30% { transform: translate(-4px, calc(-50% - 4px)); }
-          40% { transform: translate(4px, calc(-50% + 4px)); }
-          50% { transform: translate(-4px, -50%); }
-          60% { transform: translate(4px, -50%); }
-          70% { transform: translateY(calc(-50% - 4px)); }
-          80% { transform: translateY(calc(-50% + 4px)); }
-          90% { transform: translate(-4px, calc(-50% + 4px)); }
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-2px); }
+          75% { transform: translateX(2px); }
         }
         @keyframes notif-flash {
           0%, 50% { opacity: 1; }
-          25%, 75% { opacity: 0.5; }
+          25%, 75% { opacity: 0.6; }
         }
         @keyframes taser-vignette-pulse {
           0% { opacity: 0.8; }
@@ -301,20 +263,12 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         }
         @keyframes taser-text-shake {
           0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-3px); }
-          75% { transform: translateX(3px); }
-        }
-        @keyframes taser-bar-pulse {
-          0% { filter: brightness(1); }
-          100% { filter: brightness(1.2); }
-        }
-        @keyframes taser-spark {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
+          25% { transform: translateX(-2px); }
+          75% { transform: translateX(2px); }
         }
         @keyframes taser-key-bounce {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-4px); }
+          50% { transform: translateY(-3px); }
         }
       `}</style>
     </div>

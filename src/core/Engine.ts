@@ -3147,6 +3147,10 @@ export class Engine {
     // Player glow - they're a god in this void
     this.player?.setRampageGlow(true);
 
+    // Disable building collision - player/vehicle can pass through buildings in Rampage
+    this.player?.setBuildingCollision(false);
+    this.vehicle?.setBuildingCollision(false);
+
     // BIG notification - reality just broke
     this.triggerKillNotification('RAMPAGE!', true, 0, 'alert');
 
@@ -3185,6 +3189,10 @@ export class Engine {
 
     // Remove player glow
     this.player?.setRampageGlow(false);
+
+    // Re-enable building collision when exiting Rampage
+    this.player?.setBuildingCollision(true);
+    this.vehicle?.setBuildingCollision(true);
   }
 
   /**

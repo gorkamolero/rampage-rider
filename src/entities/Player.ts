@@ -1127,6 +1127,28 @@ export class Player extends THREE.Group {
   private rampageGlowActive = false;
 
   /**
+   * Enable/disable building collision for Rampage mode
+   * When disabled, player can pass through buildings
+   */
+  setBuildingCollision(enabled: boolean): void {
+    if (!this.collider) return;
+
+    // Update movement collision filter
+    const groups = KinematicCharacterHelper.getCollisionGroups();
+    let movementFilter = groups.GROUND;
+    if (enabled) {
+      movementFilter |= groups.BUILDING;
+    }
+    this.movementCollisionFilter = (movementFilter << 16) | groups.PLAYER;
+
+    // Also update the collider's collision groups
+    const playerFilter = enabled
+      ? COLLISION_GROUPS.GROUND | COLLISION_GROUPS.PEDESTRIAN | COLLISION_GROUPS.BUILDING
+      : COLLISION_GROUPS.GROUND | COLLISION_GROUPS.PEDESTRIAN;
+    this.collider.setCollisionGroups(makeCollisionGroups(COLLISION_GROUPS.PLAYER, playerFilter));
+  }
+
+  /**
    * Enable/disable rampage glow effect on player
    * Gives the player a red emissive glow during rampage mode
    */

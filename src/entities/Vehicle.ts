@@ -582,6 +582,31 @@ export class Vehicle extends THREE.Group {
   }
 
   /**
+   * Enable/disable building collision for Rampage mode
+   * When disabled, vehicle can pass through buildings
+   */
+  setBuildingCollision(enabled: boolean): void {
+    if (!this.collider) return;
+
+    // Update movement collision filter
+    if (enabled && !this.config.canCrushBuildings) {
+      this.movementCollisionFilter =
+        ((COLLISION_GROUPS.GROUND | COLLISION_GROUPS.BUILDING) << 16) |
+        COLLISION_GROUPS.VEHICLE;
+    } else {
+      // Rampage mode or truck - only collide with ground
+      this.movementCollisionFilter =
+        (COLLISION_GROUPS.GROUND << 16) | COLLISION_GROUPS.VEHICLE;
+    }
+
+    // Also update the collider's collision groups
+    const vehicleFilter = enabled
+      ? COLLISION_GROUPS.GROUND | COLLISION_GROUPS.PEDESTRIAN | COLLISION_GROUPS.BUILDING
+      : COLLISION_GROUPS.GROUND | COLLISION_GROUPS.PEDESTRIAN;
+    this.collider.setCollisionGroups(makeCollisionGroups(COLLISION_GROUPS.VEHICLE, vehicleFilter));
+  }
+
+  /**
    * Cleanup physics body and mesh
    */
   dispose(): void {
