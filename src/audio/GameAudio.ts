@@ -819,8 +819,8 @@ export const gameAudio = {
    * @param distance - Distance to nearest table in world units
    */
   updateTableCrowdDistance(distance: number): void {
-    // Max volume 0.3, audible within 12 units
-    audioManager.updatePositionalVolume("table_crowd", distance, 12, 0.3);
+    // Max volume 2.0 when very close, audible within 12 units
+    audioManager.updatePositionalVolume("table_crowd", distance, 12, 2.0);
   },
 
   /**
