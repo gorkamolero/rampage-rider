@@ -387,6 +387,12 @@ export class AudioManager {
     this.playingSounds.set(instanceId, playing);
 
     source.onended = () => {
+      // Disconnect gain node to prevent Web Audio memory leak
+      try {
+        gainNode.disconnect();
+      } catch {
+        // Already disconnected
+      }
       this.playingSounds.delete(instanceId);
     };
 
@@ -429,6 +435,12 @@ export class AudioManager {
         } catch {
           // Already stopped
         }
+        // Disconnect gain node to prevent Web Audio memory leak
+        try {
+          playing.gainNode.disconnect();
+        } catch {
+          // Already disconnected
+        }
         this.playingSounds.delete(instanceId);
       }, fadeTime * 1000);
     } else {
@@ -436,6 +448,12 @@ export class AudioManager {
         playing.source.stop();
       } catch {
         // Already stopped
+      }
+      // Disconnect gain node to prevent Web Audio memory leak
+      try {
+        playing.gainNode.disconnect();
+      } catch {
+        // Already disconnected
       }
       this.playingSounds.delete(instanceId);
     }

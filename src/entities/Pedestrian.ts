@@ -731,6 +731,12 @@ export class Pedestrian extends THREE.Group {
     const world = this.world;
     if (!world) return;
 
+    // Release shadow index back to pool
+    if (this.shadowIndex >= 0) {
+      this.shadowManager.releaseIndex(this.shadowIndex);
+      this.shadowIndex = -1;
+    }
+
     // Remove from Yuka AI
     this.yukaEntityManager.remove(this.yukaVehicle);
 

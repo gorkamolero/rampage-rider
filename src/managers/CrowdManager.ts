@@ -662,8 +662,13 @@ export class CrowdManager {
     // Remove from Yuka entity manager via AIManager
     this.aiManager.removeEntity(pedestrian.getYukaVehicle());
 
-    // Add to pool for reuse
-    this.pedestrianPool.push(pedestrian);
+    // Only pool live pedestrians - dead ones have contaminated state
+    // Dead pedestrians retain physics bodies, animation mixers, etc.
+    if (pedestrian.isDeadState()) {
+      pedestrian.destroy();
+    } else {
+      this.pedestrianPool.push(pedestrian);
+    }
   }
 
   /**

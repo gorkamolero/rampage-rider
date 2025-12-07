@@ -646,6 +646,11 @@ export class Cop extends THREE.Group {
     this.removeTaserBeam();
     this.removeBulletProjectile();
 
+    // Stop animation mixer to prevent update cost on hidden cops
+    if (this.mixer) {
+      this.mixer.stopAllAction();
+    }
+
     // Move physics body out of the way
     this.rigidBody.setTranslation({ x: 0, y: -500, z: 0 }, true);
     this.rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
