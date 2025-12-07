@@ -195,6 +195,8 @@ export enum SoundId {
   MUSIC_GAMEPLAY_3 = 'music_gameplay_3', // Outrun Christmas Mayhem 2
   MUSIC_GAMEPLAY_4 = 'music_gameplay_4', // Berghain Christmas Mayhem
   MUSIC_GAMEPLAY_5 = 'music_gameplay_5', // Berghain Christmas Mayhem 2
+  MUSIC_GAMEPLAY_6 = 'music_gameplay_6', // HU God Is Great
+  MUSIC_GAMEPLAY_7 = 'music_gameplay_7', // HU Bunker Edit
   MUSIC_RAMPAGE = 'music_rampage',
   MUSIC_GAME_OVER = 'music_game_over',
   MUSIC_ENDING_1 = 'music_ending_1', // Snow on the Windowsill
@@ -933,8 +935,18 @@ export const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
     pitch: 1.0,
     category: 'music',
   },
+  [SoundId.MUSIC_GAMEPLAY_6]: {
+    volume: 0.85,
+    pitch: 1.0,
+    category: 'music',
+  },
+  [SoundId.MUSIC_GAMEPLAY_7]: {
+    volume: 0.85,
+    pitch: 1.0,
+    category: 'music',
+  },
   [SoundId.MUSIC_RAMPAGE]: {
-    volume: 1.0,
+    volume: 1.5,
     pitch: 1.0,
     category: 'music',
   },
@@ -961,7 +973,7 @@ export const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
     category: 'ambient',
   },
   [SoundId.WIND_LOOP]: {
-    volume: 0.15,
+    volume: 0.1125, // 75% of 0.15
     pitch: 1.0,
     category: 'ambient',
   },
@@ -1336,6 +1348,8 @@ export const SOUND_PATHS: Partial<Record<SoundId, string>> = {
   [SoundId.MUSIC_GAMEPLAY_3]: '/audio/music/outrun_christmas_mayhem_2.mp3',
   [SoundId.MUSIC_GAMEPLAY_4]: '/audio/music/berghain_christmas_mayhem.mp3',
   [SoundId.MUSIC_GAMEPLAY_5]: '/audio/music/berghain_christmas_mayhem_2.mp3',
+  [SoundId.MUSIC_GAMEPLAY_6]: '/audio/music/hu_god_is_great.mp3',
+  [SoundId.MUSIC_GAMEPLAY_7]: '/audio/music/hu_bunker_edit.mp3',
   [SoundId.MUSIC_RAMPAGE]: '/audio/music/rampage.mp3',
   [SoundId.MUSIC_ENDING_1]: '/audio/music/ending_1.mp3', // Snow on the Windowsill
   [SoundId.MUSIC_ENDING_2]: '/audio/music/ending_2.mp3', // Postcard from 1954

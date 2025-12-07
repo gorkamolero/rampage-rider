@@ -77,24 +77,50 @@ function comboVolume(base: number, combo: number, maxCombo = 50): number {
 }
 
 export const gameAudio = {
+  // Rampage mode mutes cop voice lines
+  _inRampage: false,
+
+  setRampageMode(active: boolean): void {
+    this._inRampage = active;
+  },
+
   // ============================================
   // INITIALIZATION
   // ============================================
 
   async init(): Promise<void> {
-    await audioManager.init();
-    // Load all sounds in parallel
-    await this.loadAllSounds();
+    try {
+      await audioManager.init();
+      // Load all sounds in parallel with timeout
+      await this.loadAllSounds();
+    } catch (err) {
+      console.warn('[GameAudio] Init failed, continuing without audio:', err);
+    }
   },
 
   async loadAllSounds(): Promise<void> {
+    const LOAD_TIMEOUT = 10000; // 10 second timeout for all sounds
+
     const loadPromises: Promise<void>[] = [];
     for (const [id, path] of Object.entries(SOUND_PATHS)) {
       if (path) {
-        loadPromises.push(audioManager.loadSound(id as SoundId, path));
+        // Wrap each load in try/catch so one failure doesn't break all
+        loadPromises.push(
+          audioManager.loadSound(id as SoundId, path).catch((err) => {
+            console.warn(`[GameAudio] Failed to load ${id}:`, err);
+          })
+        );
       }
     }
-    await Promise.all(loadPromises);
+
+    // Race against timeout to prevent hanging forever
+    await Promise.race([
+      Promise.all(loadPromises),
+      new Promise<void>((resolve) => setTimeout(() => {
+        console.warn('[GameAudio] Sound loading timed out, continuing anyway');
+        resolve();
+      }, LOAD_TIMEOUT))
+    ]);
   },
 
   resume(): Promise<void> {
@@ -331,16 +357,18 @@ export const gameAudio = {
   // ============================================
 
   playCopSpawn(): void {
+    if (this._inRampage) return; // Mute during rampage
     audioManager.play(SoundId.COP_SPAWN);
-    // Play "Freeze!" voice line
     audioManager.play(SoundId.COP_FREEZE, { pitch: variedPitch(1.0, 0.1) });
   },
 
   playCopAlert(): void {
+    if (this._inRampage) return; // Mute during rampage
     audioManager.play(SoundId.COP_ALERT, { pitch: variedPitch(1.0, 0.1) });
   },
 
   playCopPunch(): void {
+    if (this._inRampage) return; // Mute during rampage
     // Randomly select from 5 punch variations
     const punchSounds = [
       SoundId.COP_PUNCH_1,
@@ -697,7 +725,7 @@ export const gameAudio = {
    */
   playGameplayMusic(startOffset?: number): void {
     // Stop menu music immediately (no crossfade) to prevent bleed
-    audioManager.stopMusicImmediate();
+    audioManager.stopMusic(0);
     const track = randomFrom([...this._gameplayTracks]);
     const offset = startOffset ?? this._trackStartOffsets[track] ?? 0;
     audioManager.playMusic(track, false, offset);

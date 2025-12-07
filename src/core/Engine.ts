@@ -3108,6 +3108,7 @@ export class Engine {
     this.stats.rampageKills = 0;
 
     // Rampage audio - dramatic entry sound and ambient loop
+    gameAudio.setRampageMode(true);
     gameAudio.playRampageEnter();
     gameAudio.startRampageLoop();
     gameAudio.playRampageMusic();
@@ -3154,6 +3155,7 @@ export class Engine {
     this.inRampageDimension = false;
 
     // Rampage audio - exit sound and stop loops
+    gameAudio.setRampageMode(false);
     gameAudio.playRampageExit();
     gameAudio.stopRampageLoop();
     gameAudio.exitRampageMusic(); // Return to gameplay music (alternates tracks)
