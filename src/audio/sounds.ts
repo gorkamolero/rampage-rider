@@ -26,6 +26,7 @@ export interface SoundConfig {
 export enum SoundId {
   // ========== PLAYER MOVEMENT ==========
   PLAYER_SPAWN = 'player_spawn',
+  ALLAHU_AKBAR = 'allahu_akbar',
   PLAYER_RUN_LOOP = 'player_run_loop',
   FOOTSTEP_RUN = 'footstep_run',
   FOOTSTEP_WALK = 'footstep_walk',
@@ -259,6 +260,11 @@ export const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
   // ========== PLAYER MOVEMENT ==========
   [SoundId.PLAYER_SPAWN]: {
     volume: 0.7,
+    pitch: 1.0,
+    category: 'sfx',
+  },
+  [SoundId.ALLAHU_AKBAR]: {
+    volume: 0.8,
     pitch: 1.0,
     category: 'sfx',
   },
@@ -1161,6 +1167,7 @@ export const MESSAGE_TO_VOICE: Record<string, SoundId> = {
 export const SOUND_PATHS: Partial<Record<SoundId, string>> = {
   // ========== PLAYER MOVEMENT ==========
   [SoundId.PLAYER_SPAWN]: '/audio/sfx/player/player_spawn.mp3',
+  [SoundId.ALLAHU_AKBAR]: '/audio/sfx/player/allahu_akbar.mp3',
   [SoundId.PLAYER_RUN_LOOP]: '/audio/sfx/player/player_run_loop.mp3',
   [SoundId.FOOTSTEP_RUN]: '/audio/sfx/player/footstep_run.mp3',
   [SoundId.FOOTSTEP_WALK]: '/audio/sfx/player/footstep_walk.mp3',

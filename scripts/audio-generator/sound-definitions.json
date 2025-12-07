@@ -1287,6 +1287,14 @@
       "duration": 8,
       "loop": true,
       "category": "rampage"
+    },
+    {
+      "id": "allahu_akbar",
+      "path": "sfx/player/allahu_akbar.mp3",
+      "prompt": "Male voice screaming the words 'ALLAHU AKBAR', slightly high pitched, aggressive battle cry, quick and intense, arcade video game style",
+      "duration": 2,
+      "loop": false,
+      "category": "player"
     }
   ]
 }

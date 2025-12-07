@@ -154,6 +154,7 @@ export const gameAudio = {
   playPlayerSpawn(): void {
     setTimeout(() => {
       audioManager.play(SoundId.PLAYER_SPAWN);
+      audioManager.play(SoundId.ALLAHU_AKBAR);
     }, 600);
   },
 

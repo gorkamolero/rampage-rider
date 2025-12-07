@@ -1,17 +1,17 @@
 {
-  "timestamp": "2025-12-07T15:02:41.377Z",
+  "timestamp": "2025-12-07T15:26:19.111Z",
   "config": {
     "outputFormat": "mp3_44100_128",
     "promptInfluence": 0.3,
     "parallelRequests": 1
   },
-  "elapsed": "10.4s",
+  "elapsed": "4.8s",
   "results": {
     "success": [
       {
-        "id": "heartbeat_slow",
-        "path": "/Users/gorkolas/Documents/www/rampage/public/audio/sfx/rampage/heartbeat_slow.mp3",
-        "size": 129193
+        "id": "allahu_akbar",
+        "path": "/Users/gorkolas/Documents/www/rampage/public/audio/sfx/player/allahu_akbar.mp3",
+        "size": 33062
       }
     ],
     "failed": []
