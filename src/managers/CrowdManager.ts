@@ -580,12 +580,25 @@ export class CrowdManager {
   // Pre-calculated squared distance for removal threshold (40^2 = 1600)
   private static readonly REMOVAL_DISTANCE_SQ = 1600;
 
+  // Time slicing for pedestrian updates
+  private _timeSliceCounter: number = 0;
+  private readonly _timeSliceInterval: number = 2; // Update half the pedestrians each frame
+
   /**
    * Update all pedestrians (Yuka AI updated by Engine's AIManager)
    */
   update(deltaTime: number, playerPosition: THREE.Vector3): void {
+    const pedestriansCount = this.pedestrians.length;
+
     // Mark pedestrians for removal (don't remove during iteration)
-    for (const pedestrian of this.pedestrians) {
+    for (let i = 0; i < pedestriansCount; i++) {
+      const pedestrian = this.pedestrians[i];
+
+      // Only update a subset of pedestrians each frame
+      if (i % this._timeSliceInterval !== this._timeSliceCounter) {
+        continue;
+      }
+
       // Calculate squared distance once for both removal check and animation LOD
       // Avoids sqrt() for 40+ pedestrians per frame
       const distanceSq = (pedestrian as THREE.Group).position.distanceToSquared(playerPosition);
@@ -614,6 +627,9 @@ export class CrowdManager {
         this.pedestriansToRemove.push(pedestrian);
       }
     }
+
+    // Increment time slice counter
+    this._timeSliceCounter = (this._timeSliceCounter + 1) % this._timeSliceInterval;
   }
 
   /**
