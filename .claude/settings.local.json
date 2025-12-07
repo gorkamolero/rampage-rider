@@ -48,7 +48,8 @@
       "Bash(cp:*)",
       "Bash(git fetch:*)",
       "SlashCommand(/code-review:code-review)",
-      "mcp__morph-mcp__edit_file"
+      "mcp__morph-mcp__edit_file",
+      "Skill(frontend-design:frontend-design)"
     ],
     "deny": [],
     "ask": []

@@ -583,6 +583,33 @@ export class AudioManager {
     this.currentMusic = null;
   }
 
+  /**
+   * Stop all music immediately (no fade)
+   */
+  stopMusicImmediate(): void {
+    // Stop pending crossfade
+    if (this.nextMusic) {
+      try {
+        this.nextMusic.source?.stop();
+      } catch {
+        // Already stopped
+      }
+      this.nextMusic = null;
+    }
+    this.musicCrossfadeTime = 0;
+
+    // Stop current music
+    if (this.currentMusic) {
+      try {
+        this.currentMusic.source?.stop();
+      } catch {
+        // Already stopped
+      }
+      this.currentMusic.isPlaying = false;
+      this.currentMusic = null;
+    }
+  }
+
   // ============================================
   // ENGINE LOOPS (Vehicles, Sirens)
   // ============================================

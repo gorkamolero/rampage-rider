@@ -216,7 +216,6 @@ export class BloodDecalSystem {
 
     // Safety check
     if (instanceIndex >= this.maxDecalsPerTexture) {
-      console.warn('[BloodDecalSystem] Max instances reached for texture', textureIndex);
       return;
     }
 

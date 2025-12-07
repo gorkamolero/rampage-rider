@@ -372,7 +372,6 @@ export class AssetLoader {
     }
 
     // Fallback: clone at runtime (only happens if we spawn more than CLONES_PER_MODEL)
-    console.warn(`[AssetLoader] Pre-clone pool empty for ${characterType}, cloning at runtime`);
     const clonedScene = SkeletonUtils.clone(gltf.scene) as THREE.Group;
     return { scene: clonedScene, animations: gltf.animations };
   }

@@ -1142,4 +1142,21 @@ export class CrowdManager {
       });
     }
   }
+
+  /**
+   * Get distance to the nearest table from a position
+   * Used for spatial audio (crowd ambient sounds near tables)
+   */
+  getDistanceToNearestTable(position: THREE.Vector3): number {
+    let minDistance = Infinity;
+
+    for (const table of this.tableInstances) {
+      const distance = position.distanceTo(table.mesh.position);
+      if (distance < minDistance) {
+        minDistance = distance;
+      }
+    }
+
+    return minDistance;
+  }
 }

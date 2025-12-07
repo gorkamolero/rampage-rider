@@ -725,7 +725,7 @@ export const gameAudio = {
    */
   playGameplayMusic(startOffset?: number): void {
     // Stop menu music immediately (no crossfade) to prevent bleed
-    audioManager.stopMusic(0);
+    audioManager.stopMusicImmediate();
     const track = randomFrom([...this._gameplayTracks]);
     const offset = startOffset ?? this._trackStartOffsets[track] ?? 0;
     audioManager.playMusic(track, false, offset);

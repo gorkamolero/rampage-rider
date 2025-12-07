@@ -88,7 +88,6 @@ export class InstancedBlobShadows {
    */
   reserveIndex(): number {
     if (this.freeIndices.length === 0) {
-      console.warn('[InstancedBlobShadows] No free shadow indices available');
       return -1;
     }
     return this.freeIndices.pop()!;

@@ -216,8 +216,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ onStatsUpdate, onGameOver, onKi
     let mobileInputFrame: number | null = null;
 
     if (isMobile) {
-      // Initialize mobile controls
-      mobileInput.setScheme('touch');
+      // Initialize mobile controls - prefer hybrid (accelerometer + touch), fallback to touch only
+      if (mobileInput.isAccelerometerSupported()) {
+        mobileInput.setScheme('hybrid');
+      } else {
+        mobileInput.setScheme('touch');
+      }
 
       // Poll mobile input state each frame
       const updateMobileInput = () => {

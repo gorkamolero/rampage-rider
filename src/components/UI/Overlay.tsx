@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { GameStats, TierConfig, Tier } from '../../types';
 import { TIER_CONFIGS, DEBUG_PERFORMANCE_PANEL } from '../../constants';
-import { Badge } from '@/components/ui/8bit/badge';
 import { Button } from '@/components/ui/8bit/button';
-import HealthBar from '@/components/ui/8bit/health-bar';
-import HeatBar from '@/components/ui/8bit/heat-bar';
-import { Progress } from '@/components/ui/8bit/progress';
+import { TextBar, WantedStars } from '@/components/ui/8bit/text-bar';
 import RampageBar from './RampageBar';
 import RampageVignette from './RampageVignette';
 
@@ -23,270 +20,119 @@ const Overlay: React.FC<OverlayProps> = ({ stats }) => {
     ? ((stats.score - TIER_CONFIGS[stats.tier].minScore) / (nextConfig.minScore - TIER_CONFIGS[stats.tier].minScore)) * 100
     : 100;
 
-  const healthPercent = (stats.health / currentConfig.maxHealth) * 100;
+  const multiplier = 1 + (Math.min(stats.combo, 50) * 0.1);
+
+  // Progress bar characters
+  const progressLength = 12;
+  const progressFilled = Math.round((Math.min(100, Math.max(0, progress)) / 100) * progressLength);
+  const progressBar = "=".repeat(progressFilled) + "-".repeat(progressLength - progressFilled);
 
   return (
     <>
-    {/* Rampage Vignette - below UI */}
-    <RampageVignette active={stats.inRampageDimension || false} />
+      <RampageVignette active={stats.inRampageDimension || false} />
 
-    <div className="absolute top-0 left-0 w-full h-full pointer-events-none p-4 flex flex-col justify-between z-10">
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none p-3 flex flex-col justify-between z-10">
 
-      {/* Screenshot Mode Toggle Button - always visible */}
-      <Button
-        size="icon"
-        variant="ghost"
-        onClick={() => setUiHidden(!uiHidden)}
-        className="absolute top-4 right-4 pointer-events-auto bg-black/50 hover:bg-black/70 text-white z-20"
-        style={{ transform: 'scale(0.75)', transformOrigin: 'top right' }}
-      >
-        {uiHidden ? '👁' : '📷'}
-      </Button>
-
-      {/* All UI hidden when in screenshot mode */}
-      {uiHidden ? null : <>
-
-      {/* Cop Health Dots */}
-      {stats.copHealthBars?.map((cop, index) => (
-        <div
-          key={index}
-          className="absolute flex gap-0.5"
-          style={{
-            left: `${cop.x}px`,
-            top: `${cop.y}px`,
-            transform: 'translate(-50%, -50%)'
-          }}
+        {/* Screenshot Toggle */}
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => setUiHidden(!uiHidden)}
+          className="absolute top-3 right-3 pointer-events-auto bg-black/60 hover:bg-black/80 text-neutral-400 hover:text-white z-20 w-7 h-7 text-xs"
         >
-          {[...Array(cop.maxHealth)].map((_, i) => (
-            <div
-              key={i}
-              className={`w-1.5 h-1.5 rounded-full border border-black ${
-                i < cop.health ? 'bg-red-500' : 'bg-gray-600'
-              }`}
-            />
-          ))}
-        </div>
-      ))}
+          {uiHidden ? '👁' : '📷'}
+        </Button>
 
-      {/* Performance Monitor (Right Side, Centered) - only when DEBUG_PERFORMANCE_PANEL is enabled */}
-      {DEBUG_PERFORMANCE_PANEL && stats.performance && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/90 backdrop-blur-sm p-2 rounded border border-green-500 font-mono text-xs text-green-400" style={{ transform: 'scale(0.65) translateY(-50%)', transformOrigin: 'right center' }}>
-          <div className="font-bold text-green-300 mb-1 text-center">PERFORMANCE</div>
-
-          {/* Current Stats */}
-          <div className="mb-2">
-            <div>FPS: <span className={stats.performance.fps < 30 ? 'text-red-500 font-bold' : stats.performance.fps < 50 ? 'text-yellow-500' : 'text-green-400'}>{stats.performance.fps.toFixed(0)}</span></div>
-            <div>Frame: <span className={stats.performance.frameTime > 33 ? 'text-red-500 font-bold' : stats.performance.frameTime > 20 ? 'text-yellow-500' : 'text-green-400'}>{stats.performance.frameTime.toFixed(1)}ms</span> <span className="text-gray-500">(avg: {stats.performance.avgFrameTime.toFixed(1)}ms)</span></div>
-          </div>
-
-          {/* Current Breakdown */}
-          <div className="text-gray-400 text-[10px] mb-2">
-            <div className={stats.performance.physics > stats.performance.avgPhysics * 2 ? 'text-red-400 font-bold' : ''}>Phy: {stats.performance.physics.toFixed(1)}ms <span className="text-gray-600">(avg: {stats.performance.avgPhysics.toFixed(1)})</span></div>
-            <div className={stats.performance.player > stats.performance.avgPlayer * 2 ? 'text-red-400 font-bold' : ''}>Player: {stats.performance.player.toFixed(1)}ms <span className="text-gray-600">(avg: {stats.performance.avgPlayer.toFixed(1)})</span></div>
-            <div className={stats.performance.cops > stats.performance.avgCops * 2 ? 'text-red-400 font-bold' : ''}>Cops: {stats.performance.cops.toFixed(1)}ms <span className="text-gray-600">(avg: {stats.performance.avgCops.toFixed(1)})</span></div>
-            <div className={stats.performance.pedestrians > stats.performance.avgPedestrians * 2 ? 'text-red-400 font-bold' : ''}>Peds: {stats.performance.pedestrians.toFixed(1)}ms <span className="text-gray-600">(avg: {stats.performance.avgPedestrians.toFixed(1)})</span></div>
-            <div className={stats.performance.world > stats.performance.avgWorld * 2 ? 'text-red-400 font-bold' : ''}>World: {stats.performance.world.toFixed(1)}ms <span className="text-gray-600">(avg: {stats.performance.avgWorld.toFixed(1)})</span></div>
-            <div className={stats.performance.rendering > stats.performance.avgRendering * 2 ? 'text-red-400 font-bold' : ''}>Rnd: {stats.performance.rendering.toFixed(1)}ms <span className="text-gray-600">(avg: {stats.performance.avgRendering.toFixed(1)})</span></div>
-          </div>
-
-          {/* Current Counts */}
-          <div className="text-gray-500 text-[9px] mb-2">
-            <div>Cops:{stats.performance.counts.cops} Peds:{stats.performance.counts.pedestrians} Bldg:{stats.performance.counts.buildings}</div>
-            <div>Parts:{stats.performance.counts.particles} Blood:{stats.performance.counts.bloodDecals}</div>
-          </div>
-
-          {/* Three.js Renderer Stats */}
-          {stats.performance.renderer && (
-            <div className="border-t border-blue-500/30 pt-1 mt-1">
-              <div className="text-blue-400 font-bold text-[10px]">GPU STATS:</div>
-              <div className={`text-[9px] ${stats.performance.renderer.drawCalls > 200 ? 'text-red-400 font-bold' : stats.performance.renderer.drawCalls > 100 ? 'text-yellow-400' : 'text-blue-300'}`}>
-                Draw Calls: {stats.performance.renderer.drawCalls} <span className="text-gray-600">(avg: {stats.performance.avgDrawCalls?.toFixed(0) || '?'})</span>
-              </div>
-              <div className="text-[9px] text-blue-300">Triangles: {(stats.performance.renderer.triangles / 1000).toFixed(1)}k</div>
-              <div className="text-[9px] text-gray-500">Geom: {stats.performance.renderer.geometries} Tex: {stats.performance.renderer.textures}</div>
-            </div>
-          )}
-
-          {/* Worst Frame Info */}
-          {stats.performance.worstFrame.frameTime > 50 && (
-            <div className="border-t border-red-500/30 pt-1 mt-1">
-              <div className="text-red-400 font-bold text-[10px]">WORST SPIKE:</div>
-              <div className="text-red-300 text-[10px]">{stats.performance.worstFrame.frameTime.toFixed(1)}ms ({(1000 / stats.performance.worstFrame.frameTime).toFixed(0)} FPS)</div>
-              <div className="text-yellow-400 text-[10px]">
-                Cause: <span className="font-bold uppercase">{stats.performance.worstFrame.bottleneck}</span>
-              </div>
-              <div className="text-gray-500 text-[9px]">
-                P:{stats.performance.worstFrame.physics.toFixed(1)}
-                Pl:{stats.performance.worstFrame.player.toFixed(1)}
-                C:{stats.performance.worstFrame.cops.toFixed(1)}
-                Pe:{stats.performance.worstFrame.pedestrians.toFixed(1)}
-                W:{stats.performance.worstFrame.world.toFixed(1)}
-                R:{stats.performance.worstFrame.rendering.toFixed(1)}
-              </div>
-              <div className="text-orange-300 text-[9px] mt-1">
-                <div>At spike: {stats.performance.worstFrame.counts.cops}cops {stats.performance.worstFrame.counts.pedestrians}peds {stats.performance.worstFrame.counts.buildings}bldg</div>
-                <div>{stats.performance.worstFrame.counts.particles}parts {stats.performance.worstFrame.counts.bloodDecals}blood</div>
-              </div>
-              {stats.performance.worstFrame.renderer && (
-                <div className="text-purple-400 text-[9px] mt-1">
-                  <div>GPU: {stats.performance.worstFrame.renderer.drawCalls} draws, {(stats.performance.worstFrame.renderer.triangles / 1000).toFixed(1)}k tris</div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Top Bar */}
-      <div className="flex justify-between items-start gap-4">
-        <div className="bg-black/80 backdrop-blur-sm p-4 rounded-none border-l-4 border-destructive text-white w-64" style={{ transform: 'scale(0.75)', transformOrigin: 'top left' }}>
-          <h2 className="text-xs text-muted-foreground font-bold uppercase tracking-widest retro">Score</h2>
-          <div className="text-3xl font-black font-mono retro">{stats.score.toLocaleString()}</div>
-
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-muted-foreground retro">MULTIPLIER</span>
-            <Badge variant="default" className="text-lg bg-yellow-500 text-black">
-              x{(1 + (Math.min(stats.combo, 50) * 0.1)).toFixed(1)}
-            </Badge>
-          </div>
-          {stats.combo > 0 && (
-            <div className="mt-2">
-              <Progress
-                value={(stats.comboTimer / 2.0) * 100}
-                variant="retro"
-                className="h-2"
-                progressBg="bg-yellow-500"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Rampage Bar - Center Top */}
-        <div className="flex-1 flex justify-center">
-          <RampageBar
-            combo={stats.combo}
-            comboTimer={stats.comboTimer}
-            inRampageDimension={stats.inRampageDimension || false}
-            rampageProgress={stats.rampageProgress || 0}
-          />
-        </div>
-
-        <div className="bg-black/80 backdrop-blur-sm p-4 rounded-none text-right" style={{ transform: 'scale(0.75)', transformOrigin: 'top right' }}>
-          <div className="text-xs text-muted-foreground font-bold uppercase tracking-widest retro">Kills</div>
-          <Badge variant="destructive" className="text-4xl">
-            {stats.kills}
-          </Badge>
-        </div>
-      </div>
-
-      {/* Bottom Bar: Health & Tier */}
-      <div className="flex items-end gap-4">
-        {/* Health & Heat */}
-        <div className="flex-1 max-w-md bg-black/80 backdrop-blur-sm p-4 rounded-none" style={{ transform: 'scale(0.75)', transformOrigin: 'bottom left' }}>
-          {/* Wanted Stars */}
-          <div className="mb-4">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-muted-foreground retro">WANTED LEVEL</span>
-              <div className="flex gap-1">
-                {[0, 1, 2].map((starIndex) => (
+        {uiHidden ? null : (
+          <>
+            {/* Cop Health Dots */}
+            {stats.copHealthBars?.map((cop, index) => (
+              <div
+                key={index}
+                className="absolute flex gap-0.5"
+                style={{
+                  left: `${cop.x}px`,
+                  top: `${cop.y}px`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                {[...Array(cop.maxHealth)].map((_, i) => (
                   <div
-                    key={starIndex}
-                    className={`w-6 h-6 ${
-                      starIndex < stats.wantedStars
-                        ? 'bg-yellow-500 text-black'
-                        : 'bg-gray-700 text-gray-900'
-                    } flex items-center justify-center font-bold text-lg border-2 border-black`}
-                  >
-                    ★
-                  </div>
+                    key={i}
+                    className={`w-1.5 h-1.5 rounded-full border border-black ${
+                      i < cop.health ? 'bg-red-500' : 'bg-gray-600'
+                    }`}
+                  />
                 ))}
               </div>
-            </div>
-            <div className="text-xs text-muted-foreground mt-1 retro">
-              {stats.wantedStars === 0 && 'Cops will punch you'}
-              {stats.wantedStars === 1 && 'Cops will tase you'}
-              {stats.wantedStars >= 2 && 'Cops will shoot you'}
-            </div>
-          </div>
+            ))}
 
-          {/* Heat Bar */}
-          <div className="mb-4">
-            <div className="flex justify-between text-xs font-bold text-muted-foreground mb-2 retro">
-              <span>HEAT (Cop Spawn Rate)</span>
-              <span>{Math.ceil(stats.heat)}%</span>
-            </div>
-            <HeatBar
-              value={stats.heat}
-              variant="retro"
-              className="h-4"
-            />
-          </div>
-
-          {/* Vehicle Health Bar (only when in vehicle) */}
-          {stats.isInVehicle && stats.vehicleHealth !== undefined && stats.vehicleMaxHealth !== undefined && (
-            <div className="mb-4">
-              <div className="flex justify-between text-xs font-bold text-cyan-400 mb-2 retro">
-                <span>CAR ARMOR</span>
-                <span>{Math.ceil(stats.vehicleHealth)}/{stats.vehicleMaxHealth}</span>
-              </div>
-              <HealthBar
-                value={(stats.vehicleHealth / stats.vehicleMaxHealth) * 100}
-                variant="retro"
-                className="h-6 [&>div]:bg-cyan-500"
-              />
-            </div>
-          )}
-
-          {/* Player Health Bar (hidden when in vehicle) */}
-          {!stats.isInVehicle && (
-            <>
-              <div className="flex justify-between text-xs font-bold text-muted-foreground mb-2 retro">
-                <span>INTEGRITY</span>
-                <span>{Math.ceil(stats.health)}/{currentConfig.maxHealth}</span>
-              </div>
-              <HealthBar
-                value={healthPercent}
-                variant="retro"
-                className="h-6"
-              />
-            </>
-          )}
-        </div>
-
-        {/* Tier Info */}
-        <div className="flex-1 bg-black/90 backdrop-blur-md p-4 rounded-none border-t-4" style={{borderColor: `#${currentConfig.color.toString(16)}`, transform: 'scale(0.75)', transformOrigin: 'bottom right'}}>
-          <div className="flex justify-between items-center mb-2">
-            <div>
-              <h3 className="text-xs text-muted-foreground font-bold uppercase retro">Current Vehicle</h3>
-              <div className="text-xl font-bold text-white retro">{currentConfig.name}</div>
-            </div>
-            {nextConfig && (
-              <div className="text-right">
-                <div className="text-xs text-muted-foreground retro">NEXT UNLOCK</div>
-                <Badge variant="outline" className="font-mono">
-                  {Math.max(0, nextConfig.minScore - stats.score)} pts
-                </Badge>
+            {/* Performance Monitor */}
+            {DEBUG_PERFORMANCE_PANEL && stats.performance && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/90 p-2 rounded border border-green-500/50 font-mono text-[10px] text-green-400" style={{ transform: 'scale(0.7) translateY(-50%)', transformOrigin: 'right center' }}>
+                <div className="text-green-300 mb-1 text-center">PERF</div>
+                <div>FPS: <span className={stats.performance.fps < 30 ? 'text-red-500' : stats.performance.fps < 50 ? 'text-yellow-500' : 'text-green-400'}>{stats.performance.fps.toFixed(0)}</span></div>
+                <div>Frame: {stats.performance.frameTime.toFixed(1)}ms</div>
               </div>
             )}
-          </div>
 
-          {nextConfig && (
-            <Progress
-              value={Math.min(100, Math.max(0, progress))}
-              variant="retro"
-              className="h-2"
-              progressBg="bg-blue-500"
-            />
-          )}
+            {/* TOP ROW */}
+            <div className="flex justify-between items-start">
+              {/* Score - Top Left */}
+              <div className="bg-black/90 px-3 py-2 font-mono">
+                <div className="text-neutral-600 text-[10px] uppercase tracking-wider">Score</div>
+                <div className="text-white text-xl font-bold tabular-nums">{stats.score.toLocaleString()}</div>
+                <div className="text-neutral-600 text-[10px]">
+                  ×<span className={multiplier > 1 ? "text-yellow-400" : "text-neutral-500"}>{multiplier.toFixed(1)}</span>
+                  {stats.combo > 0 && <span className="ml-2 text-orange-400">C{stats.combo}</span>}
+                </div>
+              </div>
 
-          <div className="mt-2 text-xs text-muted-foreground italic retro">
-            {currentConfig.description}
-          </div>
-        </div>
+              {/* Rampage Bar - Center */}
+              <RampageBar
+                combo={stats.combo}
+                comboTimer={stats.comboTimer}
+                inRampageDimension={stats.inRampageDimension || false}
+                rampageProgress={stats.rampageProgress || 0}
+              />
+
+              {/* Kills - Top Right */}
+              <div className="bg-black/90 px-3 py-2 font-mono text-right">
+                <div className="text-neutral-600 text-[10px] uppercase tracking-wider">Kills</div>
+                <div className="text-red-500 text-2xl font-bold tabular-nums">{stats.kills}</div>
+              </div>
+            </div>
+
+            {/* BOTTOM ROW */}
+            <div className="flex justify-between items-end">
+              {/* Status - Bottom Left */}
+              <div className="bg-black/90 px-3 py-2 space-y-0.5">
+                <WantedStars stars={stats.wantedStars} />
+                <TextBar label="HEAT" value={stats.heat} max={100} showValue={false} color="heat" barLength={10} />
+                {stats.isInVehicle && stats.vehicleHealth !== undefined && stats.vehicleMaxHealth !== undefined ? (
+                  <TextBar label="ARMOR" value={stats.vehicleHealth} max={stats.vehicleMaxHealth} color="cyan" barLength={10} />
+                ) : (
+                  <TextBar label="HP" value={stats.health} max={currentConfig.maxHealth} color="red" barLength={10} />
+                )}
+              </div>
+
+              {/* Vehicle - Bottom Right */}
+              <div className="bg-black/90 px-3 py-2 font-mono text-right">
+                <div className="text-neutral-600 text-[10px] uppercase tracking-wider">Vehicle</div>
+                <div className="text-white text-sm font-bold">{currentConfig.name}</div>
+                {nextConfig && (
+                  <div className="text-[10px] text-neutral-600 mt-0.5">
+                    <span className="text-neutral-500">{nextConfig.name}</span>
+                    <span className="text-neutral-700 ml-1">[</span>
+                    <span className="text-cyan-500">{progressBar}</span>
+                    <span className="text-neutral-700">]</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
-
-      </>}
-    </div>
     </>
   );
 };

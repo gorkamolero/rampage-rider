@@ -4,6 +4,7 @@ import { VehicleType } from '../../constants';
 interface VehicleSelectorProps {
   onSelect: (vehicleType: VehicleType | null) => void;
   currentVehicle: VehicleType | null;
+  onTriggerRampage?: () => void;
 }
 
 // PERF: Static vehicle list (outside component to avoid recreation)
@@ -16,7 +17,7 @@ const VEHICLES = [
 ] as const;
 
 // PERF: Memoized to prevent re-renders when parent updates
-const VehicleSelector: React.FC<VehicleSelectorProps> = React.memo(({ onSelect, currentVehicle }) => {
+const VehicleSelector: React.FC<VehicleSelectorProps> = React.memo(({ onSelect, currentVehicle, onTriggerRampage }) => {
   return (
     <>
       {VEHICLES.map((v) => (
@@ -33,6 +34,16 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = React.memo(({ onSelect, 
           {v.icon}
         </button>
       ))}
+      {/* Rampage trigger button */}
+      {onTriggerRampage && (
+        <button
+          onClick={onTriggerRampage}
+          className="w-12 h-12 flex items-center justify-center text-2xl rounded transition-all bg-red-600 hover:bg-red-500 hover:scale-110"
+          title="Trigger Rampage"
+        >
+          💀
+        </button>
+      )}
     </>
   );
 });
