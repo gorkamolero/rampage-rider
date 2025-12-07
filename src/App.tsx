@@ -25,6 +25,7 @@ function App() {
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [irisActive, setIrisActive] = useState(false);
   const [irisReady, setIrisReady] = useState(false);
+  const [loadingFadeOut, setLoadingFadeOut] = useState(false);
 
   // Start loading AFTER user interaction (required for audio)
   useEffect(() => {
@@ -99,14 +100,20 @@ function App() {
   const startGame = () => {
     // Stop menu music immediately before starting game
     gameAudio.stopMenuMusic();
-    // Show black screen immediately
+    // Start loading screen fade out
+    setLoadingFadeOut(true);
+    // Show iris wipe (black screen)
     setIrisActive(true);
     setIrisReady(false);
-    // Small delay to let models finish loading, then reveal
+    // After fade in completes (800ms), start game
     setTimeout(() => {
       setGameState(GameState.PLAYING);
+      setLoadingFadeOut(false);
+    }, 900);
+    // After iris is fully opaque, start the reveal animation
+    setTimeout(() => {
       setIrisReady(true);
-    }, 300);
+    }, 1200);
     // Resume audio context asynchronously (already unlocked by user click)
     gameAudio.resume().catch(() => {});
   };
@@ -219,7 +226,11 @@ function App() {
 
       {/* Loading Screen / Main Menu (combined) */}
       {hasUserInteracted && gameState === GameState.MENU && (
-        <LoadingScreen state={loadingState} onStart={startGame} />
+        <div
+          className={`transition-opacity duration-1000 ${loadingFadeOut ? 'opacity-0' : 'opacity-100'}`}
+        >
+          <LoadingScreen state={loadingState} onStart={startGame} />
+        </div>
       )}
 
       {gameState === GameState.PLAYING && (
