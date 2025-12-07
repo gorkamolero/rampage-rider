@@ -37,6 +37,7 @@ export class Pedestrian extends THREE.Group {
 
   // State
   private isDead: boolean = false;
+  private isDestroyed: boolean = false;
   private health: number = PEDESTRIAN_CONFIG.HEALTH;
   private walkSpeed: number = ENTITY_SPEEDS.PEDESTRIAN_WALK;
   private runSpeed: number = ENTITY_SPEEDS.PEDESTRIAN_RUN;
@@ -702,6 +703,7 @@ export class Pedestrian extends THREE.Group {
   reset(position: THREE.Vector3, _characterType: string): void {
     // Revive
     this.isDead = false;
+    this.isDestroyed = false; // Allow destroy() to work again if reused
     this.health = PEDESTRIAN_CONFIG.HEALTH;
     this.isPanicking = false;
     this.panicFreezeTimer = 0;
@@ -743,6 +745,10 @@ export class Pedestrian extends THREE.Group {
    * Cleanup
    */
   destroy(): void {
+    // Guard against double-destruction (can happen during repositionTable)
+    if (this.isDestroyed) return;
+    this.isDestroyed = true;
+
     const world = this.world;
     if (!world) return;
 
