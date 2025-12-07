@@ -7,6 +7,7 @@ import VehicleSelector from './components/ui/VehicleSelector';
 import MobileControls from './components/ui/MobileControls';
 import { GameOver } from './components/ui/Menus';
 import LoadingScreen from './components/ui/LoadingScreen';
+import IrisWipeReveal from './components/ui/IrisWipe';
 import { GameState, GameStats, Tier, KillNotification } from './types';
 import { VehicleType } from './constants';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -22,6 +23,7 @@ function App() {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [loadingState, setLoadingState] = useState<LoadingState>(() => preloader.getState());
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [showIrisWipe, setShowIrisWipe] = useState(false);
 
   // Start loading AFTER user interaction (required for audio)
   useEffect(() => {
@@ -96,7 +98,8 @@ function App() {
   const startGame = () => {
     // Stop menu music immediately before starting game
     gameAudio.stopMenuMusic();
-    // Start game immediately - audio resume happens in the background
+    // Start iris wipe transition, then start game
+    setShowIrisWipe(true);
     setGameState(GameState.PLAYING);
     // Resume audio context asynchronously (already unlocked by user click)
     gameAudio.resume().catch(() => {});
@@ -247,6 +250,13 @@ function App() {
 
       {/* Mobile Controls - visual feedback + control scheme toggle */}
       <MobileControls enabled={gameState === GameState.PLAYING} />
+
+      {/* Iris wipe reveal transition */}
+      <IrisWipeReveal
+        isOpen={showIrisWipe}
+        duration={600}
+        onComplete={() => setShowIrisWipe(false)}
+      />
     </div>
   );
 }
