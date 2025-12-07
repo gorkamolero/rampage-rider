@@ -141,10 +141,32 @@ export class AudioManager {
 
   /**
    * Resume audio context if suspended (required after tab switch, etc.)
+   * Also handles iOS-specific audio session requirements.
    */
   async resume(): Promise<void> {
-    if (this.context?.state === 'suspended') {
-      await this.context.resume();
+    try {
+      // iOS 17+ requires audio session type to be set to "playback"
+      // Otherwise audio is muted when phone is on silent mode
+      const nav = navigator as Navigator & { audioSession?: { type: string } };
+      if (nav.audioSession) {
+        nav.audioSession.type = 'playback';
+      }
+
+      if (this.context?.state === 'suspended') {
+        await this.context.resume();
+      }
+
+      // iOS Safari workaround: play a tiny silent buffer to "unlock" audio
+      if (this.context && this.masterGain) {
+        const silentBuffer = this.context.createBuffer(1, 1, 22050);
+        const source = this.context.createBufferSource();
+        source.buffer = silentBuffer;
+        source.connect(this.masterGain);
+        source.start(0);
+      }
+    } catch (e) {
+      // Ignore resume errors - audio just won't work
+      console.warn('[AudioManager] Resume failed:', e);
     }
   }
 
@@ -155,50 +177,58 @@ export class AudioManager {
   private async createVoiceReverb(): Promise<void> {
     if (!this.context || !this.uiGain) return;
 
-    // Create convolver node for reverb
-    this.voiceConvolver = this.context.createConvolver();
+    try {
+      // Create convolver node for reverb
+      this.voiceConvolver = this.context.createConvolver();
 
-    // Generate impulse response algorithmically (no file needed)
-    // Long decay time (2.5s) with heavy early reflections for dramatic effect
-    const sampleRate = this.context.sampleRate;
-    const length = sampleRate * 2.5; // 2.5 second reverb tail
-    const impulse = this.context.createBuffer(2, length, sampleRate);
+      // Generate impulse response algorithmically (no file needed)
+      // Long decay time (2.5s) with heavy early reflections for dramatic effect
+      const sampleRate = this.context.sampleRate || 44100;
+      const length = Math.floor(sampleRate * 2.5); // 2.5 second reverb tail
+      const impulse = this.context.createBuffer(2, length, sampleRate);
 
-    for (let channel = 0; channel < 2; channel++) {
-      const channelData = impulse.getChannelData(channel);
-      for (let i = 0; i < length; i++) {
-        // Exponential decay with random noise
-        const decay = Math.exp(-i / (sampleRate * 0.8)); // 0.8s decay constant
-        // Add some early reflections (discrete echoes)
-        let earlyReflection = 0;
-        if (i < sampleRate * 0.1) {
-          // First 100ms: strong early reflections
-          const echoTimes = [0.02, 0.04, 0.06, 0.08]; // Echo at 20ms, 40ms, 60ms, 80ms
-          for (const echoTime of echoTimes) {
-            const echoSample = Math.floor(echoTime * sampleRate);
-            if (Math.abs(i - echoSample) < 50) {
-              earlyReflection += 0.6 * Math.exp(-Math.abs(i - echoSample) / 20);
+      for (let channel = 0; channel < 2; channel++) {
+        const channelData = impulse.getChannelData(channel);
+        for (let i = 0; i < length; i++) {
+          // Exponential decay with random noise
+          const decay = Math.exp(-i / (sampleRate * 0.8)); // 0.8s decay constant
+          // Add some early reflections (discrete echoes)
+          let earlyReflection = 0;
+          if (i < sampleRate * 0.1) {
+            // First 100ms: strong early reflections
+            const echoTimes = [0.02, 0.04, 0.06, 0.08]; // Echo at 20ms, 40ms, 60ms, 80ms
+            for (const echoTime of echoTimes) {
+              const echoSample = Math.floor(echoTime * sampleRate);
+              if (Math.abs(i - echoSample) < 50) {
+                earlyReflection += 0.6 * Math.exp(-Math.abs(i - echoSample) / 20);
+              }
             }
           }
+          // Combine diffuse reverb with early reflections
+          channelData[i] = ((Math.random() * 2 - 1) * decay + earlyReflection) * 0.5;
         }
-        // Combine diffuse reverb with early reflections
-        channelData[i] = ((Math.random() * 2 - 1) * decay + earlyReflection) * 0.5;
       }
+
+      this.voiceConvolver.buffer = impulse;
+
+      // Wet/dry mix: 60% reverb, 40% dry for heavy effect
+      this.voiceReverbGain = this.context.createGain();
+      this.voiceReverbGain.gain.value = 0.6;
+
+      this.voiceDryGain = this.context.createGain();
+      this.voiceDryGain.gain.value = 0.4;
+
+      // Connect reverb chain -> UI gain
+      this.voiceConvolver.connect(this.voiceReverbGain);
+      this.voiceReverbGain.connect(this.uiGain);
+      this.voiceDryGain.connect(this.uiGain);
+    } catch (error) {
+      // Reverb creation failed (some browsers don't support it) - voices will play without reverb
+      console.warn('[AudioManager] Voice reverb not available:', error);
+      this.voiceConvolver = null;
+      this.voiceReverbGain = null;
+      this.voiceDryGain = null;
     }
-
-    this.voiceConvolver.buffer = impulse;
-
-    // Wet/dry mix: 60% reverb, 40% dry for heavy effect
-    this.voiceReverbGain = this.context.createGain();
-    this.voiceReverbGain.gain.value = 0.6;
-
-    this.voiceDryGain = this.context.createGain();
-    this.voiceDryGain.gain.value = 0.4;
-
-    // Connect reverb chain -> UI gain
-    this.voiceConvolver.connect(this.voiceReverbGain);
-    this.voiceReverbGain.connect(this.uiGain);
-    this.voiceDryGain.connect(this.uiGain);
   }
 
   /**
@@ -484,8 +514,18 @@ export class AudioManager {
         // Already stopped
       }
       this.nextMusic = null;
-      this.musicCrossfadeTime = 0;
     }
+    // If crossfade was in progress, stop current music too
+    if (this.musicCrossfadeTime > 0 && this.currentMusic?.isPlaying) {
+      try {
+        this.currentMusic.source?.stop();
+      } catch {
+        // Already stopped
+      }
+      this.currentMusic.isPlaying = false;
+      this.currentMusic = null;
+    }
+    this.musicCrossfadeTime = 0;
 
     const source = this.context.createBufferSource();
     source.buffer = buffer;

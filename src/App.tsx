@@ -38,6 +38,8 @@ function App() {
     gameAudio.init().then(() => {
       gameAudio.playMenuMusic();
       gameAudio.startAmbient();
+    }).catch((err) => {
+      console.warn('[Audio] Init failed, continuing without audio:', err);
     });
 
     return () => {
