@@ -85,10 +85,14 @@ export class AssetLoader {
     return AssetLoader.instance;
   }
 
+  // Extended progress callback for detailed loading phases
+  private _onProgress?: (loaded: number, total: number, currentAsset: string, subPhase: string) => void;
+
   /**
    * Preload all game assets
    */
-  async preloadAll(onProgress?: (progress: number) => void): Promise<void> {
+  async preloadAll(onProgress?: (loaded: number, total: number, currentAsset: string, subPhase: string) => void): Promise<void> {
+    this._onProgress = onProgress;
     if (this.isLoaded) return;
 
     const assetPaths = [
@@ -146,13 +150,14 @@ export class AssetLoader {
 
     const loadPromises = assetPaths.map(async (path) => {
       const resolvedPath = this.resolveAssetPath(path);
+      const assetName = path.split('/').pop() || path;
       try {
         const gltf = await this.loader.loadAsync(resolvedPath);
         this.cache.set(path, gltf);
         loaded++;
 
-        if (onProgress) {
-          onProgress(loaded / total);
+        if (this._onProgress) {
+          this._onProgress(loaded, total, assetName, 'loading');
         }
       } catch (error) {
         if (resolvedPath !== path) {
@@ -160,8 +165,8 @@ export class AssetLoader {
             const fallbackGltf = await this.loader.loadAsync(path);
             this.cache.set(path, fallbackGltf);
             loaded++;
-            if (onProgress) {
-              onProgress(loaded / total);
+            if (this._onProgress) {
+              this._onProgress(loaded, total, assetName, 'loading');
             }
             return;
           } catch (fallbackError) {
@@ -201,6 +206,9 @@ export class AssetLoader {
       'Worker_Female', 'Worker_Male',
     ];
 
+    const total = pedestrianTypes.length;
+    let loaded = 0;
+
     for (const charType of pedestrianTypes) {
       const path = `/assets/pedestrians/${charType}.gltf`;
       const gltf = this.cache.get(path);
@@ -213,6 +221,10 @@ export class AssetLoader {
         clones.push(clonedScene);
       }
       this.pedestrianModelPool.set(charType, clones);
+      loaded++;
+      if (this._onProgress) {
+        this._onProgress(loaded, total, charType, 'cloning-pedestrians');
+      }
     }
   }
 
@@ -222,6 +234,9 @@ export class AssetLoader {
    */
   private async preCloneCopModels(): Promise<void> {
     const copTypes = ['BlueSoldier_Male', 'BlueSoldier_Female', 'Soldier_Male', 'Soldier_Female'];
+
+    const total = copTypes.length;
+    let loaded = 0;
 
     for (const copType of copTypes) {
       const path = `/assets/pedestrians/${copType}.gltf`;
@@ -234,6 +249,10 @@ export class AssetLoader {
         clones.push(clonedScene);
       }
       this.copRiderPool.set(copType, clones);
+      loaded++;
+      if (this._onProgress) {
+        this._onProgress(loaded, total, copType, 'cloning-cops');
+      }
     }
   }
 
@@ -249,6 +268,9 @@ export class AssetLoader {
       '/assets/vehicles/police_muscle.glb',
     ];
 
+    const total = vehiclePaths.length;
+    let loaded = 0;
+
     for (const path of vehiclePaths) {
       const gltf = this.cache.get(path);
       if (!gltf) continue;
@@ -260,6 +282,11 @@ export class AssetLoader {
         clones.push(clonedScene);
       }
       this.vehiclePool.set(path, clones);
+      loaded++;
+      const vehicleName = path.split('/').pop() || path;
+      if (this._onProgress) {
+        this._onProgress(loaded, total, vehicleName, 'cloning-vehicles');
+      }
     }
   }
 

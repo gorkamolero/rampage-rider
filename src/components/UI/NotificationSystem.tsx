@@ -130,8 +130,8 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         );
       })}
 
-      {/* Persistent: Enter Vehicle Prompt */}
-      {showEnterPrompt && (
+      {/* Persistent: Enter Vehicle Prompt - hidden when tased */}
+      {showEnterPrompt && !showTasedAlert && (
         <div
           className="absolute inset-x-0 top-1/2 flex justify-center -translate-y-1/2"
           style={{ animation: 'notif-pulse 1s ease-in-out infinite' }}
@@ -145,14 +145,14 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         </div>
       )}
 
-      {/* Persistent: Tased Alert */}
+      {/* Persistent: Tased Alert - Cyan/Blue theme */}
       {showTasedAlert && (
         <>
-          {/* Dark vignette overlay */}
+          {/* Dark vignette overlay with cyan tint */}
           <div
             className="absolute inset-0"
             style={{
-              background: 'radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.7) 100%)',
+              background: 'radial-gradient(ellipse at center, rgba(0,50,80,0.3) 20%, rgba(0,0,0,0.8) 100%)',
               animation: 'taser-vignette-pulse 0.15s infinite alternate',
             }}
           />
@@ -165,9 +165,10 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
               style={{ animation: 'notif-shake 0.08s infinite' }}
             >
               <div
-                className="font-black retro text-3xl md:text-6xl text-yellow-300"
+                className="font-black retro text-3xl md:text-6xl"
                 style={{
-                  textShadow: '0 0 15px #fde047, 0 0 30px #facc15, 3px 3px 0 #000',
+                  color: '#00F5FF',
+                  textShadow: '0 0 15px #00F5FF, 0 0 30px #06b6d4, 3px 3px 0 #000',
                   animation: 'notif-flash 0.2s infinite',
                 }}
               >
@@ -187,27 +188,23 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
             {/* Progress bar */}
             <div className="w-full max-w-xs md:max-w-md">
               <div
-                className="relative w-full h-10 md:h-16 border-4 md:border-6 border-white rounded-lg overflow-hidden"
+                className="relative w-full h-10 md:h-16 border-4 border-cyan-400 rounded-lg overflow-hidden"
                 style={{
-                  boxShadow: '0 4px 0 #333, 0 0 20px rgba(255,255,0,0.4)',
+                  boxShadow: '0 4px 0 #0e7490, 0 0 20px rgba(0,245,255,0.4)',
                   background: '#0a0a0a',
                 }}
               >
-                {/* Progress fill */}
+                {/* Progress fill - cyan gradient */}
                 <div
                   className="absolute left-0 top-0 h-full transition-all duration-75"
                   style={{
                     width: `${taseEscapeProgress}%`,
                     background: taseEscapeProgress > 80
                       ? 'linear-gradient(to right, #22c55e, #4ade80)'
-                      : taseEscapeProgress > 50
-                        ? 'linear-gradient(to right, #eab308, #facc15)'
-                        : 'linear-gradient(to right, #dc2626, #ef4444)',
+                      : 'linear-gradient(to right, #0891b2, #22d3ee, #00F5FF)',
                     boxShadow: taseEscapeProgress > 80
                       ? '0 0 20px #4ade80'
-                      : taseEscapeProgress > 50
-                        ? '0 0 20px #facc15'
-                        : '0 0 20px #ef4444',
+                      : '0 0 20px #00F5FF',
                   }}
                 />
 
@@ -223,9 +220,9 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
               {/* Key indicator */}
               <div className="flex justify-center mt-3">
                 <div
-                  className="px-4 py-1.5 md:px-6 md:py-2 bg-neutral-800 border-2 md:border-4 border-white rounded-lg font-black retro text-sm md:text-xl text-white"
+                  className="px-4 py-1.5 md:px-6 md:py-2 bg-cyan-900 border-2 md:border-4 border-cyan-400 rounded-lg font-black retro text-sm md:text-xl text-cyan-300"
                   style={{
-                    boxShadow: '0 3px 0 #444',
+                    boxShadow: '0 3px 0 #0e7490, 0 0 10px rgba(0,245,255,0.3)',
                     animation: 'taser-key-bounce 0.15s infinite',
                   }}
                 >
