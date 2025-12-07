@@ -4,7 +4,6 @@ import Overlay from './components/ui/Overlay';
 import NotificationSystem, { NotificationController } from './components/ui/NotificationSystem';
 import SnowOverlay from './components/ui/SnowOverlay';
 import VehicleSelector from './components/ui/VehicleSelector';
-import AnimationSelector from './components/ui/AnimationSelector';
 import { GameOver } from './components/ui/Menus';
 import LoadingScreen from './components/ui/LoadingScreen';
 import { GameState, GameStats, Tier, KillNotification } from './types';
@@ -15,26 +14,7 @@ import { gameAudio } from './audio';
 
 interface EngineControls {
   spawnVehicle: (type: VehicleType | null) => void;
-  getAnimations: () => string[];
-  playAnimation: (name: string) => void;
-  playAnimationOnce: (name: string) => void;
 }
-
-// PERF: Static animation list (moved outside component to avoid recreation on every render)
-const ANIMATIONS = [
-  'Death_A', 'Death_A_Pose', 'Death_B', 'Death_B_Pose',
-  'Hit_A', 'Hit_B', 'Idle_A', 'Idle_B', 'Interact',
-  'Jump_Full_Long', 'Jump_Full_Short', 'Jump_Idle', 'Jump_Land', 'Jump_Start',
-  'Melee_1H_Attack_Chop', 'Melee_1H_Attack_Jump_Chop', 'Melee_1H_Attack_Slice_Diagonal',
-  'Melee_1H_Attack_Slice_Horizontal', 'Melee_1H_Attack_Stab',
-  'Melee_2H_Attack_Chop', 'Melee_2H_Attack_Slice', 'Melee_2H_Attack_Spin',
-  'Melee_2H_Attack_Spinning', 'Melee_2H_Attack_Stab', 'Melee_2H_Idle',
-  'Melee_Block', 'Melee_Block_Attack', 'Melee_Block_Hit', 'Melee_Blocking',
-  'Melee_Dualwield_Attack_Chop', 'Melee_Dualwield_Attack_Slice', 'Melee_Dualwield_Attack_Stab',
-  'Melee_Unarmed_Attack_Kick', 'Melee_Unarmed_Attack_Punch_A', 'Melee_Unarmed_Idle',
-  'PickUp', 'Running_A', 'Running_B', 'Spawn_Air', 'Spawn_Ground',
-  'T-Pose', 'Throw', 'Use_Item', 'Walking_A', 'Walking_B', 'Walking_C', 'Seated_Bike'
-] as const;
 
 function App() {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -73,6 +53,8 @@ function App() {
     wantedStars: 0,
     inPursuit: false,
     inRampageMode: false,
+    rampageKills: 0,
+    rampageKillLimit: 15,
     killHistory: [],
     copHealthBars: [],
     isTased: false,
@@ -119,12 +101,9 @@ function App() {
     }
   }, [gameState]);
 
-  // Debug vehicle spawning
+  // Debug vehicle spawning (dev only)
   const engineControlsRef = useRef<EngineControls | null>(null);
   const [currentVehicle, setCurrentVehicle] = useState<VehicleType | null>(null);
-  const [currentAnimation, setCurrentAnimation] = useState<string>('Idle_A');
-
-  // PERF: Use static ANIMATIONS constant (defined outside component)
 
   const handleEngineReady = useCallback((controls: EngineControls) => {
     engineControlsRef.current = controls;
@@ -134,19 +113,6 @@ function App() {
     if (engineControlsRef.current) {
       engineControlsRef.current.spawnVehicle(vehicleType);
       setCurrentVehicle(vehicleType);
-    }
-  }, []);
-
-  const handleAnimationSelect = useCallback((name: string) => {
-    if (engineControlsRef.current) {
-      engineControlsRef.current.playAnimation(name);
-      setCurrentAnimation(name);
-    }
-  }, []);
-
-  const handleAnimationPlayOnce = useCallback((name: string) => {
-    if (engineControlsRef.current) {
-      engineControlsRef.current.playAnimationOnce(name);
     }
   }, []);
 
@@ -180,15 +146,12 @@ function App() {
             showTasedAlert={stats.isTased}
             taseEscapeProgress={stats.taseEscapeProgress}
           />
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex gap-2 bg-black/60 p-2 rounded-lg border border-white/20">
-            <VehicleSelector onSelect={handleVehicleSelect} currentVehicle={currentVehicle} />
-            <AnimationSelector
-              animations={ANIMATIONS}
-              onSelect={handleAnimationSelect}
-              onPlayOnce={handleAnimationPlayOnce}
-              currentAnimation={currentAnimation}
-            />
-          </div>
+          {/* Dev-only vehicle selector - below top bar on mobile, centered on desktop */}
+          {import.meta.env.DEV && (
+            <div className="absolute top-14 md:top-4 left-1/2 -translate-x-1/2 z-40 flex gap-2 bg-black/60 p-1 md:p-2 rounded-lg border border-white/20">
+              <VehicleSelector onSelect={handleVehicleSelect} currentVehicle={currentVehicle} />
+            </div>
+          )}
         </>
       )}
 
