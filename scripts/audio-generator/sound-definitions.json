@@ -803,8 +803,8 @@
     {
       "id": "rampage_enter",
       "path": "sfx/rampage/rampage_enter.mp3",
-      "prompt": "Reality warping activation, time dilation whoosh, supernatural bass drop, entering another dimension",
-      "duration": 2.5,
+      "prompt": "Epic Viking war horn blast, deep thunderous Gjallarhorn sounding the call to Valhalla, massive reverberating brass horn echoing across mountains, ancient battle horn awakening warrior spirits, primal powerful horn fanfare",
+      "duration": 3,
       "loop": false,
       "category": "rampage"
     },
@@ -899,8 +899,8 @@
     {
       "id": "player_death",
       "path": "sfx/damage/player_death.mp3",
-      "prompt": "Player death cry, final collapse, game over moment",
-      "duration": 1,
+      "prompt": "Classic Wilhelm scream, iconic movie death scream, dramatic male anguished yell, vintage Hollywood stuntman falling scream, slightly exaggerated but not silly",
+      "duration": 1.5,
       "loop": false,
       "category": "damage"
     },
