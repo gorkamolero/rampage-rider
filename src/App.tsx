@@ -23,7 +23,8 @@ function App() {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [loadingState, setLoadingState] = useState<LoadingState>(() => preloader.getState());
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const [showIrisWipe, setShowIrisWipe] = useState(false);
+  const [irisActive, setIrisActive] = useState(false);
+  const [irisReady, setIrisReady] = useState(false);
 
   // Start loading AFTER user interaction (required for audio)
   useEffect(() => {
@@ -98,9 +99,14 @@ function App() {
   const startGame = () => {
     // Stop menu music immediately before starting game
     gameAudio.stopMenuMusic();
-    // Start iris wipe transition, then start game
-    setShowIrisWipe(true);
-    setGameState(GameState.PLAYING);
+    // Show black screen immediately
+    setIrisActive(true);
+    setIrisReady(false);
+    // Small delay to let models finish loading, then reveal
+    setTimeout(() => {
+      setGameState(GameState.PLAYING);
+      setIrisReady(true);
+    }, 300);
     // Resume audio context asynchronously (already unlocked by user click)
     gameAudio.resume().catch(() => {});
   };
@@ -253,9 +259,10 @@ function App() {
 
       {/* Iris wipe reveal transition */}
       <IrisWipeReveal
-        isOpen={showIrisWipe}
+        isActive={irisActive}
+        isReady={irisReady}
         duration={600}
-        onComplete={() => setShowIrisWipe(false)}
+        onComplete={() => setIrisActive(false)}
       />
     </div>
   );
