@@ -84,6 +84,14 @@ export const gameAudio = {
 
   setRampageMode(active: boolean): void {
     this._inRampage = active;
+    // Stop/restart ambient and table crowd sounds based on rampage state
+    if (active) {
+      this.stopAmbient();
+      this.stopTableCrowd();
+    } else {
+      this.startAmbient();
+      this.startTableCrowd();
+    }
   },
 
   setGameStarted(started: boolean): void {
@@ -832,6 +840,7 @@ export const gameAudio = {
    * @param distance - Distance to nearest table in world units
    */
   updateTableCrowdDistance(distance: number): void {
+    if (this._inRampage) return; // No table sounds during rampage
     // Max volume 2.0 when very close, audible within 12 units
     audioManager.updatePositionalVolume("table_crowd", distance, 12, 2.0);
     audioManager.updatePositionalVolume("table_clink", distance, 12, 1.5);
