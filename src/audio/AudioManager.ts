@@ -32,6 +32,7 @@ interface PlayingSound {
   gainNode: GainNode;
   startTime: number;
   loop: boolean;
+  duration?: number;
 }
 
 interface MusicTrack {
@@ -84,6 +85,9 @@ export class AudioManager {
   private duckingLevel = 1.0;
   private duckingTarget = 1.0;
   private duckingSpeed = 4.0;
+
+  // Garbage collection timer
+  private gcTimer = 0;
 
   // State
   private isInitialized = false;
@@ -382,6 +386,7 @@ export class AudioManager {
       gainNode,
       startTime: this.context.currentTime,
       loop: options.loop ?? false,
+      duration: buffer.duration,
     };
 
     this.playingSounds.set(instanceId, playing);
@@ -718,6 +723,13 @@ export class AudioManager {
   update(dt: number): void {
     if (!this.isInitialized) return;
 
+    // Garbage collect stalled sounds every 1 second
+    this.gcTimer += dt;
+    if (this.gcTimer >= 1.0) {
+      this.garbageCollect();
+      this.gcTimer = 0;
+    }
+
     // Update music crossfade
     if (this.musicCrossfadeTime > 0 && this.currentMusic && this.nextMusic) {
       this.musicCrossfadeTime -= dt;
@@ -747,6 +759,41 @@ export class AudioManager {
         this.duckingLevel += Math.sign(diff) * step;
       }
       this.musicGain!.gain.value = this.musicVolume * this.duckingLevel;
+    }
+  }
+
+  /**
+   * Force cleanup of sounds that should have finished playing
+   * (Fixes memory leaks when browser background throttles audio callbacks)
+   */
+  private garbageCollect(): void {
+    if (!this.context) return;
+
+    const now = this.context.currentTime;
+    const cleanupIds: string[] = [];
+
+    for (const [id, sound] of this.playingSounds) {
+      // Skip looping sounds (they don't expire naturally)
+      if (sound.loop) continue;
+
+      // If sound has duration and should have finished 0.5s ago, kill it
+      if (sound.duration && now > sound.startTime + sound.duration + 0.5) {
+        cleanupIds.push(id);
+      }
+    }
+
+    for (const id of cleanupIds) {
+      // console.warn(`[AudioManager] GC cleaning up stalled sound: ${id}`);
+      const sound = this.playingSounds.get(id);
+      if (sound) {
+        try {
+          sound.source.stop();
+          sound.gainNode.disconnect();
+        } catch {
+          // Ignore errors
+        }
+        this.playingSounds.delete(id);
+      }
     }
   }
 
