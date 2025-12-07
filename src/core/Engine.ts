@@ -264,6 +264,7 @@ export class Engine {
     action: false,
     mount: false,
   };
+  private isRunLoopPlaying = false;
   public disableCameraFollow: boolean = false;
 
   private stats: GameStats = {
@@ -374,6 +375,8 @@ export class Engine {
     await gameAudio.init();
     // Start Christmas market ambience
     gameAudio.startAmbient();
+    // Start positional table crowd (volume controlled by distance to biergarten tables)
+    gameAudio.startTableCrowd();
 
     await this.physics.init();
     this.ai.init();
@@ -490,6 +493,9 @@ export class Engine {
     this.resetGame();
     this.clock.start();
     this.animate();
+
+    // Start gameplay music
+    gameAudio.playGameplayMusic();
   }
 
   stop(): void {
@@ -550,7 +556,7 @@ export class Engine {
             this.player.die(() => {
               this.state = GameState.GAME_OVER;
               gameAudio.playGameOver();
-              gameAudio.playGameOverMusic();
+              gameAudio.playEndingMusic();
               if (this.callbacks.onGameOver) {
                 this.callbacks.onGameOver({ ...this.stats });
               }
@@ -609,7 +615,7 @@ export class Engine {
             this.player.die(() => {
               this.state = GameState.GAME_OVER;
               gameAudio.playGameOver();
-              gameAudio.playGameOverMusic();
+              gameAudio.playEndingMusic();
               if (this.callbacks.onGameOver) {
                 this.callbacks.onGameOver({ ...this.stats });
               }
@@ -690,6 +696,7 @@ export class Engine {
 
     this.setupPlayerCallbacks();
     this.player.playSpawnAnimation();
+    gameAudio.playPlayerSpawn();
   }
 
   private spawnVehicle(tier: Tier): void {
@@ -1259,11 +1266,15 @@ export class Engine {
     this.player.setOnEscapePress(() => {
       this.shakeCamera(0.3);
       this.showEscapeFlash();
+      gameAudio.playTaserEscapePress();
     });
 
     this.player.setOnTaserEscape((position, radius, force) => {
       this.shakeCamera(2.5); // Big shake!
       this.showTaserEscapeExplosion(position);
+      // Stop taser loop and play escape sound
+      gameAudio.stopTaserLoop();
+      gameAudio.playTaserEscape();
       if (this.cops) {
         this.cops.applyKnockbackInRadius(position, radius, force);
         this.cops.clearTaserBeams();
@@ -2220,9 +2231,19 @@ export class Engine {
       this.speedLinesEffect.update(dt);
     }
     // Update Ancestor Council (ghost figures around player during rampage)
+    const isMoving = this.input ? (this.input.up || this.input.down || this.input.left || this.input.right) : false;
     if (this.ancestorCouncil) {
-      const isMoving = this.input ? (this.input.up || this.input.down || this.input.left || this.input.right) : false;
       this.ancestorCouncil.update(dt, currentPos, isMoving);
+    }
+
+    // Player run loop audio (leather boots + cape) - only on foot
+    const shouldPlayRunLoop = isMoving && !this.isInVehicle;
+    if (shouldPlayRunLoop && !this.isRunLoopPlaying) {
+      gameAudio.startPlayerRunLoop();
+      this.isRunLoopPlaying = true;
+    } else if (!shouldPlayRunLoop && this.isRunLoopPlaying) {
+      gameAudio.stopPlayerRunLoop();
+      this.isRunLoopPlaying = false;
     }
     if (DEBUG_PERFORMANCE_PANEL) this.performanceStats.world = performance.now() - worldStart;
 
@@ -2232,6 +2253,10 @@ export class Engine {
       this.crowd.update(entityDt, currentPos);
       this.crowd.updateTables(currentPos);
       this.crowd.updateSurge(entityDt); // Handle tier unlock crowd surge
+
+      // Update positional crowd audio based on distance to nearest table
+      const distanceToTable = this.crowd.getDistanceToNearestTable(currentPos);
+      gameAudio.updateTableCrowdDistance(distanceToTable);
 
       // PERF: Cache vehicle type to avoid duplicate function calls
       const currentVehicleType = this.getCurrentVehicleType();
@@ -2979,7 +3004,7 @@ export class Engine {
     // Rampage audio - exit sound and stop loops
     gameAudio.playRampageExit();
     gameAudio.stopRampageLoop();
-    gameAudio.playGameplayMusic(); // Return to normal gameplay music
+    gameAudio.exitRampageMusic(); // Return to gameplay music (alternates tracks)
 
     // Phase 2: Restore normal time
     this.rampageTimeScale = 1.0;

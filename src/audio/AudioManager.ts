@@ -45,6 +45,12 @@ export class AudioManager {
   private sfxGain: GainNode | null = null;
   private musicGain: GainNode | null = null;
   private uiGain: GainNode | null = null;
+  private ambientGain: GainNode | null = null;
+
+  // Reverb effect for voice announcer
+  private voiceConvolver: ConvolverNode | null = null;
+  private voiceReverbGain: GainNode | null = null;
+  private voiceDryGain: GainNode | null = null;
 
   // Audio buffers loaded from files
   private buffers: Map<SoundId, AudioBuffer> = new Map();
@@ -64,6 +70,9 @@ export class AudioManager {
 
   // Engine loops (vehicle engines, sirens)
   private engineLoops: Map<string, PlayingSound> = new Map();
+
+  // Positional ambient sounds (crowd near tables)
+  private positionalSounds: Map<string, { playing: PlayingSound; gainNode: GainNode }> = new Map();
 
   // Volume settings
   private masterVolume = 1.0;
@@ -114,6 +123,12 @@ export class AudioManager {
       this.uiGain = this.context.createGain();
       this.uiGain.connect(this.masterGain);
 
+      this.ambientGain = this.context.createGain();
+      this.ambientGain.connect(this.masterGain);
+
+      // Create reverb effect for voice announcer (heavy Arabic echo)
+      await this.createVoiceReverb();
+
       // Set initial volumes
       this.updateVolumes();
 
@@ -131,6 +146,59 @@ export class AudioManager {
     if (this.context?.state === 'suspended') {
       await this.context.resume();
     }
+  }
+
+  /**
+   * Create heavy reverb effect for voice announcer (Arabic arena echo)
+   * Uses algorithmically generated impulse response for performance
+   */
+  private async createVoiceReverb(): Promise<void> {
+    if (!this.context || !this.uiGain) return;
+
+    // Create convolver node for reverb
+    this.voiceConvolver = this.context.createConvolver();
+
+    // Generate impulse response algorithmically (no file needed)
+    // Long decay time (2.5s) with heavy early reflections for dramatic effect
+    const sampleRate = this.context.sampleRate;
+    const length = sampleRate * 2.5; // 2.5 second reverb tail
+    const impulse = this.context.createBuffer(2, length, sampleRate);
+
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        // Exponential decay with random noise
+        const decay = Math.exp(-i / (sampleRate * 0.8)); // 0.8s decay constant
+        // Add some early reflections (discrete echoes)
+        let earlyReflection = 0;
+        if (i < sampleRate * 0.1) {
+          // First 100ms: strong early reflections
+          const echoTimes = [0.02, 0.04, 0.06, 0.08]; // Echo at 20ms, 40ms, 60ms, 80ms
+          for (const echoTime of echoTimes) {
+            const echoSample = Math.floor(echoTime * sampleRate);
+            if (Math.abs(i - echoSample) < 50) {
+              earlyReflection += 0.6 * Math.exp(-Math.abs(i - echoSample) / 20);
+            }
+          }
+        }
+        // Combine diffuse reverb with early reflections
+        channelData[i] = ((Math.random() * 2 - 1) * decay + earlyReflection) * 0.5;
+      }
+    }
+
+    this.voiceConvolver.buffer = impulse;
+
+    // Wet/dry mix: 60% reverb, 40% dry for heavy effect
+    this.voiceReverbGain = this.context.createGain();
+    this.voiceReverbGain.gain.value = 0.6;
+
+    this.voiceDryGain = this.context.createGain();
+    this.voiceDryGain.gain.value = 0.4;
+
+    // Connect reverb chain -> UI gain
+    this.voiceConvolver.connect(this.voiceReverbGain);
+    this.voiceReverbGain.connect(this.uiGain);
+    this.voiceDryGain.connect(this.uiGain);
   }
 
   /**
@@ -191,6 +259,7 @@ export class AudioManager {
       loop?: boolean;
       instanceId?: string; // For stopping specific instances
       maxDuration?: number; // Max playback duration in seconds (auto-stop after)
+      useReverb?: boolean; // Route through heavy reverb (for voice announcer)
     } = {}
   ): string | null {
     if (!this.context || !this.isInitialized || this.isMuted) return null;
@@ -275,6 +344,7 @@ export class AudioManager {
       loop?: boolean;
       instanceId?: string;
       maxDuration?: number;
+      useReverb?: boolean;
     }
   ): string | null {
     if (!this.context || !this.sfxGain) return null;
@@ -297,10 +367,17 @@ export class AudioManager {
       source.connect(gainNode);
     }
 
-    // Get the appropriate output gain based on sound category
-    const config = SOUND_CONFIG[id];
-    const outputGain = this.getOutputGain(config?.category);
-    gainNode.connect(outputGain);
+    // Route through reverb for voice announcer (heavy Arabic echo)
+    if (options.useReverb && this.voiceConvolver && this.voiceDryGain) {
+      // Send to both dry and wet (convolver) paths
+      gainNode.connect(this.voiceConvolver);
+      gainNode.connect(this.voiceDryGain);
+    } else {
+      // Get the appropriate output gain based on sound category
+      const config = SOUND_CONFIG[id];
+      const outputGain = this.getOutputGain(config?.category);
+      gainNode.connect(outputGain);
+    }
 
     const instanceId = options.instanceId ?? `${id}_${Date.now()}_${Math.random()}`;
 
@@ -385,9 +462,12 @@ export class AudioManager {
   // ============================================
 
   /**
-   * Play music track with optional crossfade
+   * Play music track with optional crossfade and start offset
+   * @param id - Sound ID of the music track
+   * @param crossfade - Whether to crossfade from current track
+   * @param startOffset - Start playback from this time in seconds (to skip intros)
    */
-  playMusic(id: SoundId, crossfade = true): void {
+  playMusic(id: SoundId, crossfade = true, startOffset = 0): void {
     if (!this.context || !this.musicGain) return;
 
     const buffer = this.buffers.get(id);
@@ -410,6 +490,10 @@ export class AudioManager {
     const source = this.context.createBufferSource();
     source.buffer = buffer;
     source.loop = true;
+    // Set loop start point to the offset so it loops from there
+    if (startOffset > 0) {
+      source.loopStart = startOffset;
+    }
 
     const gainNode = this.context.createGain();
     gainNode.connect(this.musicGain);
@@ -434,7 +518,8 @@ export class AudioManager {
     }
 
     source.connect(gainNode);
-    source.start();
+    // Start at the offset time
+    source.start(0, startOffset);
   }
 
   /**
@@ -499,6 +584,55 @@ export class AudioManager {
 
     this.stop(loop.id, fadeTime);
     this.engineLoops.delete(entityId);
+  }
+
+  // ============================================
+  // POSITIONAL AMBIENT SOUNDS (crowd near tables)
+  // ============================================
+
+  /**
+   * Start a positional ambient sound that can have its volume controlled
+   */
+  startPositionalSound(id: string, soundId: SoundId): void {
+    if (this.positionalSounds.has(id)) return;
+
+    const instanceId = this.play(soundId, { loop: true, volume: 0, instanceId: `positional_${id}` });
+    if (instanceId) {
+      const playing = this.playingSounds.get(instanceId);
+      if (playing) {
+        this.positionalSounds.set(id, { playing, gainNode: playing.gainNode });
+      }
+    }
+  }
+
+  /**
+   * Update volume of positional sound based on distance
+   * @param id - The positional sound identifier
+   * @param distance - Distance from listener (in world units)
+   * @param maxDistance - Distance at which sound is silent
+   * @param maxVolume - Maximum volume when at distance 0
+   */
+  updatePositionalVolume(id: string, distance: number, maxDistance = 15, maxVolume = 0.5): void {
+    const sound = this.positionalSounds.get(id);
+    if (!sound || !this.context) return;
+
+    // Linear falloff with smooth curve
+    const normalizedDist = Math.min(distance / maxDistance, 1);
+    const volume = maxVolume * (1 - normalizedDist) ** 2; // Quadratic falloff for more natural feel
+
+    // Smooth transition using ramp
+    sound.gainNode.gain.linearRampToValueAtTime(volume, this.context.currentTime + 0.1);
+  }
+
+  /**
+   * Stop a positional ambient sound
+   */
+  stopPositionalSound(id: string, fadeTime = 0.5): void {
+    const sound = this.positionalSounds.get(id);
+    if (!sound) return;
+
+    this.stop(sound.playing.id, fadeTime);
+    this.positionalSounds.delete(id);
   }
 
   // ============================================
@@ -581,6 +715,22 @@ export class AudioManager {
     this.updateVolumes();
   }
 
+  getSfxVolume(): number {
+    return this.sfxVolume;
+  }
+
+  getMusicVolume(): number {
+    return this.musicVolume;
+  }
+
+  getMasterVolume(): number {
+    return this.masterVolume;
+  }
+
+  getIsMuted(): boolean {
+    return this.isMuted;
+  }
+
   private updateVolumes(): void {
     if (this.masterGain) this.masterGain.gain.value = this.isMuted ? 0 : this.masterVolume;
     if (this.sfxGain) this.sfxGain.gain.value = this.sfxVolume;
@@ -619,6 +769,9 @@ export class AudioManager {
     }
     for (const [id] of this.engineLoops) {
       this.stopEngineLoop(id);
+    }
+    for (const [id] of this.positionalSounds) {
+      this.stopPositionalSound(id, 0);
     }
 
     // Stop music

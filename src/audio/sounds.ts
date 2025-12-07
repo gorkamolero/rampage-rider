@@ -25,6 +25,8 @@ export interface SoundConfig {
 
 export enum SoundId {
   // ========== PLAYER MOVEMENT ==========
+  PLAYER_SPAWN = 'player_spawn',
+  PLAYER_RUN_LOOP = 'player_run_loop',
   FOOTSTEP_RUN = 'footstep_run',
   FOOTSTEP_WALK = 'footstep_walk',
   JUMP = 'jump',
@@ -90,8 +92,14 @@ export enum SoundId {
 
   // ========== COP ENEMIES ==========
   COP_SPAWN = 'cop_spawn',
+  COP_FREEZE = 'cop_freeze', // "Freeze!" voice line on spawn
   COP_ALERT = 'cop_alert',
   COP_PUNCH = 'cop_punch',
+  COP_PUNCH_1 = 'cop_punch_1',
+  COP_PUNCH_2 = 'cop_punch_2',
+  COP_PUNCH_3 = 'cop_punch_3',
+  COP_PUNCH_4 = 'cop_punch_4',
+  COP_PUNCH_5 = 'cop_punch_5',
   COP_DEATH = 'cop_death',
   TASER_FIRE = 'taser_fire',
   TASER_HIT = 'taser_hit',
@@ -177,17 +185,27 @@ export enum SoundId {
   UI_ALERT = 'ui_alert',
   MENU_OPEN = 'menu_open',
   MENU_CLOSE = 'menu_close',
+  GAME_START = 'game_start', // Epic game start sound effect
 
   // ========== MUSIC ==========
-  MUSIC_MENU = 'music_menu',
-  MUSIC_GAMEPLAY = 'music_gameplay',
+  MUSIC_MENU = 'music_menu', // Fireside (loading screen)
+  MUSIC_MENU_2 = 'music_menu_2', // December Evening (loading screen)
+  MUSIC_GAMEPLAY = 'music_gameplay', // Christmas dubstep
+  MUSIC_GAMEPLAY_2 = 'music_gameplay_2', // Outrun Christmas Mayhem
+  MUSIC_GAMEPLAY_3 = 'music_gameplay_3', // Outrun Christmas Mayhem 2
+  MUSIC_GAMEPLAY_4 = 'music_gameplay_4', // Berghain Christmas Mayhem
+  MUSIC_GAMEPLAY_5 = 'music_gameplay_5', // Berghain Christmas Mayhem 2
   MUSIC_RAMPAGE = 'music_rampage',
   MUSIC_GAME_OVER = 'music_game_over',
+  MUSIC_ENDING_1 = 'music_ending_1', // Snow on the Windowsill
+  MUSIC_ENDING_2 = 'music_ending_2', // Postcard from 1954
 
   // ========== AMBIENT ==========
   AMBIENT_CITY = 'ambient_city',
   WIND_LOOP = 'wind_loop',
   CHRISTMAS_MARKET = 'christmas_market',
+  TABLE_CROWD = 'table_crowd', // Positional crowd near tables
+  DEATH_AMBIENT = 'death_ambient', // Dark purgatory loop for game over
 
   // ========== VOICE ANNOUNCER ==========
   VOICE_SPLAT = 'voice_splat',
@@ -233,6 +251,16 @@ export enum SoundId {
 
 export const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
   // ========== PLAYER MOVEMENT ==========
+  [SoundId.PLAYER_SPAWN]: {
+    volume: 0.7,
+    pitch: 1.0,
+    category: 'sfx',
+  },
+  [SoundId.PLAYER_RUN_LOOP]: {
+    volume: 0.175,
+    pitch: 1.0,
+    category: 'sfx',
+  },
   [SoundId.FOOTSTEP_RUN]: {
     volume: 0.4,
     pitch: 1.0,
@@ -501,6 +529,12 @@ export const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
     pitch: 1.0,
     category: 'sfx',
   },
+  [SoundId.COP_FREEZE]: {
+    volume: 0.8,
+    pitch: 1.0,
+    pitchVariation: 0.1,
+    category: 'sfx',
+  },
   [SoundId.COP_ALERT]: {
     volume: 0.6,
     pitch: 1.0,
@@ -508,7 +542,42 @@ export const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
     category: 'sfx',
   },
   [SoundId.COP_PUNCH]: {
-    volume: 0.5,
+    volume: 0.6,
+    pitch: 1.0,
+    pitchVariation: 0.1,
+    pooled: true,
+    category: 'sfx',
+  },
+  [SoundId.COP_PUNCH_1]: {
+    volume: 0.6,
+    pitch: 1.0,
+    pitchVariation: 0.1,
+    pooled: true,
+    category: 'sfx',
+  },
+  [SoundId.COP_PUNCH_2]: {
+    volume: 0.6,
+    pitch: 1.0,
+    pitchVariation: 0.1,
+    pooled: true,
+    category: 'sfx',
+  },
+  [SoundId.COP_PUNCH_3]: {
+    volume: 0.6,
+    pitch: 1.0,
+    pitchVariation: 0.1,
+    pooled: true,
+    category: 'sfx',
+  },
+  [SoundId.COP_PUNCH_4]: {
+    volume: 0.6,
+    pitch: 1.0,
+    pitchVariation: 0.1,
+    pooled: true,
+    category: 'sfx',
+  },
+  [SoundId.COP_PUNCH_5]: {
+    volume: 0.6,
     pitch: 1.0,
     pitchVariation: 0.1,
     pooled: true,
@@ -616,7 +685,7 @@ export const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
     category: 'sfx',
   },
   [SoundId.CROWD_AMBIENT]: {
-    volume: 0.2,
+    volume: 0.1,
     pitch: 1.0,
     category: 'ambient',
   },
@@ -822,6 +891,11 @@ export const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
     pitch: 0.9,
     category: 'ui',
   },
+  [SoundId.GAME_START]: {
+    volume: 0.8,
+    pitch: 1.0,
+    category: 'sfx',
+  },
 
   // ========== MUSIC ==========
   [SoundId.MUSIC_MENU]: {
@@ -829,18 +903,53 @@ export const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
     pitch: 1.0,
     category: 'music',
   },
+  [SoundId.MUSIC_MENU_2]: {
+    volume: 0.7,
+    pitch: 1.0,
+    category: 'music',
+  },
   [SoundId.MUSIC_GAMEPLAY]: {
-    volume: 0.6,
+    volume: 0.85,
+    pitch: 1.0,
+    category: 'music',
+  },
+  [SoundId.MUSIC_GAMEPLAY_2]: {
+    volume: 0.85,
+    pitch: 1.0,
+    category: 'music',
+  },
+  [SoundId.MUSIC_GAMEPLAY_3]: {
+    volume: 0.85,
+    pitch: 1.0,
+    category: 'music',
+  },
+  [SoundId.MUSIC_GAMEPLAY_4]: {
+    volume: 0.85,
+    pitch: 1.0,
+    category: 'music',
+  },
+  [SoundId.MUSIC_GAMEPLAY_5]: {
+    volume: 0.85,
     pitch: 1.0,
     category: 'music',
   },
   [SoundId.MUSIC_RAMPAGE]: {
-    volume: 0.8,
+    volume: 1.0,
     pitch: 1.0,
     category: 'music',
   },
   [SoundId.MUSIC_GAME_OVER]: {
     volume: 0.7,
+    pitch: 1.0,
+    category: 'music',
+  },
+  [SoundId.MUSIC_ENDING_1]: {
+    volume: 0.85,
+    pitch: 1.0,
+    category: 'music',
+  },
+  [SoundId.MUSIC_ENDING_2]: {
+    volume: 0.85,
     pitch: 1.0,
     category: 'music',
   },
@@ -857,47 +966,57 @@ export const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
     category: 'ambient',
   },
   [SoundId.CHRISTMAS_MARKET]: {
-    volume: 0.15,
+    volume: 0.075,
+    pitch: 1.0,
+    category: 'ambient',
+  },
+  [SoundId.TABLE_CROWD]: {
+    volume: 0.3, // Base volume (actual level controlled by positional system)
+    pitch: 1.0,
+    category: 'ambient',
+  },
+  [SoundId.DEATH_AMBIENT]: {
+    volume: 0.4,
     pitch: 1.0,
     category: 'ambient',
   },
 
   // ========== VOICE ANNOUNCER ==========
-  [SoundId.VOICE_SPLAT]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_CRUSHED]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_DEMOLISHED]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_OBLITERATED]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_TERMINATED]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_COWARD]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_NO_ESCAPE]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_RUN_FASTER]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_BACKSTAB]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_EASY_PREY]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_ROADKILL]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_PANCAKED]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_FLATTENED]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_SPLATTER]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_SPEED_BUMP]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_BADGE_DOWN]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_OFFICER_DOWN]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_COP_DROPPED]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_BLUE_DOWN]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_KILLING_SPREE]: { volume: 0.8, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_RAMPAGE]: { volume: 0.8, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_UNSTOPPABLE]: { volume: 0.8, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_GODLIKE]: { volume: 0.85, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_MASSACRE]: { volume: 0.8, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_LEGENDARY]: { volume: 0.9, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_HEAT_KILL]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_WANTED_BONUS]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_PURSUIT_FRENZY]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_HOT_STREAK]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_BLAST_KILL]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_COP_KILLER]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_BIKER_DOWN]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_WRECKED]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_LEVELED]: { volume: 0.7, pitch: 1.0, category: 'ui' },
-  [SoundId.VOICE_RAMPAGE_MODE]: { volume: 0.85, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_SPLAT]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_CRUSHED]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_DEMOLISHED]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_OBLITERATED]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_TERMINATED]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_COWARD]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_NO_ESCAPE]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_RUN_FASTER]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_BACKSTAB]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_EASY_PREY]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_ROADKILL]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_PANCAKED]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_FLATTENED]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_SPLATTER]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_SPEED_BUMP]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_BADGE_DOWN]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_OFFICER_DOWN]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_COP_DROPPED]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_BLUE_DOWN]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_KILLING_SPREE]: { volume: 0.4, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_RAMPAGE]: { volume: 0.4, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_UNSTOPPABLE]: { volume: 0.4, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_GODLIKE]: { volume: 0.42, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_MASSACRE]: { volume: 0.4, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_LEGENDARY]: { volume: 0.45, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_HEAT_KILL]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_WANTED_BONUS]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_PURSUIT_FRENZY]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_HOT_STREAK]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_BLAST_KILL]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_COP_KILLER]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_BIKER_DOWN]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_WRECKED]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_LEVELED]: { volume: 0.35, pitch: 1.0, category: 'ui' },
+  [SoundId.VOICE_RAMPAGE_MODE]: { volume: 0.42, pitch: 1.0, category: 'ui' },
 };
 
 // ============================================
@@ -1003,6 +1122,8 @@ export const MESSAGE_TO_VOICE: Record<string, SoundId> = {
 
 export const SOUND_PATHS: Partial<Record<SoundId, string>> = {
   // ========== PLAYER MOVEMENT ==========
+  [SoundId.PLAYER_SPAWN]: '/audio/sfx/player/player_spawn.mp3',
+  [SoundId.PLAYER_RUN_LOOP]: '/audio/sfx/player/player_run_loop.mp3',
   [SoundId.FOOTSTEP_RUN]: '/audio/sfx/player/footstep_run.mp3',
   [SoundId.FOOTSTEP_WALK]: '/audio/sfx/player/footstep_walk.mp3',
   [SoundId.JUMP]: '/audio/sfx/player/jump.mp3',
@@ -1068,8 +1189,14 @@ export const SOUND_PATHS: Partial<Record<SoundId, string>> = {
 
   // ========== COP ENEMIES ==========
   [SoundId.COP_SPAWN]: '/audio/sfx/cops/cop_spawn.mp3',
+  [SoundId.COP_FREEZE]: '/audio/sfx/cops/cop_freeze.mp3',
   [SoundId.COP_ALERT]: '/audio/sfx/cops/cop_alert.mp3',
   [SoundId.COP_PUNCH]: '/audio/sfx/cops/cop_punch.mp3',
+  [SoundId.COP_PUNCH_1]: '/audio/sfx/cops/cop_punch_1.mp3',
+  [SoundId.COP_PUNCH_2]: '/audio/sfx/cops/cop_punch_2.mp3',
+  [SoundId.COP_PUNCH_3]: '/audio/sfx/cops/cop_punch_3.mp3',
+  [SoundId.COP_PUNCH_4]: '/audio/sfx/cops/cop_punch_4.mp3',
+  [SoundId.COP_PUNCH_5]: '/audio/sfx/cops/cop_punch_5.mp3',
   [SoundId.COP_DEATH]: '/audio/sfx/cops/cop_death.mp3',
   [SoundId.TASER_FIRE]: '/audio/sfx/cops/taser_fire.mp3',
   [SoundId.TASER_HIT]: '/audio/sfx/cops/taser_hit.mp3',
@@ -1155,11 +1282,14 @@ export const SOUND_PATHS: Partial<Record<SoundId, string>> = {
   [SoundId.UI_ALERT]: '/audio/sfx/ui/ui_alert.mp3',
   [SoundId.MENU_OPEN]: '/audio/sfx/ui/menu_open.mp3',
   [SoundId.MENU_CLOSE]: '/audio/sfx/ui/menu_close.mp3',
+  [SoundId.GAME_START]: '/audio/sfx/ui/game_start.mp3',
 
   // ========== AMBIENT ==========
   [SoundId.AMBIENT_CITY]: '/audio/ambient/ambient_city.mp3',
   [SoundId.WIND_LOOP]: '/audio/ambient/wind_loop.mp3',
   [SoundId.CHRISTMAS_MARKET]: '/audio/ambient/christmas_market.mp3',
+  [SoundId.TABLE_CROWD]: '/audio/ambient/table_crowd.mp3',
+  [SoundId.DEATH_AMBIENT]: '/audio/ambient/death_ambient.mp3',
 
   // ========== VOICE ANNOUNCER ==========
   [SoundId.VOICE_SPLAT]: '/audio/sfx/voice_arabic/voice_splat.mp3',
@@ -1197,4 +1327,16 @@ export const SOUND_PATHS: Partial<Record<SoundId, string>> = {
   [SoundId.VOICE_WRECKED]: '/audio/sfx/voice_arabic/voice_wrecked.mp3',
   [SoundId.VOICE_LEVELED]: '/audio/sfx/voice_arabic/voice_leveled.mp3',
   [SoundId.VOICE_RAMPAGE_MODE]: '/audio/sfx/voice_arabic/voice_rampage_mode.mp3',
+
+  // ========== MUSIC ==========
+  [SoundId.MUSIC_MENU]: '/audio/music/gameplay_1.mp3', // Fireside
+  [SoundId.MUSIC_MENU_2]: '/audio/music/gameplay_2.mp3', // December Evening
+  [SoundId.MUSIC_GAMEPLAY]: '/audio/music/game christmas dubstep.mp3',
+  [SoundId.MUSIC_GAMEPLAY_2]: '/audio/music/outrun_christmas_mayhem.mp3',
+  [SoundId.MUSIC_GAMEPLAY_3]: '/audio/music/outrun_christmas_mayhem_2.mp3',
+  [SoundId.MUSIC_GAMEPLAY_4]: '/audio/music/berghain_christmas_mayhem.mp3',
+  [SoundId.MUSIC_GAMEPLAY_5]: '/audio/music/berghain_christmas_mayhem_2.mp3',
+  [SoundId.MUSIC_RAMPAGE]: '/audio/music/rampage.mp3',
+  [SoundId.MUSIC_ENDING_1]: '/audio/music/ending_1.mp3', // Snow on the Windowsill
+  [SoundId.MUSIC_ENDING_2]: '/audio/music/ending_2.mp3', // Postcard from 1954
 };

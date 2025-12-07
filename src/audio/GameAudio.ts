@@ -12,12 +12,16 @@
  * Example: gameAudio.playKill('pedestrian', 3); // 3 combo
  */
 
-import { audioManager } from './AudioManager';
-import { SoundId, SOUND_PATHS, MESSAGE_TO_VOICE } from './sounds';
-import { Tier } from '../types';
+import { audioManager } from "./AudioManager";
+import { SoundId, SOUND_PATHS, MESSAGE_TO_VOICE } from "./sounds";
+import { Tier } from "../types";
 
 // Random sound pools for variety
-const KILL_SOUNDS = [SoundId.KILL_SPLAT, SoundId.KILL_CRUNCH, SoundId.KILL_SQUISH];
+const KILL_SOUNDS = [
+  SoundId.KILL_SPLAT,
+  SoundId.KILL_CRUNCH,
+  SoundId.KILL_SQUISH,
+];
 const COP_KILL_SOUNDS = [SoundId.COP_DEATH, SoundId.KILL_CRUNCH];
 
 // Knife stab pool (8 variations for fleshy cop kills)
@@ -102,6 +106,18 @@ export const gameAudio = {
   // PLAYER MOVEMENT
   // ============================================
 
+  playPlayerSpawn(): void {
+    audioManager.play(SoundId.PLAYER_SPAWN);
+  },
+
+  startPlayerRunLoop(): string | null {
+    return audioManager.play(SoundId.PLAYER_RUN_LOOP, { loop: true, instanceId: 'player_run_loop' });
+  },
+
+  stopPlayerRunLoop(): void {
+    audioManager.stop('player_run_loop', 0.15);
+  },
+
   playFootstep(isRunning: boolean): void {
     const id = isRunning ? SoundId.FOOTSTEP_RUN : SoundId.FOOTSTEP_WALK;
     audioManager.play(id, { pitch: variedPitch(1.0, 0.1) });
@@ -164,8 +180,11 @@ export const gameAudio = {
   // KILLS
   // ============================================
 
-  playKill(type: 'pedestrian' | 'cop' | 'copCar' | 'bikeCop' | 'motorbikeCop', combo = 0): void {
-    const isCop = type !== 'pedestrian';
+  playKill(
+    type: "pedestrian" | "cop" | "copCar" | "bikeCop" | "motorbikeCop",
+    combo = 0,
+  ): void {
+    const isCop = type !== "pedestrian";
     const sounds = isCop ? COP_KILL_SOUNDS : KILL_SOUNDS;
     const id = randomFrom(sounds);
 
@@ -300,7 +319,8 @@ export const gameAudio = {
   },
 
   playHorn(tier: Tier): void {
-    const soundId = tier === Tier.TRUCK ? SoundId.TRUCK_HORN : SoundId.SEDAN_HORN;
+    const soundId =
+      tier === Tier.TRUCK ? SoundId.TRUCK_HORN : SoundId.SEDAN_HORN;
     audioManager.play(soundId);
   },
 
@@ -320,6 +340,8 @@ export const gameAudio = {
 
   playCopSpawn(): void {
     audioManager.play(SoundId.COP_SPAWN);
+    // Play "Freeze!" voice line
+    audioManager.play(SoundId.COP_FREEZE, { pitch: variedPitch(1.0, 0.1) });
   },
 
   playCopAlert(): void {
@@ -327,7 +349,15 @@ export const gameAudio = {
   },
 
   playCopPunch(): void {
-    audioManager.play(SoundId.COP_PUNCH, { pitch: variedPitch(1.0, 0.1) });
+    // Randomly select from 5 punch variations
+    const punchSounds = [
+      SoundId.COP_PUNCH_1,
+      SoundId.COP_PUNCH_2,
+      SoundId.COP_PUNCH_3,
+      SoundId.COP_PUNCH_4,
+      SoundId.COP_PUNCH_5,
+    ];
+    audioManager.play(randomFrom(punchSounds), { pitch: variedPitch(1.0, 0.1) });
   },
 
   playCopDeath(): void {
@@ -352,16 +382,21 @@ export const gameAudio = {
   },
 
   startTaserLoop(): string | null {
-    return audioManager.play(SoundId.TASER_LOOP, { loop: true, instanceId: 'taser_loop' });
+    return audioManager.play(SoundId.TASER_LOOP, {
+      loop: true,
+      instanceId: "taser_loop",
+    });
   },
 
   stopTaserLoop(): void {
-    audioManager.stop('taser_loop', 0.2);
+    audioManager.stop("taser_loop", 0.2);
   },
 
   playTaserEscapePress(): void {
     // Rising pitch based on escape progress would be nice
-    audioManager.play(SoundId.COMBO_INCREMENT, { pitch: variedPitch(1.2, 0.1) });
+    audioManager.play(SoundId.COMBO_INCREMENT, {
+      pitch: variedPitch(1.2, 0.1),
+    });
   },
 
   playTaserEscape(): void {
@@ -423,7 +458,9 @@ export const gameAudio = {
   },
 
   playMotorbikeCopRam(): void {
-    audioManager.play(SoundId.MOTORBIKE_COP_RAM, { pitch: variedPitch(1.0, 0.1) });
+    audioManager.play(SoundId.MOTORBIKE_COP_RAM, {
+      pitch: variedPitch(1.0, 0.1),
+    });
   },
 
   startBikeCopPedal(entityId: string): void {
@@ -494,13 +531,19 @@ export const gameAudio = {
   },
 
   startRampageLoop(): void {
-    audioManager.play(SoundId.RAMPAGE_LOOP, { loop: true, instanceId: 'rampage_loop' });
-    audioManager.play(SoundId.RAMPAGE_HEARTBEAT, { loop: true, instanceId: 'rampage_heartbeat' });
+    audioManager.play(SoundId.RAMPAGE_LOOP, {
+      loop: true,
+      instanceId: "rampage_loop",
+    });
+    audioManager.play(SoundId.RAMPAGE_HEARTBEAT, {
+      loop: true,
+      instanceId: "rampage_heartbeat",
+    });
   },
 
   stopRampageLoop(): void {
-    audioManager.stop('rampage_loop', 0.5);
-    audioManager.stop('rampage_heartbeat', 0.5);
+    audioManager.stop("rampage_loop", 0.5);
+    audioManager.stop("rampage_heartbeat", 0.5);
   },
 
   playRampageExit(): void {
@@ -508,7 +551,9 @@ export const gameAudio = {
   },
 
   playAncestorWhisper(): void {
-    audioManager.play(SoundId.ANCESTOR_WHISPER, { pitch: variedPitch(1.0, 0.2) });
+    audioManager.play(SoundId.ANCESTOR_WHISPER, {
+      pitch: variedPitch(1.0, 0.2),
+    });
   },
 
   // ============================================
@@ -584,11 +629,15 @@ export const gameAudio = {
     audioManager.play(SoundId.UI_ALERT);
   },
 
-  // Play voice announcer for a notification message
+  playGameStart(): void {
+    audioManager.play(SoundId.GAME_START);
+  },
+
+  // Play voice announcer for a notification message (with heavy reverb)
   playVoiceForMessage(message: string): void {
     const voiceId = MESSAGE_TO_VOICE[message];
     if (voiceId) {
-      audioManager.play(voiceId, { maxDuration: 1.2 });
+      audioManager.play(voiceId, { maxDuration: 1.2, useReverb: true });
     }
   },
 
@@ -604,20 +653,70 @@ export const gameAudio = {
   // MUSIC
   // ============================================
 
+  // Menu tracks pool (for loading screen)
+  _menuTracks: [
+    SoundId.MUSIC_MENU,   // Fireside
+    SoundId.MUSIC_MENU_2, // December Evening
+  ] as const,
+
+  // Gameplay tracks pool
+  _gameplayTracks: [
+    SoundId.MUSIC_GAMEPLAY,   // Christmas dubstep
+    SoundId.MUSIC_GAMEPLAY_2, // Outrun Christmas Mayhem
+    SoundId.MUSIC_GAMEPLAY_3, // Outrun Christmas Mayhem 2
+    SoundId.MUSIC_GAMEPLAY_4, // Berghain Christmas Mayhem
+    SoundId.MUSIC_GAMEPLAY_5, // Berghain Christmas Mayhem 2
+  ] as const,
+
+  /**
+   * Play menu/loading screen music (random from 2 tracks)
+   */
   playMenuMusic(): void {
-    audioManager.playMusic(SoundId.MUSIC_MENU);
+    const track = randomFrom([...this._menuTracks]);
+    audioManager.playMusic(track);
   },
 
-  playGameplayMusic(): void {
-    audioManager.playMusic(SoundId.MUSIC_GAMEPLAY);
+  /**
+   * Play gameplay music (random track)
+   * @param startOffset - Start from this second (to skip intros)
+   */
+  playGameplayMusic(startOffset = 0): void {
+    const track = randomFrom([...this._gameplayTracks]);
+    audioManager.playMusic(track, true, startOffset);
   },
 
-  playRampageMusic(): void {
-    audioManager.playMusic(SoundId.MUSIC_RAMPAGE);
+  /**
+   * Play rampage mode music
+   * @param startOffset - Start from this second (to skip intros)
+   */
+  playRampageMusic(startOffset = 0): void {
+    audioManager.playMusic(SoundId.MUSIC_RAMPAGE, true, startOffset);
+  },
+
+  /**
+   * Switch back to gameplay music from rampage (picks random track)
+   * @param startOffset - Start from this second (to skip intros)
+   */
+  exitRampageMusic(startOffset = 0): void {
+    this.playGameplayMusic(startOffset);
   },
 
   playGameOverMusic(): void {
     audioManager.playMusic(SoundId.MUSIC_GAME_OVER);
+  },
+
+  // Ending tracks pool (for BUSTED screen)
+  _endingTracks: [
+    SoundId.MUSIC_ENDING_1, // Snow on the Windowsill
+    SoundId.MUSIC_ENDING_2, // Postcard from 1954
+  ] as const,
+
+  /**
+   * Play ending music when player is busted (random from 2 tracks)
+   */
+  playEndingMusic(): void {
+    const track = randomFrom([...this._endingTracks]);
+    audioManager.playMusic(track, true);
   },
 
   stopMusic(fadeTime = 1.0): void {
@@ -630,11 +729,63 @@ export const gameAudio = {
 
   startAmbient(): void {
     // Christmas market ambience as main background
-    audioManager.play(SoundId.CHRISTMAS_MARKET, { loop: true, instanceId: 'christmas_market' });
+    audioManager.play(SoundId.CHRISTMAS_MARKET, {
+      loop: true,
+      instanceId: "christmas_market",
+    });
   },
 
   stopAmbient(): void {
-    audioManager.stop('christmas_market', 1.0);
+    audioManager.stop("christmas_market", 1.0);
+  },
+
+  // ============================================
+  // POSITIONAL CROWD AUDIO (near tables)
+  // ============================================
+
+  /**
+   * Start table crowd sound (call once when game starts)
+   */
+  startTableCrowd(): void {
+    audioManager.startPositionalSound("table_crowd", SoundId.TABLE_CROWD);
+  },
+
+  /**
+   * Update table crowd volume based on distance to nearest table
+   * @param distance - Distance to nearest table in world units
+   */
+  updateTableCrowdDistance(distance: number): void {
+    // Max volume 0.3, audible within 12 units
+    audioManager.updatePositionalVolume("table_crowd", distance, 12, 0.3);
+  },
+
+  /**
+   * Stop table crowd sound
+   */
+  stopTableCrowd(): void {
+    audioManager.stopPositionalSound("table_crowd");
+  },
+
+  // ============================================
+  // DEATH AMBIENT (purgatory loop)
+  // ============================================
+
+  /**
+   * Start dark purgatory ambient loop (for game over screen)
+   */
+  startDeathAmbient(): void {
+    audioManager.play(SoundId.DEATH_AMBIENT, {
+      loop: true,
+      instanceId: "death_ambient",
+      volume: 0.4,
+    });
+  },
+
+  /**
+   * Stop death ambient
+   */
+  stopDeathAmbient(): void {
+    audioManager.stop("death_ambient", 1.5);
   },
 
   // ============================================

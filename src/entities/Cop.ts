@@ -12,6 +12,7 @@ import {
   HIT_STUN,
   COP_CONFIG,
 } from '../constants';
+import { gameAudio } from '../audio/GameAudio';
 
 /**
  * Cop Entity
@@ -462,14 +463,26 @@ export class Cop extends THREE.Group {
       }
       this.isCurrentlyAttacking = true;
 
-      // Create visual effects based on attack type
+      // Create visual effects and play sounds based on attack type
       if (this.lastTarget) {
         if (this.currentWantedStars >= 2) {
-          // Shooting - create bullet projectile
+          // Shooting - create bullet projectile + gunshot sound
           this.createBulletProjectile(this.lastTarget);
+          gameAudio.playGunshot();
         } else if (this.currentWantedStars === 1 && this.playerCanBeTased) {
-          // Taser - create electric beam
+          // Taser - create electric beam + taser sounds
           this.createTaserBeam(this.lastTarget);
+          gameAudio.playTaserFire();
+          gameAudio.playTaserHit();
+          gameAudio.startTaserLoop();
+        } else {
+          // Punch (0 stars or taser not applicable)
+          gameAudio.playCopPunch();
+        }
+      } else {
+        // No target but still attacking (punch only)
+        if (this.currentWantedStars === 0) {
+          gameAudio.playCopPunch();
         }
       }
 

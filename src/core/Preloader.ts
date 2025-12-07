@@ -1,11 +1,42 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import { AssetLoader } from './AssetLoader';
 
+export interface LoadingState {
+  progress: number; // 0-1
+  phase: LoadingPhase;
+  detail: string;
+  itemsLoaded: number;
+  itemsTotal: number;
+}
+
+export type LoadingPhase =
+  | 'initializing'
+  | 'physics'
+  | 'models'
+  | 'cloning-pedestrians'
+  | 'cloning-cops'
+  | 'cloning-vehicles'
+  | 'complete';
+
+const PHASE_LABELS: Record<LoadingPhase, string> = {
+  'initializing': 'INITIALIZING...',
+  'physics': 'LOADING PHYSICS ENGINE...',
+  'models': 'LOADING MODELS...',
+  'cloning-pedestrians': 'PREPARING CROWDS...',
+  'cloning-cops': 'DEPLOYING UNITS...',
+  'cloning-vehicles': 'FUELING VEHICLES...',
+  'complete': 'READY!'
+};
+
+// Weight each phase by approximate time cost
+const PHASE_WEIGHTS = {
+  physics: 0.1,        // Rapier WASM is fast
+  models: 0.6,         // Bulk of time is loading 40+ models
+  cloning: 0.3         // Pre-cloning takes noticeable time
+};
+
 /**
- * Preloader - Loads heavy assets before the game starts
- *
- * Call preload() as early as possible in the app lifecycle
- * to ensure Rapier WASM and models are ready when user clicks Start
+ * Preloader - Loads heavy assets before the game starts with granular progress
  */
 class Preloader {
   private static instance: Preloader;
@@ -13,7 +44,15 @@ class Preloader {
   private assetsLoaded = false;
   private rapierPromise: Promise<void> | null = null;
   private assetsPromise: Promise<void> | null = null;
-  private progressListeners = new Set<(progress: number, detail: string) => void>();
+  private progressListeners = new Set<(state: LoadingState) => void>();
+
+  private currentState: LoadingState = {
+    progress: 0,
+    phase: 'initializing',
+    detail: PHASE_LABELS['initializing'],
+    itemsLoaded: 0,
+    itemsTotal: 0
+  };
 
   private constructor() {}
 
@@ -25,31 +64,35 @@ class Preloader {
   }
 
   /**
-   * Start preloading all heavy assets
-   * Returns a promise that resolves when everything is ready
+   * Start preloading all heavy assets with granular progress tracking
    */
   async preloadAll(): Promise<void> {
-    const promises: Promise<void>[] = [];
-
-    // Start Rapier WASM loading
+    // Phase 1: Load Rapier WASM
     if (!this.rapierLoaded && !this.rapierPromise) {
+      this.updateState({ phase: 'physics', detail: PHASE_LABELS['physics'] });
       this.rapierPromise = this.preloadRapier();
-      promises.push(this.rapierPromise);
-    } else if (this.rapierPromise) {
-      promises.push(this.rapierPromise);
     }
 
-    // Start asset loading
+    if (this.rapierPromise) {
+      await this.rapierPromise;
+    }
+
+    // Phase 2: Load all models
     if (!this.assetsLoaded && !this.assetsPromise) {
+      this.updateState({ phase: 'models', detail: PHASE_LABELS['models'] });
       this.assetsPromise = this.preloadAssets();
-      promises.push(this.assetsPromise);
-    } else if (this.assetsPromise) {
-      promises.push(this.assetsPromise);
     }
 
-    await Promise.all(promises);
+    if (this.assetsPromise) {
+      await this.assetsPromise;
+    }
 
-    this.notifyProgress('complete');
+    // Complete
+    this.updateState({
+      phase: 'complete',
+      detail: PHASE_LABELS['complete'],
+      progress: 1
+    });
   }
 
   /**
@@ -60,60 +103,91 @@ class Preloader {
 
     await RAPIER.init();
     this.rapierLoaded = true;
-    this.notifyProgress('rapier-ready');
+    this.updateState({
+      progress: PHASE_WEIGHTS.physics,
+      detail: 'Physics engine ready'
+    });
   }
 
   /**
-   * Preload game assets (models, textures)
+   * Preload game assets (models, textures) with per-item progress
    */
   private async preloadAssets(): Promise<void> {
     if (this.assetsLoaded) return;
 
     const assetLoader = AssetLoader.getInstance();
-    await assetLoader.preloadAll();
+
+    await assetLoader.preloadAll((loaded, total, currentAsset, subPhase) => {
+      // Calculate progress within current phase
+      let phaseProgress = 0;
+      let phase: LoadingPhase = 'models';
+      let detail = '';
+
+      if (subPhase === 'loading') {
+        phase = 'models';
+        phaseProgress = (loaded / total) * PHASE_WEIGHTS.models;
+        detail = currentAsset ? `Loading ${currentAsset}` : PHASE_LABELS['models'];
+      } else if (subPhase === 'cloning-pedestrians') {
+        phase = 'cloning-pedestrians';
+        phaseProgress = PHASE_WEIGHTS.models + (loaded / total) * (PHASE_WEIGHTS.cloning * 0.5);
+        detail = PHASE_LABELS['cloning-pedestrians'];
+      } else if (subPhase === 'cloning-cops') {
+        phase = 'cloning-cops';
+        phaseProgress = PHASE_WEIGHTS.models + (PHASE_WEIGHTS.cloning * 0.5) + (loaded / total) * (PHASE_WEIGHTS.cloning * 0.25);
+        detail = PHASE_LABELS['cloning-cops'];
+      } else if (subPhase === 'cloning-vehicles') {
+        phase = 'cloning-vehicles';
+        phaseProgress = PHASE_WEIGHTS.models + (PHASE_WEIGHTS.cloning * 0.75) + (loaded / total) * (PHASE_WEIGHTS.cloning * 0.25);
+        detail = PHASE_LABELS['cloning-vehicles'];
+      }
+
+      this.updateState({
+        phase,
+        progress: PHASE_WEIGHTS.physics + phaseProgress,
+        detail,
+        itemsLoaded: loaded,
+        itemsTotal: total
+      });
+    });
 
     this.assetsLoaded = true;
-    this.notifyProgress('assets-ready');
   }
 
-  addProgressListener(listener: (progress: number, detail: string) => void): () => void {
+  private updateState(partial: Partial<LoadingState>): void {
+    this.currentState = { ...this.currentState, ...partial };
+    this.notifyListeners();
+  }
+
+  private notifyListeners(): void {
+    this.progressListeners.forEach(listener => {
+      listener(this.currentState);
+    });
+  }
+
+  addProgressListener(listener: (state: LoadingState) => void): () => void {
     this.progressListeners.add(listener);
-    listener(this.getProgress(), this.isReady() ? 'complete' : 'pending');
+    listener(this.currentState);
     return () => {
       this.progressListeners.delete(listener);
     };
   }
 
   getProgress(): number {
-    const stages = 2;
-    const completed = Number(this.rapierLoaded) + Number(this.assetsLoaded);
-    return completed / stages;
+    return this.currentState.progress;
   }
 
-  private notifyProgress(detail: string): void {
-    const progress = this.getProgress();
-    this.progressListeners.forEach(listener => {
-      listener(progress, detail);
-    });
+  getState(): LoadingState {
+    return this.currentState;
   }
 
-  /**
-   * Check if Rapier is loaded
-   */
   isRapierReady(): boolean {
     return this.rapierLoaded;
   }
 
-  /**
-   * Check if all assets are loaded
-   */
   isAssetsReady(): boolean {
     return this.assetsLoaded;
   }
 
-  /**
-   * Check if everything is ready
-   */
   isReady(): boolean {
     return this.rapierLoaded && this.assetsLoaded;
   }

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import * as RAPIER from '@dimforge/rapier3d-compat';
 import { Cop } from '../entities/Cop';
 import { AIManager } from '../core/AIManager';
+import { gameAudio } from '../audio/GameAudio';
 
 /**
  * CopManager
@@ -144,6 +145,9 @@ export class CopManager {
     this.cops.push(cop);
     this.scene.add(cop);
     this.scene.add(cop.getBlobShadow()); // Add blob shadow to scene
+
+    // Play spawn sound with "Freeze!" voice
+    gameAudio.playCopSpawn();
   }
 
   /**

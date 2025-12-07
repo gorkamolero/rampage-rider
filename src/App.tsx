@@ -5,11 +5,12 @@ import NotificationSystem, { NotificationController } from './components/ui/Noti
 import SnowOverlay from './components/ui/SnowOverlay';
 import VehicleSelector from './components/ui/VehicleSelector';
 import AnimationSelector from './components/ui/AnimationSelector';
-import { MainMenu, GameOver } from './components/ui/Menus';
+import { GameOver } from './components/ui/Menus';
+import LoadingScreen from './components/ui/LoadingScreen';
 import { GameState, GameStats, Tier, KillNotification } from './types';
 import { VehicleType } from './constants';
 import ErrorBoundary from './components/ErrorBoundary';
-import { preloader } from './core/Preloader';
+import { preloader, LoadingState } from './core/Preloader';
 import { gameAudio } from './audio';
 
 interface EngineControls {
@@ -37,20 +38,22 @@ const ANIMATIONS = [
 
 function App() {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState(() => preloader.getProgress());
+  const [loadingState, setLoadingState] = useState<LoadingState>(() => preloader.getState());
 
   // Preload heavy assets (Rapier WASM + models) on mount
   useEffect(() => {
-    const unsubscribe = preloader.addProgressListener((progress) => {
-      setLoadingProgress(progress);
-      if (progress >= 1) {
-        setIsLoading(false);
-      }
+    const unsubscribe = preloader.addProgressListener((state) => {
+      setLoadingState(state);
     });
 
     preloader.preloadAll().catch(() => {
-      // Leave loading flag true so button stays disabled; errors already logged by loaders
+      // Errors already logged by loaders
+    });
+
+    // Initialize audio and start menu music
+    gameAudio.init().then(() => {
+      gameAudio.playMenuMusic();
+      gameAudio.startAmbient();
     });
 
     return () => {
@@ -104,6 +107,7 @@ function App() {
   const startGame = () => {
     // Resume audio context (requires user interaction)
     gameAudio.resume();
+    gameAudio.playGameStart();
     setGameState(GameState.PLAYING);
   };
 
@@ -161,9 +165,9 @@ function App() {
         />
       </ErrorBoundary>
 
-      {/* UI Layers */}
+      {/* Loading Screen / Main Menu (combined) */}
       {gameState === GameState.MENU && (
-        <MainMenu onStart={startGame} isLoading={isLoading} loadingProgress={loadingProgress} />
+        <LoadingScreen state={loadingState} onStart={startGame} />
       )}
 
       {gameState === GameState.PLAYING && (
