@@ -315,6 +315,10 @@ export class Engine {
   private vehiclesToCleanup: Array<{ vehicle: Vehicle; timer: number }> = [];
   private awaitingVehicleNotificationShown: boolean = false; // Track if proximity notification was shown
 
+  // Motorbike blast: available every X kills
+  private motorbikeBlastKillCounter: number = 0;
+  private static readonly MOTORBIKE_BLAST_KILL_THRESHOLD = 5; // Blast available every 5 kills
+
   private actionController: ActionController = new ActionController();
 
   constructor(canvas: HTMLCanvasElement, width: number, height: number) {
@@ -516,6 +520,9 @@ export class Engine {
   private resetGame(): void {
     this.isDying = false;
 
+    // Stop all looping SFX on reset
+    gameAudio.stopAllLoops();
+
     if (this.player) {
       this.player.dispose();
       this.scene.remove(this.player);
@@ -556,9 +563,10 @@ export class Engine {
             this.stats.health = 0;
             this.isDying = true;
 
-            // Player death audio
+            // Player death audio - stop all loops
             gameAudio.playPlayerDeath();
             gameAudio.stopMusic(0.5);
+            gameAudio.stopAllLoops();
 
             this.player.die(() => {
               this.state = GameState.GAME_OVER;
@@ -615,9 +623,10 @@ export class Engine {
             this.stats.health = 0;
             this.isDying = true;
 
-            // Player death audio
+            // Player death audio - stop all loops
             gameAudio.playPlayerDeath();
             gameAudio.stopMusic(0.5);
+            gameAudio.stopAllLoops();
 
             this.player.die(() => {
               this.state = GameState.GAME_OVER;
@@ -965,9 +974,12 @@ export class Engine {
   private isPlayerNearAwaitingVehicle(): boolean {
     if (!this.player || !this.awaitingVehicle) return false;
 
-    const playerPos = this.player.getPosition();
+    // Use current vehicle position if player is in a vehicle
+    const sourcePos = this.isInVehicle && this.vehicle
+      ? this.vehicle.getPosition()
+      : this.player.getPosition();
     const vehiclePos = this.awaitingVehicle.getPosition();
-    const distanceSq = playerPos.distanceToSquared(vehiclePos);
+    const distanceSq = sourcePos.distanceToSquared(vehiclePos);
 
     return distanceSq < this.ENTER_DISTANCE_SQ;
   }
@@ -978,6 +990,9 @@ export class Engine {
    */
   private checkTierProgression(): void {
     if (!this.player) return;
+
+    // Don't spawn vehicles during Rampage - they'll spawn after exiting
+    if (this.inRampageDimension) return;
 
     // Determine current effective tier (what player is riding or has access to)
     const effectiveTier = this.isInVehicle ? this.currentVehicleTier :
@@ -995,7 +1010,7 @@ export class Engine {
         nextTier = Tier.BIKE;
       }
     } else if (effectiveTier === Tier.BIKE) {
-      // On bike: check for moto unlock (1000 score)
+      // On bike: check for moto unlock (1200 score)
       if (this.stats.score >= TIER_CONFIGS[Tier.MOTO].minScore) {
         nextTier = Tier.MOTO;
       }
@@ -1659,6 +1674,86 @@ export class Engine {
     }
   }
 
+  /**
+   * Motorbike stab attack - same as bicycle, cone attack in front
+   */
+  private handleMotorbikeStab(): void {
+    if (!this.vehicle || !this.player) return;
+    // Use bicycle config for stab - same mechanics
+    const cfg = PLAYER_ATTACK_CONFIG.BICYCLE;
+
+    // Stab sound - same as all melee
+    gameAudio.playStab();
+
+    const attackPosition = this.vehicle.getPosition();
+    this._tempVehicleDir.set(0, 0, 1).applyAxisAngle(this._yAxis, this.vehicle.getRotationY());
+
+    const attackRadius = cfg.attackRadius;
+    const damage = cfg.damage;
+    const maxKills = this.stats.combo >= cfg.comboThreshold ? Infinity : cfg.maxKills;
+    const coneAngle = cfg.coneAngle;
+
+    let totalKills = 0;
+    const allKillPositions: THREE.Vector3[] = [];
+
+    if (this.crowd) {
+      const pedResult = this.crowd.damageInRadius(
+        attackPosition,
+        attackRadius,
+        damage,
+        maxKills,
+        this._tempVehicleDir,
+        coneAngle
+      );
+
+      if (pedResult.kills > 0) {
+        const basePoints = SCORING_CONFIG.PEDESTRIAN_MOTORBIKE;
+        const points = this.stats.inPursuit ? basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER : basePoints;
+        const comboMultiplier = this.getComboMultiplier();
+
+        this.stats.score += Math.floor(points * pedResult.kills * comboMultiplier);
+        this.stats.kills += pedResult.kills;
+        this.stats.combo += pedResult.kills;
+        this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
+        this.lastCombatTime = this.stats.gameTime;
+        this.stats.heat = Math.min(SCORING_CONFIG.HEAT_MAX, this.stats.heat + (pedResult.kills * SCORING_CONFIG.HEAT_PER_MOTORBIKE_PED_KILL));
+
+        totalKills += pedResult.kills;
+        allKillPositions.push(...pedResult.positions);
+
+        this.triggerKillNotification('MOTO STAB!', this.stats.inPursuit, Math.floor(points * comboMultiplier));
+      }
+    }
+
+    // Damage cops too
+    if (this.cops) {
+      const copResult = this.cops.damageInRadius(attackPosition, attackRadius, damage, maxKills, this._tempVehicleDir, coneAngle);
+      if (copResult.kills > 0) {
+        const basePoints = SCORING_CONFIG.COP_MOTORBIKE;
+        const points = basePoints * SCORING_CONFIG.PURSUIT_MULTIPLIER;
+        const comboMultiplier = this.getComboMultiplier();
+
+        this.stats.score += Math.floor(points * copResult.kills * comboMultiplier);
+        this.stats.kills += copResult.kills;
+        this.stats.combo += copResult.kills;
+        this.stats.comboTimer = SCORING_CONFIG.COMBO_DURATION;
+        this.lastCombatTime = this.stats.gameTime;
+
+        totalKills += copResult.kills;
+        allKillPositions.push(...copResult.positions);
+
+        this.triggerKillNotification('COP STABBED!', true, Math.floor(points * comboMultiplier));
+      }
+    }
+
+    if (totalKills > 0) {
+      this.emitBloodEffects(allKillPositions, this.vehicle.getPosition(), cfg.particleCount, cfg.decalCount);
+      this.shakeCamera(cfg.cameraShakeMultiplier * totalKills);
+      // Increment blast counter for motorbike special ability
+      this.motorbikeBlastKillCounter += totalKills;
+    }
+  }
+
   private handleMotorbikeBlast(): void {
     if (!this.vehicle || !this.player) return;
     const cfg = PLAYER_ATTACK_CONFIG.MOTORBIKE;
@@ -2163,10 +2258,16 @@ export class Engine {
                 this.handleBicycleAttack();
                 this.player.playBicycleAttack();
               } else if (vehicleType === VehicleType.MOTORBIKE) {
-                // Blast attack only available in rampage mode (10+ combo)
-                if (this.stats.inRampageMode) {
+                // Check if blast is available (every X kills)
+                if (this.motorbikeBlastKillCounter >= Engine.MOTORBIKE_BLAST_KILL_THRESHOLD) {
+                  // Blast attack!
                   this.handleMotorbikeBlast();
                   this.player.playMotorbikeShoot();
+                  this.motorbikeBlastKillCounter = 0; // Reset counter
+                } else {
+                  // Regular stab attack
+                  this.handleMotorbikeStab();
+                  this.player.playBicycleAttack(); // Same stab animation
                 }
               }
             }

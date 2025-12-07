@@ -95,7 +95,6 @@ export const gameAudio = {
       }
     }
     await Promise.all(loadPromises);
-    // Sounds loaded
   },
 
   resume(): Promise<void> {
@@ -139,36 +138,29 @@ export const gameAudio = {
     audioManager.play(SoundId.KNIFE_WHOOSH, { pitch: variedPitch(1.0, 0.15) });
   },
 
-  playKnifeHit(_isCop: boolean, combo = 0): void {
-    // All stab hits use the same flesh stab pool
+  // Universal stab sound - used for all melee attacks (walking, bike, motorbike)
+  playStab(combo = 0): void {
     audioManager.play(randomFrom(KNIFE_STAB_SOUNDS), {
       volume: comboVolume(0.7, combo),
       pitch: variedPitch(1.0, 0.1),
     });
+  },
+
+  // Legacy aliases - all redirect to playStab
+  playKnifeHit(_isCop: boolean, combo = 0): void {
+    this.playStab(combo);
   },
 
   playBicycleSlash(): void {
-    // Use the same flesh stab pool as all other melee attacks
-    audioManager.play(randomFrom(KNIFE_STAB_SOUNDS), {
-      volume: 0.7,
-      pitch: variedPitch(1.0, 0.1),
-    });
+    this.playStab();
   },
 
   playBicycleHit(combo = 0): void {
-    // Use knife stab pool for fleshy impact
-    audioManager.play(randomFrom(KNIFE_STAB_SOUNDS), {
-      volume: comboVolume(0.7, combo),
-      pitch: variedPitch(1.0, 0.1),
-    });
+    this.playStab(combo);
   },
 
-  playMotorbikeShoot(): void {
-    // Use the same flesh stab pool as all other melee attacks
-    audioManager.play(randomFrom(KNIFE_STAB_SOUNDS), {
-      volume: 0.75,
-      pitch: variedPitch(1.0, 0.1),
-    });
+  playMotorbikeStab(): void {
+    this.playStab();
   },
 
   playMotorbikeBlast(): void {
@@ -546,6 +538,21 @@ export const gameAudio = {
     audioManager.stop("rampage_heartbeat", 0.5);
   },
 
+  /**
+   * Stop all looping SFX (for game over / restart)
+   */
+  stopAllLoops(): void {
+    audioManager.stop("taser_loop", 0.1);
+    audioManager.stop("rampage_loop", 0.1);
+    audioManager.stop("rampage_heartbeat", 0.1);
+    audioManager.stop("player_run_loop", 0.1);
+    audioManager.stop("bike_pedal_loop", 0.1);
+    audioManager.stop("motorbike_engine_loop", 0.1);
+    audioManager.stop("car_engine_loop", 0.1);
+    audioManager.stop("truck_engine_loop", 0.1);
+    audioManager.stop("crowd_ambient_loop", 0.1);
+  },
+
   playRampageExit(): void {
     audioManager.play(SoundId.RAMPAGE_EXIT);
   },
@@ -666,7 +673,15 @@ export const gameAudio = {
     SoundId.MUSIC_GAMEPLAY_3, // Outrun Christmas Mayhem 2
     SoundId.MUSIC_GAMEPLAY_4, // Berghain Christmas Mayhem
     SoundId.MUSIC_GAMEPLAY_5, // Berghain Christmas Mayhem 2
+    SoundId.MUSIC_GAMEPLAY_6, // HU God Is Great
+    SoundId.MUSIC_GAMEPLAY_7, // HU Bunker Edit
   ] as const,
+
+  // Per-track start offsets (to skip intros)
+  _trackStartOffsets: {
+    [SoundId.MUSIC_GAMEPLAY_4]: 30, // Berghain Christmas Mayhem - skip intro
+    [SoundId.MUSIC_GAMEPLAY_5]: 45, // Berghain Christmas Mayhem 2 - skip intro
+  } as Record<SoundId, number>,
 
   /**
    * Play menu/loading screen music (random from 2 tracks)
@@ -678,11 +693,14 @@ export const gameAudio = {
 
   /**
    * Play gameplay music (random track)
-   * @param startOffset - Start from this second (to skip intros)
+   * @param startOffset - Start from this second (to skip intros), overrides per-track config
    */
-  playGameplayMusic(startOffset = 0): void {
+  playGameplayMusic(startOffset?: number): void {
+    // Stop menu music immediately (no crossfade) to prevent bleed
+    audioManager.stopMusicImmediate();
     const track = randomFrom([...this._gameplayTracks]);
-    audioManager.playMusic(track, true, startOffset);
+    const offset = startOffset ?? this._trackStartOffsets[track] ?? 0;
+    audioManager.playMusic(track, false, offset);
   },
 
   /**
