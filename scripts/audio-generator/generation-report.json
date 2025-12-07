@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-12-07T15:26:19.111Z",
+  "timestamp": "2025-12-07T15:39:35.857Z",
   "config": {
     "outputFormat": "mp3_44100_128",
     "promptInfluence": 0.3,
     "parallelRequests": 1
   },
-  "elapsed": "4.8s",
+  "elapsed": "4.5s",
   "results": {
     "success": [
       {
